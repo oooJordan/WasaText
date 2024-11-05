@@ -1,0 +1,975 @@
+openapi: 3.0.3
+info:
+  title: WASATEXT
+  version: "1.0.0"
+  description: |-
+    API for the WASAText messaging application
+
+components:
+  
+  securitySchemes:
+    secAuth:
+      type: http
+      scheme: bearer
+
+  schemas:
+    conversationID:
+      type: integer
+      minimum: 0
+      maximum: 9999
+      readOnly: true
+      example:
+        ConversationID: 823
+
+    Image:
+      description: Object that represent an image
+      type: object
+      properties:
+        url:
+          type: string
+          format: uri
+          example: "https://example.com/path/to/image.png"
+
+    updateImage:
+      type: object
+      properties:
+        imageID:
+          $ref: "#/components/schemas/Image"
+      required:
+        - imageID
+
+    Timestamp:
+      type: string
+      format: date-time
+
+    Name:
+      type: string
+      example: "Matteo"
+      pattern: '^.*?$'
+      minLength: 3
+      maxLength: 16
+
+    UserIdentifier:
+      description: this object represents a user's ID
+      type: integer
+      minimum: 0
+      maximum: 9999
+      readOnly: true
+      example:
+        UserIdentifier: 999
+
+    MessageIdentifier:
+      type: integer
+      minimum: 0
+      maximum: 9999
+      readOnly: true
+      example:
+        MessageIdentifier: 888
+
+    CommentIdentifier:
+      type: integer
+      minimum: 0
+      maximum: 9999
+      readOnly: true
+      example:
+        CommentIdentifier: 203
+
+    User:
+      description: this object represents a user
+      type: object
+      properties:
+        user_id:
+          $ref: "#/components/schemas/UserIdentifier"
+        nickname:
+          $ref: "#/components/schemas/Name"
+      example:
+        user_id: 222
+        username: "Matteo"
+
+    UsersList:
+      description: List of users
+      type: object
+      properties:
+        users:
+          description: List of users
+          type: array
+          minItems: 0
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/User"
+          example:
+            - user_id: 333
+              username: "Matteo"
+            - user_id: 444
+              username: "Jordan"
+
+  responses:
+    Error400:
+      description: Bad request, invalid input parameters
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "Invalid query parameter"
+
+    Error401:
+      description: Unauthorized, user must be logged in
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "authentication required"
+
+    Error403:
+      description: Forbidden, the user does not have permission
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "User does not have permission"
+
+    Error404:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "Requested resource not found"
+
+    Error409:
+      description: Conflict, resource already exists or is in use
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "Conflict: username already in use"
+
+    Error422:
+      description: Unprocessable Entity, invalid input format
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "Invalid emoji format"
+
+    Error500:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "Error during recovery conversation"
+    
+#LOGIN UTENTE ATTRAVERSO USERNAME
+paths:
+  /session:
+    post:
+      tags: ["login"]
+      summary: Login the user
+      description: |-
+        If the user doesn't exist, it will be created, and an identifier is returned.
+        If the user exists, the user identifier is returned.
+      operationId: doLogin
+      requestBody:
+        description: |-
+          User details
+        required: true
+        content:
+          application/json: 
+            schema:
+              type: object
+              properties:
+                name:
+                  $ref: "#/components/schemas/Name"
+      responses:
+        '201':
+          description: |-
+            User log-in action successful
+          content: 
+            application/json:
+              schema:
+                type: object
+                properties: 
+                  identifier: 
+                    $ref: "#/components/schemas/UserIdentifier"
+        '400':
+          $ref: "#/components/responses/Error400"
+        '500':
+          $ref: "#/components/responses/Error500"
+    
+    #MODIFICA USERNAME UTENTE
+    put:
+      tags: ["login"]
+      summary: Update user username
+      description: |-
+        Allows the user to update their username. If the new username is already in use by another user, an error message will be sent.
+      operationId: setMyUserName
+      requestBody:
+        description: |-
+          New username to be set for the user.
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                newUserName:
+                  $ref: "#/components/schemas/Name"
+      responses:
+        '200':
+          description: |-
+            Username updated successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  messages:
+                    type: string
+                    example: "Username updated from Matteo to MatteoNew"
+        '400':
+          $ref: "#/components/responses/Error400"
+        '401':
+          $ref: "#/components/responses/Error401"
+        '409':
+          $ref: "#/components/responses/Error409"
+        '422':
+          $ref: "#/components/responses/Error422"
+        '500':
+          $ref: "#/components/responses/Error500"
+      security:
+        - secAuth: []
+
+  #MODIFICA IMMAGINE DI PROFILO UTENTE
+  /session/{userID}/photoProfile:
+    put: 
+      tags: ["login"]
+      summary: Update photo profile of the utent
+      description: |-
+        Allows the user to update their profile image.
+      operationId: setMyProfileImage
+      parameters:
+        - name: userID
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/UserIdentifier"
+        
+      requestBody:
+        description: |-
+          New profile image to be set for the user
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/updateImage"
+      responses:
+        '200':
+          description: |-
+            Profile image updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  messages:
+                    type: string
+                    example: "Profile image updated successfully."
+        '400':
+          $ref: "#/components/responses/Error400"
+        '401':
+          $ref: "#/components/responses/Error401"
+        '422':
+          $ref: "#/components/responses/Error422"
+        '500':
+          $ref: "#/components/responses/Error500"
+      security:
+        - secAuth: []
+
+  
+  #RICERCA UTENTE NELL'APP ATTRAVERSO USERNAME
+  /users:
+    get:
+      tags: ["user"]
+      summary: List all users
+      description: Returns a list of all users in the application, with an optional filter by username
+      operationId: searchUsers
+      parameters:
+        - name: username
+          in: query
+          required: false
+          description: The username to filter the list of users
+          schema:
+            $ref: "#/components/schemas/Name"
+      responses:
+        '200':
+          description: A list of users has been successfully retrieved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UsersList"
+        '400':
+          $ref: "#/components/responses/Error400"
+        '404':
+          $ref: "#/components/responses/Error404"
+        '500':
+          $ref: "#/components/responses/Error500"
+      security:
+        - secAuth: []
+
+  #LISTA TUTTE CONVERSAZIONI DELL'UTENTE
+  /conversation:
+    get:
+      tags: ["conversation"]
+      summary: User's conversation list
+      description: |-
+        Shows the user's entire conversation list after login
+      operationId: getMyConversations
+      responses:
+        '200':
+          description: |-
+            List of conversations obtained
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    conversationID:
+                      $ref: "#/components/schemas/conversationID"
+                    lastMessage:
+                      type: string
+                      example: "ciao, come stai?"
+                    timestamp:
+                      $ref: "#/components/schemas/Timestamp"
+                    StatusMessageRead:
+                      type: boolean
+                      example: false
+                    profileImage:
+                      $ref: "#/components/schemas/Image"
+                    nameChat:
+                      type: string
+                      example: "Family"
+        '204':
+          description: |-
+            The request has been made but there aren't conversations to view
+        '401':
+          $ref: "#/components/responses/Error401"
+        '500':
+          $ref: "#/components/responses/Error500"
+      security:
+        - secAuth: []
+
+  #INIZIA UNA NUOVA CONVERSAZIONE (CHATPRIVATA O GRUPPO)
+    post:
+      tags: ["conversation"]
+      summary: Start a new conversation
+      description: |-
+        Start a new conversation with a user or create a group if multiple users are provided
+      operationId: startConversation
+      requestBody:
+        description: |-
+          Details for starting a new conversation
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                chatType:
+                  type: string
+                  enum: [privateChat, groupChat] #tipo di chat che voglio creare
+                  description: |-
+                    Type of conversation I want to create
+                  example: "groupChat"
+                ImageGroup:
+                  $ref: "#/components/schemas/Image"
+                authorId:
+                  $ref: "#/components/schemas/UserIdentifier"
+                  description: |-
+                    ID of the user starting the conversation.
+                usersId:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/UserIdentifier"
+                  description: |- 
+                    Array with usersId.
+                    If the usersId is one, a private chat is created.
+                    If the usersId is at least two, a group is created.
+                  minItems: 1  #elementi array min 1
+                startMessage:
+                  type: string
+                  description: |-
+                    Initial message to be sent in the conversation
+                  example: "Hello!"
+              required:
+                - chatType
+                - usersId
+                - authorId
+                - startMessage
+      responses:
+        '201':
+          description: |-
+            conversation created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  conversationID:
+                    $ref: "#/components/schemas/conversationID"
+                  feedback:
+                    type: string
+                    example: "private chat or group created"
+        '400':
+          $ref: "#/components/responses/Error400"
+        '401':
+          $ref: "#/components/responses/Error401"
+        '500':
+          $ref: "#/components/responses/Error500"
+      security:
+        - secAuth: []
+
+#QUI POSSO VEDERE LA CRONOLOGIA DELLE CONVERSAZIONI
+  /conversation/{conversationId}:
+      get:
+        tags: ["conversation"]
+        summary: Viewing message history
+        description: |-
+          A user can view the message history of a conversation or a group
+        operationId: getConversation
+        parameters:
+          - name: conversationId
+            in: path
+            required: true
+            schema:
+              $ref: "#/components/schemas/conversationID"
+          - name: chatType
+            in: query
+            required: true
+            schema:
+              type: string
+              enum: [privateChat, groupChat]
+            description: |-
+              Type of conversation, used to indicate if the conversation is a private chat or group chat
+            example: "groupChat"
+        responses:
+          '200':
+            description: |-
+              The view with the details of the entire conversation has been performed
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    messages:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          sender:
+                            type: string
+                            example: "Matteo"
+                          timestamp:
+                            $ref: "#/components/schemas/Timestamp"
+                          contentType:
+                            type: string
+                            enum: [text, image, text_with_image]
+                            example: "text_with_image"
+                          content:
+                            type: string
+                            example: "ciao, come stai?"
+                          imageUrl:
+                            $ref: "#/components/schemas/Image"
+                          StatusMessageRead:
+                            type: boolean
+                            example: false
+                          emoji:
+                            $ref: "#/components/schemas/CommentIdentifier"
+          '401':
+            $ref: "#/components/responses/Error401"
+          '404':
+            $ref: "#/components/responses/Error404"
+          '500':
+            $ref: "#/components/responses/Error500"
+        security:
+        - secAuth: []
+
+      #INVIO DI UN NUOVO MESSAGGIO (DI TESTO, GIF O ENTRAMBI)
+      post:
+        tags: ["conversation"]
+        summary: Send new message
+        operationId: sendMessage
+        parameters:
+          - name: conversationId
+            in: path
+            required: true
+            schema:
+              $ref: "#/components/schemas/conversationID"
+        requestBody:
+          description: |-
+            Content of the message, which may include optional media files
+          required: true
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:             
+                  senderId:
+                    description: UserId of the user sending the message
+                    $ref: "#/components/schemas/UserIdentifier"
+                  content:
+                    type: string
+                    description: |-
+                      Content of the message (optional if media is provided)
+                    example: "Look this gif!"
+                    nullable: true  # quando invio una foto posso mettere o non mettere un messaggio
+                  media:
+                    type: string
+                    enum: [text, gif, gifWithText]  # Enum per il tipo di media
+                    example: gif
+                    description: |-
+                      Type of media being sent with the message. Can be text, gif, or gifWithText
+                  Image:
+                     $ref: "#/components/schemas/Image"
+                  timestamp:
+                    $ref: "#/components/schemas/Timestamp"
+                required:
+                  - conversationId
+                  - senderId
+                  - media 
+
+        responses:
+          '201':
+            description: |-
+              Message sent successfully
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties: 
+                    messageId:
+                      $ref: "#/components/schemas/MessageIdentifier"
+          '400':
+            $ref: "#/components/responses/Error400"
+          '401':
+            $ref: "#/components/responses/Error401"
+          '500':
+            $ref: "#/components/responses/Error500"
+        security:
+        - secAuth: []
+
+  #INOLTRA UN MESSAGGIO
+  /conversation/{conversationId}/{messageId}/forward:
+    post:
+      tags: ["messages"]
+      summary: Forwards a specific message
+      description: Forwards a specific message from one conversation to another conversation or group chat
+      operationId: forwardMessage
+      parameters:
+        - name: conversationId
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/conversationID"
+          description: The ID of the original conversation (chat1) from which the message will be forwarded
+        - name: messageId
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/MessageIdentifier"
+          description: The ID of the message to be forwarded
+        - name: finalConversationId
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/conversationID"
+          description: The ID of the target conversation (chat2) where the message will be forwarded
+      responses:
+        '200':
+          description: Message forwarded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  forwardedMessageId:
+                    $ref: "#/components/schemas/MessageIdentifier"
+                  feedback:
+                    type: string
+                    example: "Message forwarded successfully"
+        '400':
+          $ref: "#/components/responses/Error400"
+        '401':
+          $ref: "#/components/responses/Error401"
+        '404':
+          $ref: "#/components/responses/Error404"
+        '500':
+          $ref: "#/components/responses/Error500"
+      security:
+        - secAuth: []
+
+  #AGGIUNGE UNA REACTION
+  /conversation/{conversationId}/{messageId}/comment:
+    post:
+      tags: ["messages"]
+      summary: Add comment (emoji reaction) to a message
+      description: |-
+        Adds a comment on an existing message with an emoji reaction. 
+        The reaction doesn't modify the original message, and users can react to a message with one emoji.
+      operationId: commentMessage
+      parameters:
+        - name: conversationId
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/conversationID"
+        - name: messageId
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/MessageIdentifier"
+      requestBody:
+        description: |-
+          Details of the emoji reaction to be added to the message
+        required: true
+        content: 
+          application/json:
+            schema: 
+              type: object
+              properties:
+                userId:
+                  $ref: "#/components/schemas/UserIdentifier" 
+                emoji:
+                  type: string
+                  description: |-
+                    Unicode code for emoji
+                  example: "U+1F33C"
+              required: 
+                - userId 
+                - emoji
+      responses:
+        '201':
+          description: |-
+            Reaction added successfully           
+          content:
+            application/json:
+              schema: 
+                type: object
+                properties:
+                  commentId:
+                    $ref: "#/components/schemas/CommentIdentifier"
+                  messageId:
+                    $ref: "#/components/schemas/MessageIdentifier"
+                  statusReaction:
+                    type: string
+                    example: "reaction added"
+        '400':
+          $ref: "#/components/responses/Error400"
+        '401':
+          $ref: "#/components/responses/Error401"
+        '404':
+          $ref: "#/components/responses/Error404"
+        '422':
+          $ref: "#/components/responses/Error422"
+        '500':
+          $ref: "#/components/responses/Error500"
+      security:
+        - secAuth: []
+
+  #ELIMINA UNA RECTION DA UN MESSAGGIO SPECIFICO
+  /conversation/{conversationId}/{messageId}/comment/{commentId}:
+    delete:
+      tags: ["messages"]
+      summary: Remove reaction (emoji) from a message
+      description: |-
+        Removes a previously added reaction (emoji) from a specified message.
+        Only the user who added the reaction can remove it.
+      operationId: uncommentMessage
+      parameters:
+        - name: conversationId
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/conversationID"
+        - name: messageId
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/MessageIdentifier"
+        - name: commentId
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/CommentIdentifier"
+        - name: userId
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/UserIdentifier"
+      responses:
+        '200':
+          description: |-
+            Reaction removed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  messageId:
+                    $ref: "#/components/schemas/MessageIdentifier"
+                  statusReaction:
+                    type: string
+                    example: "reaction removed"
+        '400':
+          $ref: "#/components/responses/Error400"
+        '401':
+          $ref: "#/components/responses/Error401"
+        '403':
+          $ref: "#/components/responses/Error403"
+        '404':
+          $ref: "#/components/responses/Error404"
+        '500':
+          $ref: "#/components/responses/Error500"
+      security:
+        - secAuth: []
+
+  #ELIMINA UN MESSAGGIO SPECIFICO
+  /conversation/{conversationId}/{messageId}/delete:
+    delete:
+      tags: ["messages"]
+      summary: Delete a message
+      description: |-
+        Deletes a message sent by the user.
+        Only the sender of the message can delete it.
+        Once deleted, the message will no longer appear in the conversation.
+      operationId: deleteMessage
+      parameters:
+        - name: conversationId
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/conversationID"
+        - name: messageId
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/MessageIdentifier"
+        - name: UserId
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/UserIdentifier"
+
+      responses:
+        '200':
+          description: |-
+            Message deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusMessageRemoved:
+                    type: string
+                    example: "Message deleted successfully"
+        '400':
+          $ref: "#/components/responses/Error400"
+        '401':
+          $ref: "#/components/responses/Error401"
+        '403':
+          $ref: "#/components/responses/Error403"
+        '404':
+          $ref: "#/components/responses/Error404"
+        '500':
+          $ref: "#/components/responses/Error500"
+      security:
+        - secAuth: []
+
+  # AGGIUNTA DI MEMBRI AD UN GRUPPO GIA ESISTENTE
+  /conversation/{conversationId}/addMembers:
+    post:
+      tags: ["groups"]
+      summary: Add users to a group
+      operationId: addToGroup
+      parameters:
+        - name: conversationId
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/conversationID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UsersList"
+      responses:
+        '200':
+          description: User(s) have been successfully added to the group
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  feedback:
+                    type: string
+                    example: User(s) added to the group successfully
+        '404':
+          $ref: "#/components/responses/Error404"
+        '403':
+          $ref: "#/components/responses/Error403"
+        '400':
+          $ref: "#/components/responses/Error400"
+        '500':
+          $ref: "#/components/responses/Error500"
+      security:
+        - secAuth: []
+
+  /conversation/{conversationId}/leave:
+    post:
+      tags: ["groups"]
+      summary: Leave a group
+      description: |-
+        Allows the user to leave a specified group. If this leaves the group empty, the group will be deleted.
+      operationId: leaveGroup
+      parameters:
+        - name: conversationId
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/conversationID"
+      responses:
+        '200':
+          description: |-
+            Successfully left the group. If you were the last member, the group has been deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  feedback:
+                    type: string
+                    example: You have left the group. If you were the last member, the group has been deleted
+        '400':
+          $ref: "#/components/responses/Error400"
+        '403':
+          $ref: "#/components/responses/Error403"
+        '404':
+          $ref: "#/components/responses/Error404"
+        '500':
+          $ref: "#/components/responses/Error500"
+      security:
+        - secAuth: []
+
+  #MODIFICA NOME DI UN GRUPPO GIA ESISTENTE
+  /conversation/{conversationId}/setGrupName:
+    put:
+      tags: ["groups"]
+      summary: Rename a group
+      description: |-
+        Allows any member of the group to change the group's name.
+      operationId: setGroupName
+      parameters:
+        - name: conversationId
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/conversationID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                newName:
+                  $ref: "#/components/schemas/Name"
+              required:
+                - newName
+      responses:
+        '200':
+          description: Successfully renamed the group
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  feedback:
+                    type: string
+                    example: The group has been renamed to New Group Name
+        '400':
+          $ref: "#/components/responses/Error400"
+        '403':
+          $ref: "#/components/responses/Error403"
+        '404':
+          $ref: "#/components/responses/Error404"
+        '500':
+          $ref: "#/components/responses/Error500"
+      security:
+        - secAuth: []
+  
+  #MODIFICA IMMAGINE DI UN GRUPPO GIA ESISTENTE
+  /conversation/{conversationId}/updateImage:
+    put:
+      tags: ["groups"]
+      summary: Update group image
+      description: |-
+        Allows any member of the group to change the group's image.
+      operationId: setGroupPhoto
+      parameters:
+        - name: conversationId
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/conversationID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/updateImage"
+      responses:
+        '200':
+          description: Successfully updated the group's image
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  feedback:
+                    type: string
+                    example: The group's image has been updated successfully
+        '400':
+          $ref: "#/components/responses/Error400" 
+        '403':
+          $ref: "#/components/responses/Error403"
+        '404':
+          $ref: "#/components/responses/Error404"
+        '500':
+          $ref: "#/components/responses/Error500"
+      security:
+        - secAuth: []
+
