@@ -25,22 +25,10 @@ components:
         ConversationID: 823
 
     Image:
-      description: Object that represent an image
-      type: object
-      properties:
-        ImageCode:
-          description: "binary code of the image"
-          type: string
-          format: binary
-          example: "0010001010101010010101111" 
-
-    updateImage:
-      type: object
-      properties:
-        imageID:
-          $ref: "#/components/schemas/Image"
-      required:
-        - imageID
+      description: "URL representing the location of the image"
+      type: string
+      format: uri
+      example: "https://example.com/images/12345.jpg"
 
     Timestamp:
       type: string
@@ -278,49 +266,83 @@ paths:
       security:
         - bearerAuth: []
 
+  /upload:
+    post:
+      tags: ["upload"]
+      summary: Upload an image
+      description: Uploads an image file and returns a URL
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Image file to upload
+      responses:
+        '201':
+          description: Image uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  imageUrl:
+                    type: string
+                    description: "URL of the uploaded image"
+                    example: "https://example.com/images.jpg"
+        '400':
+          $ref: "#/components/responses/Error400"
+        '500':
+          $ref: "#/components/responses/Error500"
+
   #MODIFICA IMMAGINE DI PROFILO UTENTE
-  /session/{userID}/photoProfile:
-    put: 
+  /session/{userID}/upload:
+    post: 
       tags: ["login"]
-      summary: Update photo profile of the utent
-      description: |-
-        Allows the user to update their profile image.
-      operationId: setMyProfileImage
+      summary: Upload and update user's profile image
+      description: This endpoint allows the user to upload a new profile image, which automatically updates their profile.
+      operationId: uploadProfileImage
       parameters:
         - name: userID
           in: path
           required: true
           schema:
             $ref: "#/components/schemas/UserIdentifier"
-        
+            description: "Unique identifier of the user"
       requestBody:
-        description: |-
-          New profile image to be set for the user
         required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
-              $ref: "#/components/schemas/updateImage"
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: "The profile image file to upload"
       responses:
         '200':
-          description: |-
-            Profile image updated successfully
+          description: Profile image uploaded and updated successfully
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  messages:
+                  imageUrl:
+                    $ref: "#/components/schemas/Image"  # Referenza allo schema Image
+                  message:
                     type: string
                     example: "Profile image updated successfully."
         '400':
-          $ref: "#/components/responses/Error400"
+          description: Invalid file format or missing file
         '401':
           $ref: "#/components/responses/Error401"
-        '422':
-          $ref: "#/components/responses/Error422"
         '500':
-          $ref: "#/components/responses/Error500"
+          description: Internal server error
       security:
         - bearerAuth: []
 
@@ -946,13 +968,13 @@ paths:
         - bearerAuth: []
   
   #MODIFICA IMMAGINE DI UN GRUPPO GIA ESISTENTE
-  /conversation/{conversationId}/updateImage:
+  / conversation/{conversationId}/update:
     put:
       tags: ["groups"]
-      summary: Update group image
+      summary: Update image group profile
       description: |-
-        Allows any member of the group to change the group's image.
-      operationId: setGroupPhoto
+        Allows any member of the group to change the group's properties, including the image. The image file must first be uploaded using the /upload endpoint.
+      operationId: updateGroup
       parameters:
         - name: conversationId
           in: path
@@ -964,10 +986,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/updateImage"
+              type: object
+              properties:
+                imageUrl:
+                  $ref: "#/components/schemas/Image"
       responses:
         '200':
-          description: Successfully updated the group's image
+          description: Successfully updated the group's information
           content:
             application/json:
               schema:
@@ -975,7 +1000,7 @@ paths:
                 properties:
                   feedback:
                     type: string
-                    example: The group's image has been updated successfully
+                    example: The group's information has been updated successfully
         '400':
           $ref: "#/components/responses/Error400" 
         '403':
