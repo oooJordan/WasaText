@@ -4,6 +4,9 @@ info:
   version: "1.0.0"
   description: |-
     API for the WASAText messaging application
+  contact:
+    name: Giordana Foglia
+    email: foglia.2046738@studenti.uniroma1.it
 
 components:
   
@@ -25,10 +28,11 @@ components:
       description: Object that represent an image
       type: object
       properties:
-        url:
+        ImageCode:
+          description: "binary code of the image"
           type: string
-          format: uri
-          example: "https://example.com/path/to/image.png"
+          format: binary
+          example: "0010001010101010010101111" 
 
     updateImage:
       type: object
@@ -73,6 +77,19 @@ components:
       readOnly: true
       example:
         CommentIdentifier: 203
+    
+    Comment:
+      type: object
+      properties:
+        CommentIdentifier:
+          $ref: '#/components/schemas/CommentIdentifier'
+        Comment:
+          type: string
+          description: "Unicode code for emoji"
+          example: "U+1F33C"
+      example:
+        CommentIdentifier: 203
+        Comment: "U+1F33C"
 
     User:
       description: this object represents a user
@@ -663,10 +680,7 @@ paths:
                 userId:
                   $ref: "#/components/schemas/UserIdentifier" 
                 emoji:
-                  type: string
-                  description: |-
-                    Unicode code for emoji
-                  example: "U+1F33C"
+                  $ref: '#/components/schemas/Comment'
               required: 
                 - userId 
                 - emoji
