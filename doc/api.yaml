@@ -8,7 +8,7 @@ info:
 components:
   
   securitySchemes:
-    secAuth:
+    bearerAuth:
       type: http
       scheme: bearer
 
@@ -259,7 +259,7 @@ paths:
         '500':
           $ref: "#/components/responses/Error500"
       security:
-        - secAuth: []
+        - bearerAuth: []
 
   #MODIFICA IMMAGINE DI PROFILO UTENTE
   /session/{userID}/photoProfile:
@@ -305,7 +305,7 @@ paths:
         '500':
           $ref: "#/components/responses/Error500"
       security:
-        - secAuth: []
+        - bearerAuth: []
 
   
   #RICERCA UTENTE NELL'APP ATTRAVERSO USERNAME
@@ -336,7 +336,7 @@ paths:
         '500':
           $ref: "#/components/responses/Error500"
       security:
-        - secAuth: []
+        - bearerAuth: []
 
   #LISTA TUTTE CONVERSAZIONI DELL'UTENTE
   /conversation:
@@ -380,7 +380,7 @@ paths:
         '500':
           $ref: "#/components/responses/Error500"
       security:
-        - secAuth: []
+        - bearerAuth: []
 
   #INIZIA UNA NUOVA CONVERSAZIONE (CHATPRIVATA O GRUPPO)
     post:
@@ -450,7 +450,7 @@ paths:
         '500':
           $ref: "#/components/responses/Error500"
       security:
-        - secAuth: []
+        - bearerAuth: []
 
 #QUI POSSO VEDERE LA CRONOLOGIA DELLE CONVERSAZIONI
   /conversation/{conversationId}:
@@ -515,7 +515,7 @@ paths:
           '500':
             $ref: "#/components/responses/Error500"
         security:
-        - secAuth: []
+        - bearerAuth: []
 
       #INVIO DI UN NUOVO MESSAGGIO (DI TESTO, GIF O ENTRAMBI)
       post:
@@ -579,7 +579,7 @@ paths:
           '500':
             $ref: "#/components/responses/Error500"
         security:
-        - secAuth: []
+        - bearerAuth: []
 
   #INOLTRA UN MESSAGGIO
   /conversation/{conversationId}/{messageId}/forward:
@@ -629,7 +629,7 @@ paths:
         '500':
           $ref: "#/components/responses/Error500"
       security:
-        - secAuth: []
+        - bearerAuth: []
 
   #AGGIUNGE UNA REACTION
   /conversation/{conversationId}/{messageId}/comment:
@@ -697,7 +697,7 @@ paths:
         '500':
           $ref: "#/components/responses/Error500"
       security:
-        - secAuth: []
+        - bearerAuth: []
 
   #ELIMINA UNA RECTION DA UN MESSAGGIO SPECIFICO
   /conversation/{conversationId}/{messageId}/comment/{commentId}:
@@ -754,7 +754,7 @@ paths:
         '500':
           $ref: "#/components/responses/Error500"
       security:
-        - secAuth: []
+        - bearerAuth: []
 
   #ELIMINA UN MESSAGGIO SPECIFICO
   /conversation/{conversationId}/{messageId}/delete:
@@ -806,7 +806,7 @@ paths:
         '500':
           $ref: "#/components/responses/Error500"
       security:
-        - secAuth: []
+        - bearerAuth: []
 
   # AGGIUNTA DI MEMBRI AD UN GRUPPO GIA ESISTENTE
   /conversation/{conversationId}/addMembers:
@@ -846,7 +846,7 @@ paths:
         '500':
           $ref: "#/components/responses/Error500"
       security:
-        - secAuth: []
+        - bearerAuth: []
 
   /conversation/{conversationId}/leave:
     post:
@@ -882,7 +882,7 @@ paths:
         '500':
           $ref: "#/components/responses/Error500"
       security:
-        - secAuth: []
+        - bearerAuth: []
 
   #MODIFICA NOME DI UN GRUPPO GIA ESISTENTE
   /conversation/{conversationId}/setGrupName:
@@ -929,7 +929,7 @@ paths:
         '500':
           $ref: "#/components/responses/Error500"
       security:
-        - secAuth: []
+        - bearerAuth: []
   
   #MODIFICA IMMAGINE DI UN GRUPPO GIA ESISTENTE
   /conversation/{conversationId}/updateImage:
@@ -971,5 +971,4 @@ paths:
         '500':
           $ref: "#/components/responses/Error500"
       security:
-        - secAuth: []
-
+        - bearerAuth: []
