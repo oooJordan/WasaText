@@ -265,7 +265,7 @@ paths:
           $ref: "#/components/responses/Error500"
       security:
         - bearerAuth: []
-
+#CARICA UN IMMAGINE E RITORNA L'URL
   /upload:
     post:
       tags: ["upload"]
