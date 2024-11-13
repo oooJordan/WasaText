@@ -296,10 +296,15 @@ paths:
                     example: "https://example.com/images.jpg"
         '400':
           $ref: "#/components/responses/Error400"
+        '413':
+          description: "File too large"
+        '415':
+          description: "Unsupported file type"
+        '422':
+          description: "Unprocessable file"
         '500':
           $ref: "#/components/responses/Error500"
-      security:
-        - bearerAuth: []
+        
 
   #MODIFICA IMMAGINE DI PROFILO UTENTE
   /session/{userID}/profileImage:
@@ -314,6 +319,7 @@ paths:
           required: true
           schema:
             $ref: "#/components/schemas/UserIdentifier"
+            description: "Unique identifier of the user"
       requestBody:
         required: true
         content:
@@ -448,6 +454,8 @@ paths:
                   $ref: "#/components/schemas/Image"
                 authorId:
                   $ref: "#/components/schemas/UserIdentifier"
+                  description: |-
+                    ID of the user starting the conversation.
                 usersId:
                   type: array
                   items:
@@ -576,6 +584,7 @@ paths:
                 type: object
                 properties:             
                   senderId:
+                    description: UserId of the user sending the message
                     $ref: "#/components/schemas/UserIdentifier"
                   content:
                     type: string
