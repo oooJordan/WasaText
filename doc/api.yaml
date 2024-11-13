@@ -301,7 +301,7 @@ paths:
         '415':
           description: "Unsupported file type"
         '422':
-          description: "Unprocessable file"
+          $ref: "#/components/responses/Error422"
         '500':
           $ref: "#/components/responses/Error500"
         
