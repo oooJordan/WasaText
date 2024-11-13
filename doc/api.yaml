@@ -265,7 +265,7 @@ paths:
           $ref: "#/components/responses/Error500"
       security:
         - bearerAuth: []
-#CARICA UN IMMAGINE E RITORNA L'URL
+
   /upload:
     post:
       tags: ["upload"]
@@ -298,9 +298,11 @@ paths:
           $ref: "#/components/responses/Error400"
         '500':
           $ref: "#/components/responses/Error500"
+      security:
+        - bearerAuth: []
 
   #MODIFICA IMMAGINE DI PROFILO UTENTE
-  /session/{userID}/upload:
+  /session/{userID}/profileImage:
     post: 
       tags: ["login"]
       summary: Upload and update user's profile image
@@ -312,11 +314,10 @@ paths:
           required: true
           schema:
             $ref: "#/components/schemas/UserIdentifier"
-            description: "Unique identifier of the user"
       requestBody:
         required: true
         content:
-          multipart/form-data:
+          application/json:
             schema:
               type: object
               properties:
@@ -333,7 +334,7 @@ paths:
                 type: object
                 properties:
                   imageUrl:
-                    $ref: "#/components/schemas/Image"  # Referenza allo schema Image
+                    $ref: "#/components/schemas/Image"
                   message:
                     type: string
                     example: "Profile image updated successfully."
@@ -447,8 +448,6 @@ paths:
                   $ref: "#/components/schemas/Image"
                 authorId:
                   $ref: "#/components/schemas/UserIdentifier"
-                  description: |-
-                    ID of the user starting the conversation.
                 usersId:
                   type: array
                   items:
@@ -577,7 +576,6 @@ paths:
                 type: object
                 properties:             
                   senderId:
-                    description: UserId of the user sending the message
                     $ref: "#/components/schemas/UserIdentifier"
                   content:
                     type: string
@@ -968,7 +966,7 @@ paths:
         - bearerAuth: []
   
   #MODIFICA IMMAGINE DI UN GRUPPO GIA ESISTENTE
-  / conversation/{conversationId}/update:
+  / conversation/{conversationId}/groupImage:
     put:
       tags: ["groups"]
       summary: Update image group profile
