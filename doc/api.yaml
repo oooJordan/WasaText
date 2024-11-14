@@ -7,35 +7,99 @@ info:
   contact:
     name: Giordana Foglia
     email: foglia.2046738@studenti.uniroma1.it
+    
+tags:
+  - name: login
+    description: Endpoint per la gestione del login
+  - name: upload
+    description: Endpoint per la gestione del caricamento immagine
+  - name: user
+    description: Endpoint per ottenere lista utenti
+  - name: conversation
+    description: Endpoint per la gestione delle conversazioni
+  - name: messages
+    description: Endpoint per gestire i messaggi
+  - name: groups
+    description: Endpoint per gestire i gruppi
+
+servers:
+  - url: http://localhost:3000/v1
 
 components:
-  
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
+  parameters:
+    ConversationId:
+      name: conversation_id
+      in: path
+      required: true
+      description: "The unique identifier of the conversation"
+      schema:
+        $ref: "#/components/schemas/ConversationId"
+    
+    MessageId:
+      name: message_id
+      in: path
+      required: true
+      description: "The unique identifier of the message"
+      schema:
+        $ref: "#/components/schemas/MessageIdentifier"
+    
+    CommentId:
+      name: comment_id
+      in: path
+      required: true
+      description: "The unique identifier of the comment"
+      schema:
+        $ref: "#/components/schemas/CommentIdentifier"
+    
+    UserId:
+      name: user_id
+      in: query
+      required: true
+      description: "The unique identifier of the User"
+      schema:
+        $ref: "#/components/schemas/UserIdentifier"
 
   schemas:
-    conversationID:
+    Stringa:
+      type: string
+      description: "represent a message or a comment or a feedback"
+      example: "Ciao, come stai?"
+      pattern: '^.*?$'
+      minLength: 3
+      maxLength: 200
+
+    ConversationId:
       type: integer
+      description: "Unique identifier for the conversation"
       minimum: 0
       maximum: 9999
       readOnly: true
-      example:
-        ConversationID: 823
+      example: 823
 
     Image:
       description: "URL representing the location of the image"
       type: string
-      format: uri
+      format: url
       example: "https://example.com/images/12345.jpg"
+      minLength: 10
+      maxLength: 2048
+      pattern: "^https?:\\/\\/[a-zA-Z0-9_-]+(?:\\.[a-zA-Z0-9_-]+)*(\\/([a-zA-Z0-9_-]+))*\\/[a-zA-Z0-9_-]+\\.[a-zA-Z0-9]{2,4}$"
 
     Timestamp:
+      description: "Date-Time with format gg/mm/aa-oo-mm-ss"
       type: string
+      minLength: 0
+      maxLength: 32
       format: date-time
+      example: "2024-11-02T14:30:00Z"
 
     Name:
       type: string
+      description: "username for an user"
       example: "Matteo"
       pattern: '^.*?$'
       minLength: 3
@@ -47,48 +111,50 @@ components:
       minimum: 0
       maximum: 9999
       readOnly: true
-      example:
-        UserIdentifier: 999
+      example: 999
 
     MessageIdentifier:
       type: integer
+      description: "Unique identifier for the message"
       minimum: 0
       maximum: 9999
       readOnly: true
-      example:
-        MessageIdentifier: 888
+      example: 888
 
     CommentIdentifier:
-      type: integer
-      minimum: 0
-      maximum: 9999
-      readOnly: true
-      example:
-        CommentIdentifier: 203
-    
-    Comment:
       type: object
+      description: "Schema for the unique identifier of the comment's emoji"
       properties:
-        CommentIdentifier:
-          $ref: '#/components/schemas/CommentIdentifier'
-        Comment:
+        emojiId:
+          type: integer
+          description: "Unique identifier for the comment emoji"
+          minimum: 0
+          maximum: 9999
+          readOnly: true
+          example: 203
+    
+    CommentEmoji:
+      type: object
+      description: "Schema for the emoji code associated with a comment"
+      properties:
+        emojiCode:
           type: string
-          description: "Unicode code for emoji"
-          example: "U+1F33C"
-      example:
-        CommentIdentifier: 203
-        Comment: "U+1F33C"
+          description: "Unicode code for the emoji used in the comment"
+          example: "U+276"
+          minLength: 1
+          maxLength: 20
+          pattern: "^[A-Za-z0-9+]+$"
 
     User:
       description: this object represents a user
       type: object
       properties:
-        user_id:
+        userId:
           $ref: "#/components/schemas/UserIdentifier"
         nickname:
           $ref: "#/components/schemas/Name"
       example:
-        user_id: 222
+        userId: 222
         username: "Matteo"
 
     UsersList:
@@ -102,89 +168,34 @@ components:
           maxItems: 100
           items:
             $ref: "#/components/schemas/User"
-          example:
-            - user_id: 333
-              username: "Matteo"
-            - user_id: 444
-              username: "Jordan"
+      required:
+        - users
 
   responses:
     Error400:
       description: Bad request, invalid input parameters
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              error:
-                type: string
-                example: "Invalid query parameter"
 
     Error401:
       description: Unauthorized, user must be logged in
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              error:
-                type: string
-                example: "authentication required"
 
     Error403:
       description: Forbidden, the user does not have permission
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              error:
-                type: string
-                example: "User does not have permission"
 
     Error404:
-      description: Resource not found
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              error:
-                type: string
-                example: "Requested resource not found"
+      description: Requested resource not found
 
     Error409:
       description: Conflict, resource already exists or is in use
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              error:
-                type: string
-                example: "Conflict: username already in use"
+      
+    Error413:
+      description: "File too large"
 
-    Error422:
-      description: Unprocessable Entity, invalid input format
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              error:
-                type: string
-                example: "Invalid emoji format"
-
+    Error415:
+      description: "Unsupported file type"
+      
     Error500:
       description: Internal server error
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              error:
-                type: string
-                example: "Error during recovery conversation"
+      
     
 #LOGIN UTENTE ATTRAVERSO USERNAME
 paths:
@@ -204,6 +215,7 @@ paths:
           application/json: 
             schema:
               type: object
+              description: "username"
               properties:
                 name:
                   $ref: "#/components/schemas/Name"
@@ -215,9 +227,12 @@ paths:
             application/json:
               schema:
                 type: object
+                description: "user id"
                 properties: 
                   identifier: 
                     $ref: "#/components/schemas/UserIdentifier"
+              example:
+                identifier: 377
         '400':
           $ref: "#/components/responses/Error400"
         '500':
@@ -229,7 +244,7 @@ paths:
       summary: Update user username
       description: |-
         Allows the user to update their username. If the new username is already in use by another user, an error message will be sent.
-      operationId: setMyUserName
+      operationId: setMyUsername
       requestBody:
         description: |-
           New username to be set for the user.
@@ -238,8 +253,9 @@ paths:
           application/json:
             schema:
               type: object
+              description: "name update"
               properties:
-                newUserName:
+                newUsername:
                   $ref: "#/components/schemas/Name"
       responses:
         '200':
@@ -249,18 +265,19 @@ paths:
             application/json:
               schema:
                 type: object
+                description: "check feedback"
                 properties:
-                  messages:
-                    type: string
-                    example: "Username updated from Matteo to MatteoNew"
+                  feedback:
+                    $ref: "#/components/schemas/Stringa"
+              example:
+                feedback: "Username updated from Matteo to MatteoNew"
+                  
         '400':
           $ref: "#/components/responses/Error400"
         '401':
           $ref: "#/components/responses/Error401"
         '409':
           $ref: "#/components/responses/Error409"
-        '422':
-          $ref: "#/components/responses/Error422"
         '500':
           $ref: "#/components/responses/Error500"
       security:
@@ -271,65 +288,71 @@ paths:
       tags: ["upload"]
       summary: Upload an image
       description: Uploads an image file and returns a URL
+      operationId: uploadFile
       requestBody:
         required: true
         content:
           multipart/form-data:
             schema:
               type: object
+              description: "image file format"
               properties:
                 file:
                   type: string
                   format: binary
-                  description: Image file to upload
+                  minLength: 1
+                  maxLength: 100000
+                  description: image file to upload
       responses:
         '201':
-          description: Image uploaded successfully
+          description: image uploaded successfully
           content:
             application/json:
               schema:
                 type: object
+                description: "view image uploaded"
                 properties:
                   imageUrl:
-                    type: string
-                    description: "URL of the uploaded image"
-                    example: "https://example.com/images.jpg"
+                    $ref: "#/components/schemas/Image"
+              example:
+                imageUrl: "https://example.com/image.jpg"
         '400':
           $ref: "#/components/responses/Error400"
         '413':
-          description: "File too large"
+          $ref: "#/components/responses/Error413"
         '415':
-          description: "Unsupported file type"
-        '422':
-          $ref: "#/components/responses/Error422"
+          $ref: "#/components/responses/Error415"
         '500':
           $ref: "#/components/responses/Error500"
         
 
   #MODIFICA IMMAGINE DI PROFILO UTENTE
-  /session/{userID}/profileImage:
+  /session/{user_id}/profile_image:
     post: 
       tags: ["login"]
       summary: Upload and update user's profile image
       description: This endpoint allows the user to upload a new profile image, which automatically updates their profile.
-      operationId: uploadProfileImage
+      operationId: uploadProfileimage
       parameters:
-        - name: userID
+        - name: user_id
           in: path
           required: true
+          description: "User Identifier"
           schema:
             $ref: "#/components/schemas/UserIdentifier"
-            description: "Unique identifier of the user"
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
+              description: "Request schema for uploading and updating an image. The user must provide a file containing the image"
               properties:
                 file:
                   type: string
                   format: binary
+                  minLength: 1
+                  maxLength: 1000000
                   description: "The profile image file to upload"
       responses:
         '200':
@@ -338,18 +361,21 @@ paths:
             application/json:
               schema:
                 type: object
+                description: "Response schema for a successfully uploaded and updated profile image"
                 properties:
                   imageUrl:
                     $ref: "#/components/schemas/Image"
-                  message:
-                    type: string
-                    example: "Profile image updated successfully."
+                  feedback:
+                    $ref: "#/components/schemas/Stringa"
+              example: 
+                imageUrl: "https://example.com/image.jpg"
+                feedback: "Profile image updated successfully"
         '400':
-          description: Invalid file format or missing file
+          $ref: "#/components/responses/Error400"
         '401':
           $ref: "#/components/responses/Error401"
         '500':
-          description: Internal server error
+          $ref: "#/components/responses/Error500"
       security:
         - bearerAuth: []
 
@@ -375,6 +401,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/UsersList"
+              example:
+                users:
+                  - userId: 333
+                    username: "Matteo"
+                  - userId: 444
+                    username: "Jordan"
         '400':
           $ref: "#/components/responses/Error400"
         '404':
@@ -394,30 +426,52 @@ paths:
       operationId: getMyConversations
       responses:
         '200':
-          description: |-
-            List of conversations obtained
+          description: List of conversations obtained
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    conversationID:
-                      $ref: "#/components/schemas/conversationID"
-                    lastMessage:
-                      type: string
-                      example: "ciao, come stai?"
-                    timestamp:
-                      $ref: "#/components/schemas/Timestamp"
-                    StatusMessageRead:
-                      type: boolean
-                      example: false
-                    profileImage:
-                      $ref: "#/components/schemas/Image"
-                    nameChat:
-                      type: string
-                      example: "Family"
+                type: object
+                description: "conversations"
+                required:
+                  - conversation
+                properties:
+                  conversation:
+                    type: array
+                    description: "Array of conversations"
+                    minItems: 1
+                    maxItems: 100
+                    items:
+                      type: object
+                      properties:
+                        conversationId:
+                          $ref: "#/components/schemas/ConversationId"
+                        lastMessage:
+                          $ref: "#/components/schemas/Stringa"
+                        timestamp:
+                          $ref: "#/components/schemas/Timestamp"
+                        statusMessageRead:
+                          type: boolean
+                          description: "Status of whether the message has been read"
+                          example: false
+                        profileimage:
+                          $ref: "#/components/schemas/Image"
+                        nameChat:
+                          $ref: "#/components/schemas/Name"
+              example:
+                conversation:  # This is where the collection of conversations goes
+                  - conversationId: 124
+                    lastMessage: "Ciao, come stai?"
+                    timestamp: "2024-11-13T12:30:00Z"
+                    statusMessageRead: false
+                    profileimage: "https://example.com/image.jpg"
+                    nameChat: "Family"
+                  - conversationId: 123
+                    lastMessage: "bella foto"
+                    timestamp: "2024-11-13T12:30:00Z"
+                    statusMessageRead: true
+                    profileimage: "https://example.com/image2.jpg"
+                    nameChat: "Fede"
+
         '204':
           description: |-
             The request has been made but there aren't conversations to view
@@ -438,43 +492,42 @@ paths:
       requestBody:
         description: |-
           Details for starting a new conversation
-        required: true
         content:
           application/json:
             schema:
               type: object
+              description: "type of chat"
               properties:
                 chatType:
                   type: string
-                  enum: [privateChat, groupChat] #tipo di chat che voglio creare
+                  enum: [private_chat, group_chat] #tipo di chat che voglio creare
                   description: |-
                     Type of conversation I want to create
-                  example: "groupChat"
-                ImageGroup:
+                  example: "group_chat"
+                imageGroup:
                   $ref: "#/components/schemas/Image"
                 authorId:
                   $ref: "#/components/schemas/UserIdentifier"
-                  description: |-
-                    ID of the user starting the conversation.
                 usersId:
                   type: array
+                  description: "User identifier"
                   items:
-                    $ref: "#/components/schemas/UserIdentifier"
-                  description: |- 
-                    Array with usersId.
-                    If the usersId is one, a private chat is created.
-                    If the usersId is at least two, a group is created.
-                  minItems: 1  #elementi array min 1
+                    type: object
+                    properties:
+                      user:
+                        $ref: "#/components/schemas/UserIdentifier"
+                  minItems: 1
+                  maxItems: 50
                 startMessage:
-                  type: string
-                  description: |-
-                    Initial message to be sent in the conversation
-                  example: "Hello!"
+                  $ref: "#/components/schemas/Stringa"
+                groupName:
+                  $ref: "#/components/schemas/Stringa"
               required:
                 - chatType
                 - usersId
                 - authorId
                 - startMessage
+        required: true
       responses:
         '201':
           description: |-
@@ -483,23 +536,30 @@ paths:
             application/json:
               schema:
                 type: object
+                description: "view of the chat"
                 properties:
-                  conversationID:
-                    $ref: "#/components/schemas/conversationID"
-                  feedback:
-                    type: string
-                    example: "private chat or group created"
+                  convId:
+                    $ref: "#/components/schemas/ConversationId"
+                  startMessageId:
+                    $ref: "#/components/schemas/MessageIdentifier"
+              example:
+                convId: 12
+                startMessageId: 33
         '400':
           $ref: "#/components/responses/Error400"
         '401':
           $ref: "#/components/responses/Error401"
+        '403':
+          $ref: "#/components/responses/Error403"
         '500':
           $ref: "#/components/responses/Error500"
       security:
         - bearerAuth: []
 
 #QUI POSSO VEDERE LA CRONOLOGIA DELLE CONVERSAZIONI
-  /conversation/{conversationId}:
+  /conversation/{conversation_id}:
+      parameters:
+      - $ref: "#/components/parameters/ConversationId"
       get:
         tags: ["conversation"]
         summary: Viewing message history
@@ -507,20 +567,14 @@ paths:
           A user can view the message history of a conversation or a group
         operationId: getConversation
         parameters:
-          - name: conversationId
-            in: path
-            required: true
-            schema:
-              $ref: "#/components/schemas/conversationID"
-          - name: chatType
+          - name: chat_type
             in: query
             required: true
             schema:
               type: string
-              enum: [privateChat, groupChat]
+              enum: [private_chat, group_chat]
             description: |-
               Type of conversation, used to indicate if the conversation is a private chat or group chat
-            example: "groupChat"
         responses:
           '200':
             description: |-
@@ -529,31 +583,54 @@ paths:
               application/json:
                 schema:
                   type: object
+                  description: "all messages with details"
+                  required:
+                    - messages
                   properties:
                     messages:
                       type: array
+                      minItems: 1
+                      maxItems: 200
+                      description: "An array of messages in the conversation. Each message contains details about the sender, content, and status"
                       items:
                         type: object
+                        description: "specific to the message"
+                        required:
+                          - sender
+                          - timestamp
+                          - contentType
                         properties:
                           sender:
-                            type: string
-                            example: "Matteo"
+                            $ref: "#/components/schemas/Name"
                           timestamp:
                             $ref: "#/components/schemas/Timestamp"
                           contentType:
                             type: string
                             enum: [text, image, text_with_image]
+                            description: "The type of content in the message. Can be 'text', 'image', or 'text_with_image'"
                             example: "text_with_image"
                           content:
-                            type: string
-                            example: "ciao, come stai?"
+                            $ref: "#/components/schemas/Stringa"
                           imageUrl:
                             $ref: "#/components/schemas/Image"
-                          StatusMessageRead:
+                          statusMessageRead:
                             type: boolean
                             example: false
+                            description: "Indicates whether the message has been read by the recipient (true if read, false if not)"
                           emoji:
                             $ref: "#/components/schemas/CommentIdentifier"
+                example:
+                  messages:
+                    - sender: "John Doe"
+                      timestamp: "2024-11-13T12:00:00Z"
+                      contentType: "text_with_image"
+                      content: "ciao, come stai?"
+                      imageUrl: "https://example.com/image.jpg"
+                      statusMessageRead: false
+                      emoji:
+                        id: 290
+                        unicode: "😊"
+                        
           '401':
             $ref: "#/components/responses/Error401"
           '404':
@@ -568,12 +645,7 @@ paths:
         tags: ["conversation"]
         summary: Send new message
         operationId: sendMessage
-        parameters:
-          - name: conversationId
-            in: path
-            required: true
-            schema:
-              $ref: "#/components/schemas/conversationID"
+        description: Send a new message (text, gif or gif+text)
         requestBody:
           description: |-
             Content of the message, which may include optional media files
@@ -582,28 +654,23 @@ paths:
             application/json:
               schema:
                 type: object
+                description: "message costruct"
                 properties:             
                   senderId:
-                    description: UserId of the user sending the message
                     $ref: "#/components/schemas/UserIdentifier"
                   content:
-                    type: string
-                    description: |-
-                      Content of the message (optional if media is provided)
-                    example: "Look this gif!"
-                    nullable: true  # quando invio una foto posso mettere o non mettere un messaggio
+                    $ref: "#/components/schemas/Stringa"
                   media:
                     type: string
-                    enum: [text, gif, gifWithText]  # Enum per il tipo di media
+                    enum: [text, gif, gif_with_text]  # Enum per il tipo di media
                     example: gif
                     description: |-
                       Type of media being sent with the message. Can be text, gif, or gifWithText
-                  Image:
+                  image:
                      $ref: "#/components/schemas/Image"
                   timestamp:
                     $ref: "#/components/schemas/Timestamp"
                 required:
-                  - conversationId
                   - senderId
                   - media 
 
@@ -615,9 +682,12 @@ paths:
               application/json:
                 schema:
                   type: object
+                  description: "specified message"
                   properties: 
                     messageId:
                       $ref: "#/components/schemas/MessageIdentifier"
+                example:
+                  messageId: 718
           '400':
             $ref: "#/components/responses/Error400"
           '401':
@@ -628,31 +698,21 @@ paths:
         - bearerAuth: []
 
   #INOLTRA UN MESSAGGIO
-  /conversation/{conversationId}/{messageId}/forward:
+  /conversation/{conversation_id}/messages/{message_id}/forward:
     post:
       tags: ["messages"]
       summary: Forwards a specific message
       description: Forwards a specific message from one conversation to another conversation or group chat
       operationId: forwardMessage
       parameters:
-        - name: conversationId
-          in: path
-          required: true
-          schema:
-            $ref: "#/components/schemas/conversationID"
-          description: The ID of the original conversation (chat1) from which the message will be forwarded
-        - name: messageId
-          in: path
-          required: true
-          schema:
-            $ref: "#/components/schemas/MessageIdentifier"
-          description: The ID of the message to be forwarded
-        - name: finalConversationId
+        - $ref: "#/components/parameters/ConversationId"
+        - $ref: "#/components/parameters/MessageId"
+        - name: final_conversation_id
           in: query
           required: true
+          description: "The unique identifier of the final conversation"
           schema:
-            $ref: "#/components/schemas/conversationID"
-          description: The ID of the target conversation (chat2) where the message will be forwarded
+            $ref: "#/components/schemas/ConversationId"
       responses:
         '200':
           description: Message forwarded successfully
@@ -660,12 +720,14 @@ paths:
             application/json:
               schema:
                 type: object
+                description: "feedback status comment on message"
                 properties:
                   forwardedMessageId:
                     $ref: "#/components/schemas/MessageIdentifier"
                   feedback:
-                    type: string
-                    example: "Message forwarded successfully"
+                    $ref: "#/components/schemas/Stringa"
+              example: 
+                feedback: "Message forwarded successfully"
         '400':
           $ref: "#/components/responses/Error400"
         '401':
@@ -676,9 +738,50 @@ paths:
           $ref: "#/components/responses/Error500"
       security:
         - bearerAuth: []
+  #ELIMINA UN MESSAGGIO SPECIFICO
+  /conversation/{conversation_id}/messages/{message_id}/delete:
+    delete:
+      tags: ["messages"]
+      summary: Delete a message
+      description: |-
+        Deletes a message sent by the user.
+        Only the sender of the message can delete it.
+        Once deleted, the message will no longer appear in the conversation.
+      operationId: deleteMessage
+      parameters:
+        - $ref: "#/components/parameters/ConversationId"
+        - $ref: "#/components/parameters/MessageId"
+        - $ref: "#/components/parameters/UserId"
+
+      responses:
+        '200':
+          description: |-
+            Message deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                description: "status message"
+                properties:
+                  feedback:
+                    $ref: "#/components/schemas/Stringa"
+              example: 
+                feedback: "Message deleted successfully"
+        '400':
+          $ref: "#/components/responses/Error400"
+        '401':
+          $ref: "#/components/responses/Error401"
+        '403':
+          $ref: "#/components/responses/Error403"
+        '404':
+          $ref: "#/components/responses/Error404"
+        '500':
+          $ref: "#/components/responses/Error500"
+      security:
+        - bearerAuth: []
 
   #AGGIUNGE UNA REACTION
-  /conversation/{conversationId}/{messageId}/comment:
+  /conversation/{conversation_id}/messages/{message_id}/comment:
     post:
       tags: ["messages"]
       summary: Add comment (emoji reaction) to a message
@@ -687,16 +790,8 @@ paths:
         The reaction doesn't modify the original message, and users can react to a message with one emoji.
       operationId: commentMessage
       parameters:
-        - name: conversationId
-          in: path
-          required: true
-          schema:
-            $ref: "#/components/schemas/conversationID"
-        - name: messageId
-          in: path
-          required: true
-          schema:
-            $ref: "#/components/schemas/MessageIdentifier"
+        - $ref: "#/components/parameters/ConversationId"
+        - $ref: "#/components/parameters/MessageId"
       requestBody:
         description: |-
           Details of the emoji reaction to be added to the message
@@ -705,11 +800,12 @@ paths:
           application/json:
             schema: 
               type: object
+              description: "add an emoji on a message"
               properties:
                 userId:
                   $ref: "#/components/schemas/UserIdentifier" 
                 emoji:
-                  $ref: '#/components/schemas/Comment'
+                  $ref: '#/components/schemas/CommentEmoji'
               required: 
                 - userId 
                 - emoji
@@ -721,29 +817,29 @@ paths:
             application/json:
               schema: 
                 type: object
+                description: "status reaction"
                 properties:
                   commentId:
                     $ref: "#/components/schemas/CommentIdentifier"
                   messageId:
                     $ref: "#/components/schemas/MessageIdentifier"
-                  statusReaction:
-                    type: string
-                    example: "reaction added"
+                  feedback:
+                    $ref: "#/components/schemas/Stringa"
+              example: 
+                feedback: "reaction added"
         '400':
           $ref: "#/components/responses/Error400"
         '401':
           $ref: "#/components/responses/Error401"
         '404':
           $ref: "#/components/responses/Error404"
-        '422':
-          $ref: "#/components/responses/Error422"
         '500':
           $ref: "#/components/responses/Error500"
       security:
         - bearerAuth: []
 
   #ELIMINA UNA RECTION DA UN MESSAGGIO SPECIFICO
-  /conversation/{conversationId}/{messageId}/comment/{commentId}:
+  /conversation/{conversation_id}/messages/{message_id}/comment/{comment_id}:
     delete:
       tags: ["messages"]
       summary: Remove reaction (emoji) from a message
@@ -752,26 +848,10 @@ paths:
         Only the user who added the reaction can remove it.
       operationId: uncommentMessage
       parameters:
-        - name: conversationId
-          in: path
-          required: true
-          schema:
-            $ref: "#/components/schemas/conversationID"
-        - name: messageId
-          in: path
-          required: true
-          schema:
-            $ref: "#/components/schemas/MessageIdentifier"
-        - name: commentId
-          in: path
-          required: true
-          schema:
-            $ref: "#/components/schemas/CommentIdentifier"
-        - name: userId
-          in: query
-          required: true
-          schema:
-            $ref: "#/components/schemas/UserIdentifier"
+        - $ref: "#/components/parameters/ConversationId"
+        - $ref: "#/components/parameters/MessageId"
+        - $ref: "#/components/parameters/CommentId"
+        - $ref: "#/components/parameters/UserId"
       responses:
         '200':
           description: |-
@@ -780,12 +860,14 @@ paths:
             application/json:
               schema:
                 type: object
+                description: "status reaction"
                 properties:
                   messageId:
                     $ref: "#/components/schemas/MessageIdentifier"
-                  statusReaction:
-                    type: string
-                    example: "reaction removed"
+                  feedback:
+                    $ref: "#/components/schemas/Stringa"
+              example: 
+                feedback: "reaction removed"
         '400':
           $ref: "#/components/responses/Error400"
         '401':
@@ -799,70 +881,16 @@ paths:
       security:
         - bearerAuth: []
 
-  #ELIMINA UN MESSAGGIO SPECIFICO
-  /conversation/{conversationId}/{messageId}/delete:
-    delete:
-      tags: ["messages"]
-      summary: Delete a message
-      description: |-
-        Deletes a message sent by the user.
-        Only the sender of the message can delete it.
-        Once deleted, the message will no longer appear in the conversation.
-      operationId: deleteMessage
-      parameters:
-        - name: conversationId
-          in: path
-          required: true
-          schema:
-            $ref: "#/components/schemas/conversationID"
-        - name: messageId
-          in: path
-          required: true
-          schema:
-            $ref: "#/components/schemas/MessageIdentifier"
-        - name: UserId
-          in: query
-          required: true
-          schema:
-            $ref: "#/components/schemas/UserIdentifier"
-
-      responses:
-        '200':
-          description: |-
-            Message deleted successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  statusMessageRemoved:
-                    type: string
-                    example: "Message deleted successfully"
-        '400':
-          $ref: "#/components/responses/Error400"
-        '401':
-          $ref: "#/components/responses/Error401"
-        '403':
-          $ref: "#/components/responses/Error403"
-        '404':
-          $ref: "#/components/responses/Error404"
-        '500':
-          $ref: "#/components/responses/Error500"
-      security:
-        - bearerAuth: []
-
+  
   # AGGIUNTA DI MEMBRI AD UN GRUPPO GIA ESISTENTE
-  /conversation/{conversationId}/addMembers:
+  /conversation/{conversation_id}/names:
     post:
       tags: ["groups"]
       summary: Add users to a group
+      description: "This endpoint adds one or more users to a specific group conversation based on the conversation ID"
       operationId: addToGroup
       parameters:
-        - name: conversationId
-          in: path
-          required: true
-          schema:
-            $ref: "#/components/schemas/conversationID"
+        - $ref: "#/components/parameters/ConversationId"
       requestBody:
         required: true
         content:
@@ -876,10 +904,12 @@ paths:
             application/json:
               schema:
                 type: object
+                description: "user enter status"
                 properties:
                   feedback:
-                    type: string
-                    example: User(s) added to the group successfully
+                    $ref: "#/components/schemas/Stringa"
+              example: 
+                feedback: "User(s) added to the group successfully."
         '404':
           $ref: "#/components/responses/Error404"
         '403':
@@ -891,7 +921,7 @@ paths:
       security:
         - bearerAuth: []
 
-  /conversation/{conversationId}/leave:
+  /conversation/{conversation_id}/leave:
     post:
       tags: ["groups"]
       summary: Leave a group
@@ -899,11 +929,7 @@ paths:
         Allows the user to leave a specified group. If this leaves the group empty, the group will be deleted.
       operationId: leaveGroup
       parameters:
-        - name: conversationId
-          in: path
-          required: true
-          schema:
-            $ref: "#/components/schemas/conversationID"
+        - $ref: "#/components/parameters/ConversationId"
       responses:
         '200':
           description: |-
@@ -912,10 +938,12 @@ paths:
             application/json:
               schema:
                 type: object
+                description: "feedback on the group members status"
                 properties:
                   feedback:
-                    type: string
-                    example: You have left the group. If you were the last member, the group has been deleted
+                    $ref: "#/components/schemas/Stringa"
+              example: 
+                feedback: "You have left the group. If you were the last member, the group has been deleted"
         '400':
           $ref: "#/components/responses/Error400"
         '403':
@@ -928,30 +956,27 @@ paths:
         - bearerAuth: []
 
   #MODIFICA NOME DI UN GRUPPO GIA ESISTENTE
-  /conversation/{conversationId}/setGrupName:
+  /conversation/{conversation_id}/name:
     put:
       tags: ["groups"]
       summary: Rename a group
       description: |-
         Allows any member of the group to change the group's name.
-      operationId: setGroupName
+      operationId: setGroupname
       parameters:
-        - name: conversationId
-          in: path
-          required: true
-          schema:
-            $ref: "#/components/schemas/conversationID"
+        - $ref: "#/components/parameters/ConversationId"
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
+              description: "The request body for renaming a group, which contains the new name"
               properties:
-                newName:
+                newname:
                   $ref: "#/components/schemas/Name"
               required:
-                - newName
+                - newname
       responses:
         '200':
           description: Successfully renamed the group
@@ -959,10 +984,13 @@ paths:
             application/json:
               schema:
                 type: object
+                description: "The response object containing the feedback after renaming the group."
                 properties:
                   feedback:
-                    type: string
-                    example: The group has been renamed to New Group Name
+                    $ref: "#/components/schemas/Stringa"
+              example:
+                feedback: The group has been renamed to New Group name
+                    
         '400':
           $ref: "#/components/responses/Error400"
         '403':
@@ -975,7 +1003,7 @@ paths:
         - bearerAuth: []
   
   #MODIFICA IMMAGINE DI UN GRUPPO GIA ESISTENTE
-  / conversation/{conversationId}/groupImage:
+  /conversation/{conversation_id}/groupimage:
     put:
       tags: ["groups"]
       summary: Update image group profile
@@ -983,17 +1011,14 @@ paths:
         Allows any member of the group to change the group's properties, including the image. The image file must first be uploaded using the /upload endpoint.
       operationId: updateGroup
       parameters:
-        - name: conversationId
-          in: path
-          required: true
-          schema:
-            $ref: "#/components/schemas/conversationID"
+        - $ref: "#/components/parameters/ConversationId"
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
+              description: "Schema for updating the group image in a conversation"
               properties:
                 imageUrl:
                   $ref: "#/components/schemas/Image"
@@ -1004,10 +1029,12 @@ paths:
             application/json:
               schema:
                 type: object
+                description: Schema for the response after successfully updating the group information
                 properties:
                   feedback:
-                    type: string
-                    example: The group's information has been updated successfully
+                    $ref: "#/components/schemas/Stringa"
+              example:
+                feedback: "The group's information has been updated successfully."
         '400':
           $ref: "#/components/responses/Error400" 
         '403':
