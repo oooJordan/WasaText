@@ -629,7 +629,7 @@ paths:
                       statusMessageRead: false
                       emoji:
                         id: 290
-                        unicode: "😊"
+                        unicode: "U+1F602"
                         
           '401':
             $ref: "#/components/responses/Error401"
