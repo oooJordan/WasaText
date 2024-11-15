@@ -30,6 +30,7 @@ components:
     bearerAuth:
       type: http
       scheme: bearer
+
   parameters:
     ConversationId:
       name: conversation_id
@@ -71,6 +72,19 @@ components:
       pattern: '^.*?$'
       minLength: 3
       maxLength: 200
+    
+    ContentType:
+      type: string
+      enum: [text, gif, gif_with_text]
+      description: "The type of content in the message. Can be 'text', 'gif', or 'text_with_gif'"
+      example: "gif"
+
+    ChatType:
+      type: string
+      enum: [private_chat, group_chat] #tipo di chat che voglio creare
+      description: |-
+        Type of conversation I want to create
+      example: "group_chat"
 
     ConversationId:
       type: integer
@@ -107,6 +121,14 @@ components:
 
     UserIdentifier:
       description: this object represents a user's ID
+      type: integer
+      minimum: 0
+      maximum: 9999
+      readOnly: true
+      example: 999
+    
+    Token:
+      description: this object represents a user's Token
       type: integer
       minimum: 0
       maximum: 9999
@@ -231,8 +253,11 @@ paths:
                 properties: 
                   identifier: 
                     $ref: "#/components/schemas/UserIdentifier"
+                  token:
+                    $ref: "#/components/schemas/Token"
               example:
                 identifier: 377
+                token: 432
         '400':
           $ref: "#/components/responses/Error400"
         '500':
@@ -258,20 +283,8 @@ paths:
                 newUsername:
                   $ref: "#/components/schemas/Name"
       responses:
-        '200':
-          description: |-
-            Username updated successfully.
-          content:
-            application/json:
-              schema:
-                type: object
-                description: "check feedback"
-                properties:
-                  feedback:
-                    $ref: "#/components/schemas/Stringa"
-              example:
-                feedback: "Username updated from Matteo to MatteoNew"
-                  
+        '204':
+          description: Username updated successfully      
         '400':
           $ref: "#/components/responses/Error400"
         '401':
@@ -324,22 +337,17 @@ paths:
           $ref: "#/components/responses/Error415"
         '500':
           $ref: "#/components/responses/Error500"
+      security:
+        - bearerAuth: []
         
 
   #MODIFICA IMMAGINE DI PROFILO UTENTE
-  /session/{user_id}/profile_image:
+  /session/profile_image:
     post: 
       tags: ["login"]
       summary: Upload and update user's profile image
       description: This endpoint allows the user to upload a new profile image, which automatically updates their profile.
       operationId: uploadProfileimage
-      parameters:
-        - name: user_id
-          in: path
-          required: true
-          description: "User Identifier"
-          schema:
-            $ref: "#/components/schemas/UserIdentifier"
       requestBody:
         required: true
         content:
@@ -365,11 +373,8 @@ paths:
                 properties:
                   imageUrl:
                     $ref: "#/components/schemas/Image"
-                  feedback:
-                    $ref: "#/components/schemas/Stringa"
               example: 
                 imageUrl: "https://example.com/image.jpg"
-                feedback: "Profile image updated successfully"
         '400':
           $ref: "#/components/responses/Error400"
         '401':
@@ -458,7 +463,7 @@ paths:
                         nameChat:
                           $ref: "#/components/schemas/Name"
               example:
-                conversation:  # This is where the collection of conversations goes
+                conversation:
                   - conversationId: 124
                     lastMessage: "Ciao, come stai?"
                     timestamp: "2024-11-13T12:30:00Z"
@@ -473,8 +478,7 @@ paths:
                     nameChat: "Fede"
 
         '204':
-          description: |-
-            The request has been made but there aren't conversations to view
+          description: "The request has been made but there aren't conversations to view"
         '401':
           $ref: "#/components/responses/Error401"
         '500':
@@ -499,11 +503,7 @@ paths:
               description: "type of chat"
               properties:
                 chatType:
-                  type: string
-                  enum: [private_chat, group_chat] #tipo di chat che voglio creare
-                  description: |-
-                    Type of conversation I want to create
-                  example: "group_chat"
+                  $ref: "#/components/schemas/ChatType"
                 imageGroup:
                   $ref: "#/components/schemas/Image"
                 authorId:
@@ -570,11 +570,9 @@ paths:
           - name: chat_type
             in: query
             required: true
+            description: "type of conversation"
             schema:
-              type: string
-              enum: [private_chat, group_chat]
-            description: |-
-              Type of conversation, used to indicate if the conversation is a private chat or group chat
+              $ref: "#/components/schemas/ChatType"
         responses:
           '200':
             description: |-
@@ -605,10 +603,7 @@ paths:
                           timestamp:
                             $ref: "#/components/schemas/Timestamp"
                           contentType:
-                            type: string
-                            enum: [text, image, text_with_image]
-                            description: "The type of content in the message. Can be 'text', 'image', or 'text_with_image'"
-                            example: "text_with_image"
+                            $ref: "#/components/schemas/ContentType"
                           content:
                             $ref: "#/components/schemas/Stringa"
                           imageUrl:
@@ -623,7 +618,7 @@ paths:
                   messages:
                     - sender: "John Doe"
                       timestamp: "2024-11-13T12:00:00Z"
-                      contentType: "text_with_image"
+                      contentType: "gif_with_text"
                       content: "ciao, come stai?"
                       imageUrl: "https://example.com/image.jpg"
                       statusMessageRead: false
@@ -661,11 +656,7 @@ paths:
                   content:
                     $ref: "#/components/schemas/Stringa"
                   media:
-                    type: string
-                    enum: [text, gif, gif_with_text]  # Enum per il tipo di media
-                    example: gif
-                    description: |-
-                      Type of media being sent with the message. Can be text, gif, or gifWithText
+                    $ref: "#/components/schemas/ContentType"
                   image:
                      $ref: "#/components/schemas/Image"
                   timestamp:
@@ -698,23 +689,17 @@ paths:
         - bearerAuth: []
 
   #INOLTRA UN MESSAGGIO
-  /conversation/{conversation_id}/messages/{message_id}/forward:
+  /conversation/{conversation_id}/messages/{message_id}:
+    parameters:
+        - $ref: "#/components/parameters/ConversationId"
+        - $ref: "#/components/parameters/MessageId"
     post:
       tags: ["messages"]
       summary: Forwards a specific message
       description: Forwards a specific message from one conversation to another conversation or group chat
       operationId: forwardMessage
-      parameters:
-        - $ref: "#/components/parameters/ConversationId"
-        - $ref: "#/components/parameters/MessageId"
-        - name: final_conversation_id
-          in: query
-          required: true
-          description: "The unique identifier of the final conversation"
-          schema:
-            $ref: "#/components/schemas/ConversationId"
       responses:
-        '200':
+        '201':
           description: Message forwarded successfully
           content:
             application/json:
@@ -724,10 +709,8 @@ paths:
                 properties:
                   forwardedMessageId:
                     $ref: "#/components/schemas/MessageIdentifier"
-                  feedback:
-                    $ref: "#/components/schemas/Stringa"
-              example: 
-                feedback: "Message forwarded successfully"
+              example:
+                forwardedMessageId: 333
         '400':
           $ref: "#/components/responses/Error400"
         '401':
@@ -738,8 +721,8 @@ paths:
           $ref: "#/components/responses/Error500"
       security:
         - bearerAuth: []
+
   #ELIMINA UN MESSAGGIO SPECIFICO
-  /conversation/{conversation_id}/messages/{message_id}/delete:
     delete:
       tags: ["messages"]
       summary: Delete a message
@@ -748,25 +731,10 @@ paths:
         Only the sender of the message can delete it.
         Once deleted, the message will no longer appear in the conversation.
       operationId: deleteMessage
-      parameters:
-        - $ref: "#/components/parameters/ConversationId"
-        - $ref: "#/components/parameters/MessageId"
-        - $ref: "#/components/parameters/UserId"
-
+      
       responses:
-        '200':
-          description: |-
-            Message deleted successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                description: "status message"
-                properties:
-                  feedback:
-                    $ref: "#/components/schemas/Stringa"
-              example: 
-                feedback: "Message deleted successfully"
+        '204':
+          description: "Message deleted successfully"
         '400':
           $ref: "#/components/responses/Error400"
         '401':
@@ -782,7 +750,7 @@ paths:
 
   #AGGIUNGE UNA REACTION
   /conversation/{conversation_id}/messages/{message_id}/comment:
-    post:
+    patch:
       tags: ["messages"]
       summary: Add comment (emoji reaction) to a message
       description: |-
@@ -797,36 +765,17 @@ paths:
           Details of the emoji reaction to be added to the message
         required: true
         content: 
-          application/json:
-            schema: 
+          application/merge-patch+json:
+            schema:
               type: object
               description: "add an emoji on a message"
-              properties:
-                userId:
-                  $ref: "#/components/schemas/UserIdentifier" 
+              properties: 
                 emoji:
                   $ref: '#/components/schemas/CommentEmoji'
-              required: 
-                - userId 
-                - emoji
+
       responses:
-        '201':
-          description: |-
-            Reaction added successfully           
-          content:
-            application/json:
-              schema: 
-                type: object
-                description: "status reaction"
-                properties:
-                  commentId:
-                    $ref: "#/components/schemas/CommentIdentifier"
-                  messageId:
-                    $ref: "#/components/schemas/MessageIdentifier"
-                  feedback:
-                    $ref: "#/components/schemas/Stringa"
-              example: 
-                feedback: "reaction added"
+        '204':
+          description: "Reaction added successfully"
         '400':
           $ref: "#/components/responses/Error400"
         '401':
@@ -853,21 +802,8 @@ paths:
         - $ref: "#/components/parameters/CommentId"
         - $ref: "#/components/parameters/UserId"
       responses:
-        '200':
-          description: |-
-            Reaction removed successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                description: "status reaction"
-                properties:
-                  messageId:
-                    $ref: "#/components/schemas/MessageIdentifier"
-                  feedback:
-                    $ref: "#/components/schemas/Stringa"
-              example: 
-                feedback: "reaction removed"
+        '204':
+          description: "Reaction removed successfully"
         '400':
           $ref: "#/components/responses/Error400"
         '401':
@@ -884,7 +820,7 @@ paths:
   
   # AGGIUNTA DI MEMBRI AD UN GRUPPO GIA ESISTENTE
   /conversation/{conversation_id}/names:
-    post:
+    patch:
       tags: ["groups"]
       summary: Add users to a group
       description: "This endpoint adds one or more users to a specific group conversation based on the conversation ID"
@@ -894,22 +830,12 @@ paths:
       requestBody:
         required: true
         content:
-          application/json:
+          application/merge-patch+json:
             schema:
-              $ref: "#/components/schemas/UsersList"
+              $ref: "#/components/schemas/Name"
       responses:
-        '200':
-          description: User(s) have been successfully added to the group
-          content:
-            application/json:
-              schema:
-                type: object
-                description: "user enter status"
-                properties:
-                  feedback:
-                    $ref: "#/components/schemas/Stringa"
-              example: 
-                feedback: "User(s) added to the group successfully."
+        '204':
+          description: "User(s) have been successfully added to the group"
         '404':
           $ref: "#/components/responses/Error404"
         '403':
@@ -931,19 +857,8 @@ paths:
       parameters:
         - $ref: "#/components/parameters/ConversationId"
       responses:
-        '200':
-          description: |-
-            Successfully left the group. If you were the last member, the group has been deleted
-          content:
-            application/json:
-              schema:
-                type: object
-                description: "feedback on the group members status"
-                properties:
-                  feedback:
-                    $ref: "#/components/schemas/Stringa"
-              example: 
-                feedback: "You have left the group. If you were the last member, the group has been deleted"
+        '204':
+          description: "Successfully left the group. If you were the last member, the group has been deleted"
         '400':
           $ref: "#/components/responses/Error400"
         '403':
@@ -978,19 +893,8 @@ paths:
               required:
                 - newname
       responses:
-        '200':
-          description: Successfully renamed the group
-          content:
-            application/json:
-              schema:
-                type: object
-                description: "The response object containing the feedback after renaming the group."
-                properties:
-                  feedback:
-                    $ref: "#/components/schemas/Stringa"
-              example:
-                feedback: The group has been renamed to New Group name
-                    
+        '204':
+          description: "Successfully renamed the group"         
         '400':
           $ref: "#/components/responses/Error400"
         '403':
@@ -1023,18 +927,8 @@ paths:
                 imageUrl:
                   $ref: "#/components/schemas/Image"
       responses:
-        '200':
-          description: Successfully updated the group's information
-          content:
-            application/json:
-              schema:
-                type: object
-                description: Schema for the response after successfully updating the group information
-                properties:
-                  feedback:
-                    $ref: "#/components/schemas/Stringa"
-              example:
-                feedback: "The group's information has been updated successfully."
+        '204':
+          description: "Successfully updated the group's information"
         '400':
           $ref: "#/components/responses/Error400" 
         '403':
