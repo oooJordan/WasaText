@@ -63,6 +63,14 @@ components:
       description: "The unique identifier of the User"
       schema:
         $ref: "#/components/schemas/UserIdentifier"
+        
+    UserName:
+      name: username
+      in: query
+      required: false
+      description: The username to filter the list of users
+      schema:
+        $ref: "#/components/schemas/Name"
 
   schemas:
     Stringa:
@@ -192,6 +200,53 @@ components:
             $ref: "#/components/schemas/User"
       required:
         - users
+    
+    Conversation:
+      type: object
+      description: "all messages with details"
+      required:
+        - messages
+      properties:
+        messages:
+          type: array
+          minItems: 1
+          maxItems: 200
+          description: "An array of messages in the conversation. Each message contains details about the sender, content, and status"
+          items:
+            type: object
+            description: "specific to the message"
+            required:
+              - sender
+              - timestamp
+              - contentType
+            properties:
+              sender:
+                $ref: "#/components/schemas/Name"
+              timestamp:
+                $ref: "#/components/schemas/Timestamp"
+              contentType:
+                $ref: "#/components/schemas/ContentType"
+              content:
+                $ref: "#/components/schemas/Stringa"
+              imageUrl:
+                $ref: "#/components/schemas/Image"
+              statusMessageRead:
+                type: boolean
+                example: false
+                description: "Indicates whether the message has been read by the recipient (true if read, false if not)"
+              emoji:
+                $ref: "#/components/schemas/CommentIdentifier"
+      example:
+        messages:
+        - sender: "Lorenzo"
+          timestamp: "2024-11-13T12:00:00Z"
+          contentType: "gif_with_text"
+          content: "ciao, come stai?"
+          imageUrl: "https://example.com/image.jpg"
+          statusMessageRead: false
+          emoji:
+            id: 290
+            unicode: "U+1F602"
 
   responses:
     Error400:
@@ -457,7 +512,6 @@ paths:
                         statusMessageRead:
                           type: boolean
                           description: "Status of whether the message has been read"
-                          example: false
                         profileimage:
                           $ref: "#/components/schemas/Image"
                         nameChat:
@@ -535,16 +589,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                description: "view of the chat"
-                properties:
-                  convId:
-                    $ref: "#/components/schemas/ConversationId"
-                  startMessageId:
-                    $ref: "#/components/schemas/MessageIdentifier"
-              example:
-                convId: 12
-                startMessageId: 33
+                $ref: '#/components/schemas/Conversation'
         '400':
           $ref: "#/components/responses/Error400"
         '401':
@@ -560,19 +605,13 @@ paths:
   /conversation/{conversation_id}:
       parameters:
       - $ref: "#/components/parameters/ConversationId"
+      - $ref: "#/components/parameters/UserName"
       get:
         tags: ["conversation"]
         summary: Viewing message history
         description: |-
           A user can view the message history of a conversation or a group
         operationId: getConversation
-        parameters:
-          - name: chat_type
-            in: query
-            required: true
-            description: "type of conversation"
-            schema:
-              $ref: "#/components/schemas/ChatType"
         responses:
           '200':
             description: |-
@@ -580,52 +619,7 @@ paths:
             content:
               application/json:
                 schema:
-                  type: object
-                  description: "all messages with details"
-                  required:
-                    - messages
-                  properties:
-                    messages:
-                      type: array
-                      minItems: 1
-                      maxItems: 200
-                      description: "An array of messages in the conversation. Each message contains details about the sender, content, and status"
-                      items:
-                        type: object
-                        description: "specific to the message"
-                        required:
-                          - sender
-                          - timestamp
-                          - contentType
-                        properties:
-                          sender:
-                            $ref: "#/components/schemas/Name"
-                          timestamp:
-                            $ref: "#/components/schemas/Timestamp"
-                          contentType:
-                            $ref: "#/components/schemas/ContentType"
-                          content:
-                            $ref: "#/components/schemas/Stringa"
-                          imageUrl:
-                            $ref: "#/components/schemas/Image"
-                          statusMessageRead:
-                            type: boolean
-                            example: false
-                            description: "Indicates whether the message has been read by the recipient (true if read, false if not)"
-                          emoji:
-                            $ref: "#/components/schemas/CommentIdentifier"
-                example:
-                  messages:
-                    - sender: "John Doe"
-                      timestamp: "2024-11-13T12:00:00Z"
-                      contentType: "gif_with_text"
-                      content: "ciao, come stai?"
-                      imageUrl: "https://example.com/image.jpg"
-                      statusMessageRead: false
-                      emoji:
-                        id: 290
-                        unicode: "U+1F602"
-                        
+                  $ref: '#/components/schemas/Conversation'
           '401':
             $ref: "#/components/responses/Error401"
           '404':
@@ -750,6 +744,9 @@ paths:
 
   #AGGIUNGE UNA REACTION
   /conversation/{conversation_id}/messages/{message_id}/comment:
+    parameters:
+        - $ref: "#/components/parameters/ConversationId"
+        - $ref: "#/components/parameters/MessageId"
     patch:
       tags: ["messages"]
       summary: Add comment (emoji reaction) to a message
@@ -757,9 +754,6 @@ paths:
         Adds a comment on an existing message with an emoji reaction. 
         The reaction doesn't modify the original message, and users can react to a message with one emoji.
       operationId: commentMessage
-      parameters:
-        - $ref: "#/components/parameters/ConversationId"
-        - $ref: "#/components/parameters/MessageId"
       requestBody:
         description: |-
           Details of the emoji reaction to be added to the message
@@ -789,6 +783,11 @@ paths:
 
   #ELIMINA UNA RECTION DA UN MESSAGGIO SPECIFICO
   /conversation/{conversation_id}/messages/{message_id}/comment/{comment_id}:
+    parameters:
+        - $ref: "#/components/parameters/ConversationId"
+        - $ref: "#/components/parameters/MessageId"
+        - $ref: "#/components/parameters/CommentId"
+        - $ref: "#/components/parameters/UserId"
     delete:
       tags: ["messages"]
       summary: Remove reaction (emoji) from a message
@@ -796,11 +795,6 @@ paths:
         Removes a previously added reaction (emoji) from a specified message.
         Only the user who added the reaction can remove it.
       operationId: uncommentMessage
-      parameters:
-        - $ref: "#/components/parameters/ConversationId"
-        - $ref: "#/components/parameters/MessageId"
-        - $ref: "#/components/parameters/CommentId"
-        - $ref: "#/components/parameters/UserId"
       responses:
         '204':
           description: "Reaction removed successfully"
@@ -820,13 +814,13 @@ paths:
   
   # AGGIUNTA DI MEMBRI AD UN GRUPPO GIA ESISTENTE
   /conversation/{conversation_id}/names:
+    parameters:
+      - $ref: "#/components/parameters/ConversationId"
     patch:
       tags: ["groups"]
       summary: Add users to a group
       description: "This endpoint adds one or more users to a specific group conversation based on the conversation ID"
       operationId: addToGroup
-      parameters:
-        - $ref: "#/components/parameters/ConversationId"
       requestBody:
         required: true
         content:
@@ -848,14 +842,14 @@ paths:
         - bearerAuth: []
 
   /conversation/{conversation_id}/leave:
+    parameters:
+      - $ref: "#/components/parameters/ConversationId"
     post:
       tags: ["groups"]
       summary: Leave a group
       description: |-
         Allows the user to leave a specified group. If this leaves the group empty, the group will be deleted.
       operationId: leaveGroup
-      parameters:
-        - $ref: "#/components/parameters/ConversationId"
       responses:
         '204':
           description: "Successfully left the group. If you were the last member, the group has been deleted"
@@ -872,14 +866,14 @@ paths:
 
   #MODIFICA NOME DI UN GRUPPO GIA ESISTENTE
   /conversation/{conversation_id}/name:
+    parameters:
+      - $ref: "#/components/parameters/ConversationId"
     put:
       tags: ["groups"]
       summary: Rename a group
       description: |-
         Allows any member of the group to change the group's name.
       operationId: setGroupname
-      parameters:
-        - $ref: "#/components/parameters/ConversationId"
       requestBody:
         required: true
         content:
@@ -908,14 +902,14 @@ paths:
   
   #MODIFICA IMMAGINE DI UN GRUPPO GIA ESISTENTE
   /conversation/{conversation_id}/groupimage:
+    parameters:
+      - $ref: "#/components/parameters/ConversationId"
     put:
       tags: ["groups"]
       summary: Update image group profile
       description: |-
         Allows any member of the group to change the group's properties, including the image. The image file must first be uploaded using the /upload endpoint.
       operationId: updateGroup
-      parameters:
-        - $ref: "#/components/parameters/ConversationId"
       requestBody:
         required: true
         content:
