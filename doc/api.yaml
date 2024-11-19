@@ -7,7 +7,8 @@ info:
   contact:
     name: Giordana Foglia
     email: foglia.2046738@studenti.uniroma1.it
-    
+servers:
+  - url: http://localhost:3000
 tags:
   - name: login
     description: Endpoint per la gestione del login
@@ -21,9 +22,6 @@ tags:
     description: Endpoint per gestire i messaggi
   - name: groups
     description: Endpoint per gestire i gruppi
-
-servers:
-  - url: "http://localhost:3000"
 
 components:
   securitySchemes:
@@ -238,7 +236,7 @@ components:
                 $ref: "#/components/schemas/CommentIdentifier"
       example:
         messages:
-        - sender: "Lorenzo"
+        - sender: "John Doe"
           timestamp: "2024-11-13T12:00:00Z"
           contentType: "gif_with_text"
           content: "ciao, come stai?"
@@ -272,7 +270,9 @@ components:
       
     Error500:
       description: Internal server error
-      
+
+security:
+  - bearerAuth: [] 
     
 #LOGIN UTENTE ATTRAVERSO USERNAME
 paths:
@@ -348,9 +348,8 @@ paths:
           $ref: "#/components/responses/Error409"
         '500':
           $ref: "#/components/responses/Error500"
-      security:
-        - bearerAuth: []
 
+ #CARICA IMMAGINE
   /upload:
     post:
       tags: ["upload"]
@@ -382,8 +381,6 @@ paths:
                 properties:
                   imageUrl:
                     $ref: "#/components/schemas/Image"
-              example:
-                imageUrl: "https://example.com/image.jpg"
         '400':
           $ref: "#/components/responses/Error400"
         '413':
@@ -392,52 +389,57 @@ paths:
           $ref: "#/components/responses/Error415"
         '500':
           $ref: "#/components/responses/Error500"
-      security:
-        - bearerAuth: []
-        
+    
 
   #MODIFICA IMMAGINE DI PROFILO UTENTE
   /session/profile_image:
     post: 
       tags: ["login"]
-      summary: Upload and update user's profile image
-      description: This endpoint allows the user to upload a new profile image, which automatically updates their profile.
-      operationId: uploadProfileimage
+      summary: update user's profile image
+      description: This endpoint allows the user to update a new profile image
+      operationId: setProfileimage
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              description: "Request schema for uploading and updating an image. The user must provide a file containing the image"
+              description: "new image"
               properties:
-                file:
-                  type: string
-                  format: binary
-                  minLength: 1
-                  maxLength: 1000000
-                  description: "The profile image file to upload"
+                image:
+                  $ref: "#/components/schemas/Image"
       responses:
-        '200':
+        '204':
           description: Profile image uploaded and updated successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                description: "Response schema for a successfully uploaded and updated profile image"
-                properties:
-                  imageUrl:
-                    $ref: "#/components/schemas/Image"
-              example: 
-                imageUrl: "https://example.com/image.jpg"
         '400':
           $ref: "#/components/responses/Error400"
         '401':
           $ref: "#/components/responses/Error401"
         '500':
           $ref: "#/components/responses/Error500"
-      security:
-        - bearerAuth: []
+    get:
+      tags: ["login"]
+      summary: view user's profile image
+      description: This endpoint allows the user to view an image
+      operationId: viewImage
+      responses:
+        '200':
+          description: "profile image view successfully"
+          content:
+            application/json:
+              schema:
+                type: object
+                description: "the image"
+                properties:
+                  actualImage:
+                    $ref: "#/components/schemas/Image"
+        '400':
+          $ref: "#/components/responses/Error400"
+        '401':
+          $ref: "#/components/responses/Error401"
+        '500':
+          $ref: "#/components/responses/Error500"
+
 
   
   #RICERCA UTENTE NELL'APP ATTRAVERSO USERNAME
@@ -461,20 +463,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/UsersList"
-              example:
-                users:
-                  - userId: 333
-                    username: "Matteo"
-                  - userId: 444
-                    username: "Jordan"
         '400':
           $ref: "#/components/responses/Error400"
         '404':
           $ref: "#/components/responses/Error404"
         '500':
           $ref: "#/components/responses/Error500"
-      security:
-        - bearerAuth: []
 
   #LISTA TUTTE CONVERSAZIONI DELL'UTENTE
   /conversation:
@@ -516,29 +510,12 @@ paths:
                           $ref: "#/components/schemas/Image"
                         nameChat:
                           $ref: "#/components/schemas/Name"
-              example:
-                conversation:
-                  - conversationId: 124
-                    lastMessage: "Ciao, come stai?"
-                    timestamp: "2024-11-13T12:30:00Z"
-                    statusMessageRead: false
-                    profileimage: "https://example.com/image.jpg"
-                    nameChat: "Family"
-                  - conversationId: 123
-                    lastMessage: "bella foto"
-                    timestamp: "2024-11-13T12:30:00Z"
-                    statusMessageRead: true
-                    profileimage: "https://example.com/image2.jpg"
-                    nameChat: "Fede"
-
         '204':
           description: "The request has been made but there aren't conversations to view"
         '401':
           $ref: "#/components/responses/Error401"
         '500':
           $ref: "#/components/responses/Error500"
-      security:
-        - bearerAuth: []
 
   #INIZIA UNA NUOVA CONVERSAZIONE (CHATPRIVATA O GRUPPO)
     post:
@@ -598,8 +575,6 @@ paths:
           $ref: "#/components/responses/Error403"
         '500':
           $ref: "#/components/responses/Error500"
-      security:
-        - bearerAuth: []
 
 #QUI POSSO VEDERE LA CRONOLOGIA DELLE CONVERSAZIONI
   /conversation/{conversation_id}:
@@ -626,8 +601,6 @@ paths:
             $ref: "#/components/responses/Error404"
           '500':
             $ref: "#/components/responses/Error500"
-        security:
-        - bearerAuth: []
 
       #INVIO DI UN NUOVO MESSAGGIO (DI TESTO, GIF O ENTRAMBI)
       post:
@@ -671,16 +644,12 @@ paths:
                   properties: 
                     messageId:
                       $ref: "#/components/schemas/MessageIdentifier"
-                example:
-                  messageId: 718
           '400':
             $ref: "#/components/responses/Error400"
           '401':
             $ref: "#/components/responses/Error401"
           '500':
             $ref: "#/components/responses/Error500"
-        security:
-        - bearerAuth: []
 
   #INOLTRA UN MESSAGGIO
   /conversation/{conversation_id}/messages/{message_id}:
@@ -703,8 +672,6 @@ paths:
                 properties:
                   forwardedMessageId:
                     $ref: "#/components/schemas/MessageIdentifier"
-              example:
-                forwardedMessageId: 333
         '400':
           $ref: "#/components/responses/Error400"
         '401':
@@ -713,8 +680,6 @@ paths:
           $ref: "#/components/responses/Error404"
         '500':
           $ref: "#/components/responses/Error500"
-      security:
-        - bearerAuth: []
 
   #ELIMINA UN MESSAGGIO SPECIFICO
     delete:
@@ -739,8 +704,6 @@ paths:
           $ref: "#/components/responses/Error404"
         '500':
           $ref: "#/components/responses/Error500"
-      security:
-        - bearerAuth: []
 
   #AGGIUNGE UNA REACTION
   /conversation/{conversation_id}/messages/{message_id}/comment:
@@ -778,8 +741,6 @@ paths:
           $ref: "#/components/responses/Error404"
         '500':
           $ref: "#/components/responses/Error500"
-      security:
-        - bearerAuth: []
 
   #ELIMINA UNA RECTION DA UN MESSAGGIO SPECIFICO
   /conversation/{conversation_id}/messages/{message_id}/comment/{comment_id}:
@@ -808,8 +769,6 @@ paths:
           $ref: "#/components/responses/Error404"
         '500':
           $ref: "#/components/responses/Error500"
-      security:
-        - bearerAuth: []
 
   
   # AGGIUNTA DI MEMBRI AD UN GRUPPO GIA ESISTENTE
@@ -838,8 +797,6 @@ paths:
           $ref: "#/components/responses/Error400"
         '500':
           $ref: "#/components/responses/Error500"
-      security:
-        - bearerAuth: []
 
   /conversation/{conversation_id}/leave:
     parameters:
@@ -861,8 +818,6 @@ paths:
           $ref: "#/components/responses/Error404"
         '500':
           $ref: "#/components/responses/Error500"
-      security:
-        - bearerAuth: []
 
   #MODIFICA NOME DI UN GRUPPO GIA ESISTENTE
   /conversation/{conversation_id}/name:
@@ -897,8 +852,6 @@ paths:
           $ref: "#/components/responses/Error404"
         '500':
           $ref: "#/components/responses/Error500"
-      security:
-        - bearerAuth: []
   
   #MODIFICA IMMAGINE DI UN GRUPPO GIA ESISTENTE
   /conversation/{conversation_id}/groupimage:
@@ -931,5 +884,3 @@ paths:
           $ref: "#/components/responses/Error404"
         '500':
           $ref: "#/components/responses/Error500"
-      security:
-        - bearerAuth: []
