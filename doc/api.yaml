@@ -417,14 +417,16 @@ paths:
           $ref: "#/components/responses/Error401"
         '500':
           $ref: "#/components/responses/Error500"
+
+    #OTTIENI IMMAGINE 
     get:
       tags: ["login"]
-      summary: view user's profile image
-      description: This endpoint allows the user to view an image
-      operationId: viewImage
+      summary: get user's profile image
+      description: This endpoint allows the user to get an image
+      operationId: getImage
       responses:
         '200':
-          description: "profile image view successfully"
+          description: "profile image getting successfully"
           content:
             application/json:
               schema:
