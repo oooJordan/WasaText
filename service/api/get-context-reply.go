@@ -1,9 +1,10 @@
 package api
 
 import (
-	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/service/api/reqcontext"
-	"github.com/julienschmidt/httprouter"
 	"net/http"
+
+	"github.com/julienschmidt/httprouter"
+	"github.com/oooJordan/WasaText/service/api/reqcontext"
 )
 
 // getContextReply is an example of HTTP endpoint that returns "Hello World!" as a plain text. The signature of this

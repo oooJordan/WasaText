@@ -41,6 +41,8 @@ type AppDatabase interface {
 	GetName() (string, error)
 	SetName(name string) error
 
+	//CheckUser(User) (User, error)
+
 	Ping() error
 }
 

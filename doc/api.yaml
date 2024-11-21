@@ -441,8 +441,6 @@ paths:
           $ref: "#/components/responses/Error401"
         '500':
           $ref: "#/components/responses/Error500"
-
-
   
   #RICERCA UTENTE NELL'APP ATTRAVERSO USERNAME
   /users:
@@ -800,6 +798,7 @@ paths:
         '500':
           $ref: "#/components/responses/Error500"
 
+  #USCITA DI UN UTENTE DA UN GRUPPO
   /conversation/{conversation_id}/leave:
     parameters:
       - $ref: "#/components/parameters/ConversationId"
