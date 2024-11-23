@@ -45,6 +45,7 @@ import (
 // main is the program entry point. The only purpose of this function is to call run() and set the exit code if there is
 // any error
 func main() {
+	//chiama run() per eseguire la funzione
 	if err := run(); err != nil {
 		_, _ = fmt.Fprintln(os.Stderr, "error: ", err)
 		os.Exit(1)
@@ -61,7 +62,7 @@ func main() {
 // * closes the principal web server
 func run() error {
 	rand.Seed(globaltime.Now().UnixNano())
-	// Load Configuration and defaults
+	// carica la configurazione
 	cfg, err := loadConfiguration()
 	if err != nil {
 		if errors.Is(err, conf.ErrHelpWanted) {
@@ -70,29 +71,35 @@ func run() error {
 		return err
 	}
 
-	// Init logging
+	// inizializza un Logger, per la gestione dei log dell'applicazione
+	/*
+		COSA È UN LOGGER?
+			un logger è uno strumento utile per tracciare e registrare informazioni
+			(come messaggi di debug, errori, avvisi, ecc.) che possono essere utili per
+			il monitoraggio o la diagnosi durante lo sviluppo e l'esecuzione dell'applicazione.
+	*/
 	logger := logrus.New()
-	logger.SetOutput(os.Stdout)
-	if cfg.Debug {
-		logger.SetLevel(logrus.DebugLevel)
+	logger.SetOutput(os.Stdout) //imposta output logger (stdout)
+	if cfg.Debug {              //se la modalità di debug è attiva nella configurazione
+		logger.SetLevel(logrus.DebugLevel) // Imposta il livello di log a DebugLevel (+ dettagliato)
 	} else {
-		logger.SetLevel(logrus.InfoLevel)
+		logger.SetLevel(logrus.InfoLevel) // Altrimenti, imposta il livello di log a InfoLevel
 	}
-
+	// Registra un messaggio di info che indica che l'applicazione sta iniziando
 	logger.Infof("application initializing")
 
-	// Start Database
+	// Connessione al database utilizzando percorso definito nella configurazione (cfg.DB.Filename)
 	logger.Println("initializing database support")
-	dbconn, err := sql.Open("sqlite3", cfg.DB.Filename)
-	if err != nil {
+	dbconn, err := sql.Open("sqlite3", cfg.DB.Filename) // Apre una connessione al database SQLite
+	if err != nil {                                     //se ci sono errori termina
 		logger.WithError(err).Error("error opening SQLite DB")
 		return fmt.Errorf("opening SQLite: %w", err)
 	}
 	defer func() {
-		logger.Debug("database stopping")
-		_ = dbconn.Close()
+		logger.Debug("database stopping") // Log un messaggio di debug quando la connessione al database sta per essere chiusa
+		_ = dbconn.Close()                //chiude connessione
 	}()
-	db, err := database.New(dbconn)
+	db, err := database.New(dbconn) // Crea una nuova istanza del database usando la connessione appena aperta
 	if err != nil {
 		logger.WithError(err).Error("error creating AppDatabase")
 		return fmt.Errorf("creating AppDatabase: %w", err)
@@ -110,17 +117,20 @@ func run() error {
 	// buffered channel so the goroutine can exit if we don't collect this error.
 	serverErrors := make(chan error, 1)
 
-	// Create the API router
+	// viene creato un API router, configurato con i log e la connessione al database,
+	// permettendo al router di accedere ai dati e di loggare le informazioni sulle richieste
+	// gestisce le rotte (navigatore)
 	apirouter, err := api.New(api.Config{
 		Logger:   logger,
-		Database: db,
+		Database: db, //connessione al db
 	})
 	if err != nil {
 		logger.WithError(err).Error("error creating the API server instance")
 		return fmt.Errorf("creating the API server instance: %w", err)
 	}
-	router := apirouter.Handler()
+	router := apirouter.Handler() //gestisce richieste HTTP (manipolatore)
 
+	//per controllare se è necessario aggiungere rotte extra per un Web UI
 	router, err = registerWebUI(router)
 	if err != nil {
 		logger.WithError(err).Error("error registering web UI handler")
@@ -128,51 +138,55 @@ func run() error {
 	}
 
 	// Apply CORS policy
+	// il router applicherà le politiche sulle richieste che riceve
 	router = applyCORSHandler(router)
 
-	// Create the API server
+	// Creazione di API server
 	apiserver := http.Server{
-		Addr:              cfg.Web.APIHost,
-		Handler:           router,
-		ReadTimeout:       cfg.Web.ReadTimeout,
-		ReadHeaderTimeout: cfg.Web.ReadTimeout,
-		WriteTimeout:      cfg.Web.WriteTimeout,
+		Addr:              cfg.Web.APIHost,      //indirizzo in cui il server ascolta
+		Handler:           router,               //router che gestisce le richieste
+		ReadTimeout:       cfg.Web.ReadTimeout,  //timeout per la lettura di una richiesta
+		ReadHeaderTimeout: cfg.Web.ReadTimeout,  //timaout per la scrittura di una richiesta
+		WriteTimeout:      cfg.Web.WriteTimeout, //timeout per inviare una risposta
 	}
 
 	// Start the service listening for requests in a separate goroutine
 	go func() {
 		logger.Infof("API listening on %s", apiserver.Addr)
+		// Avvia il server API. Questa funzione è bloccante, quindi invia
+		// l'errore nel canale `serverErrors` se qualcosa va storto
 		serverErrors <- apiserver.ListenAndServe()
 		logger.Infof("stopping API server")
 	}()
 
 	// Waiting for shutdown signal or POSIX signals
 	select {
-	case err := <-serverErrors:
+	case err := <-serverErrors: //errore non recuperabile nel server
 		// Non-recoverable server error
 		return fmt.Errorf("server error: %w", err)
 
-	case sig := <-shutdown:
+	case sig := <-shutdown: //segnale di terminazione
 		logger.Infof("signal %v received, start shutdown", sig)
 
-		// Asking API server to shut down and load shed.
+		// chiude il router, segnala che non deve più ricevere nuove richieste
 		err := apirouter.Close()
 		if err != nil {
 			logger.WithError(err).Warning("graceful shutdown of apirouter error")
 		}
 
-		// Give outstanding requests a deadline for completion.
+		// viene creato un contesto con un timeout
+		// limite di tempo entro cui completare le richieste in sospeso
 		ctx, cancel := context.WithTimeout(context.Background(), cfg.Web.ShutdownTimeout)
 		defer cancel()
 
-		// Asking listener to shut down and load shed.
+		// chiede al server di terminare la gestione delle richieste
 		err = apiserver.Shutdown(ctx)
 		if err != nil {
 			logger.WithError(err).Warning("error during graceful shutdown of HTTP server")
 			err = apiserver.Close()
 		}
 
-		// Log the status of this shutdown.
+		// gestione dello stato di arresto del server
 		switch {
 		case sig == syscall.SIGSTOP:
 			return errors.New("integrity issue caused shutdown")
@@ -180,6 +194,6 @@ func run() error {
 			return fmt.Errorf("could not stop server gracefully: %w", err)
 		}
 	}
-
+	//terminazione del server senza errori
 	return nil
 }

@@ -63,9 +63,9 @@ type Router interface {
 	Close() error
 }
 
-// New returns a new Router instance
-func New(cfg Config) (Router, error) {
-	// Check if the configuration is correct
+// New ritorna un nuovo oggetto di tipo Router (si occupa di instradare le richieste HTTP)
+func New(cfg Config) (Router, error) { //cfg è la configurazione necessaria per creare il router
+	// Check if the configuration is correct (se c'è sia un logger che una connessione al database)
 	if cfg.Logger == nil {
 		return nil, errors.New("logger is required")
 	}
@@ -73,12 +73,12 @@ func New(cfg Config) (Router, error) {
 		return nil, errors.New("database is required")
 	}
 
-	// Create a new router where we will register HTTP endpoints. The server will pass requests to this router to be
-	// handled.
+	// crea un nuovo router HTTP
 	router := httprouter.New()
 	router.RedirectTrailingSlash = false
 	router.RedirectFixedPath = false
 
+	//struttura router
 	return &_router{
 		router:     router,
 		baseLogger: cfg.Logger,
@@ -87,11 +87,12 @@ func New(cfg Config) (Router, error) {
 }
 
 type _router struct {
-	router *httprouter.Router
+	router *httprouter.Router //indirizza le richieste
 
 	// baseLogger is a logger for non-requests contexts, like goroutines or background tasks not started by a request.
 	// Use context logger if available (e.g., in requests) instead of this logger.
 	baseLogger logrus.FieldLogger
 
+	//connessione al database consente di eseguire query e operazioni di lettura e scrittura
 	db database.AppDatabase
 }

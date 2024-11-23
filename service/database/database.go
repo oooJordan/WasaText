@@ -36,11 +36,12 @@ import (
 	"fmt"
 )
 
-// AppDatabase is the high level interface for the DB
+// in AppDatabase ci sono i metodi definiti in database.go
 type AppDatabase interface {
 	GetName() (string, error)
 	SetName(name string) error
 
+	SearchUser(string) ([]User, error)
 	//CheckUser(User) (User, error)
 
 	Ping() error
@@ -52,27 +53,48 @@ type appdbimpl struct {
 
 // New returns a new instance of AppDatabase based on the SQLite connection `db`.
 // `db` is required - an error will be returned if `db` is `nil`.
-func New(db *sql.DB) (AppDatabase, error) {
+func New(db *sql.DB) (AppDatabase, error) { //inizializza il database
 	if db == nil {
 		return nil, errors.New("database is required when building a AppDatabase")
 	}
 
-	// Check if table exists. If not, the database is empty, and we need to create the structure
-	var tableName string
-	err := db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name='example_table';`).Scan(&tableName)
-	if errors.Is(err, sql.ErrNoRows) {
-		sqlStmt := `CREATE TABLE example_table (id INTEGER NOT NULL PRIMARY KEY, name TEXT);`
-		_, err = db.Exec(sqlStmt)
-		if err != nil {
-			return nil, fmt.Errorf("error creating database structure: %w", err)
-		}
+	// attiva le foreign keys
+	_, errPramga := db.Exec(`PRAGMA foreign_keys= ON`)
+	if errPramga != nil {
+		return nil, errPramga
 	}
 
+	// controlla se il database esiste. se non esiste viene creata la struttura
+	var tableName string //variabile per memorizzare nome tabella
+	// viene eseguita una query SQL sul database per verificare se esiste una tabella chiamata example_table (ritorna 1 riga)
+	err := db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name='example_table';`).Scan(&tableName)
+	if errors.Is(err, sql.ErrNoRows) { //se non ha trovato nessuna tabella la crea
+
+		// Creazione DB per gli Users se non esiste
+		users := `CREATE TABLE IF NOT EXISTS Users 
+										(user_id INTEGER NOT NULL, 
+										nickname VARCHAR(25) NOT NULL UNIQUE,
+										PRIMARY KEY("user_id" AUTOINCREMENT));`
+		_, err = db.Exec(users)
+		if err != nil {
+			return nil, fmt.Errorf("error creating database structure: Users %w", err)
+		}
+
+		/*
+			Il valore di ritorno non viene utilizzato (_), perché non ci interessa
+			il risultato della creazione della tabella, ma solo sapere se ci sono
+			errori nell'esecuzione
+		*/
+
+	}
+	// Crea un nuovo appdbimpl con la connessione al database
 	return &appdbimpl{
-		c: db,
+		c: db, // Inizializza il campo c con la connessione al database
 	}, nil
 }
 
+// verifica se la connessione al database è attiva e funzionante inviando un ping
 func (db *appdbimpl) Ping() error {
 	return db.c.Ping()
+	// db.c rappresenta la connessione al database
 }

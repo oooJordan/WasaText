@@ -324,7 +324,7 @@ paths:
       summary: Update user username
       description: |-
         Allows the user to update their username. If the new username is already in use by another user, an error message will be sent.
-      operationId: setMyUsername
+      operationId: setMyUserName
       requestBody:
         description: |-
           New username to be set for the user.
@@ -397,7 +397,7 @@ paths:
       tags: ["login"]
       summary: update user's profile image
       description: This endpoint allows the user to update a new profile image
-      operationId: setProfileimage
+      operationId: setMyPhoto
       requestBody:
         required: true
         content:
@@ -421,12 +421,12 @@ paths:
     #OTTIENI IMMAGINE 
     get:
       tags: ["login"]
-      summary: get user's profile image
+      summary: get image
       description: This endpoint allows the user to get an image
       operationId: getImage
       responses:
         '200':
-          description: "profile image getting successfully"
+          description: "image getting successfully"
           content:
             application/json:
               schema:
@@ -441,6 +441,8 @@ paths:
           $ref: "#/components/responses/Error401"
         '500':
           $ref: "#/components/responses/Error500"
+
+
   
   #RICERCA UTENTE NELL'APP ATTRAVERSO USERNAME
   /users:
@@ -798,7 +800,6 @@ paths:
         '500':
           $ref: "#/components/responses/Error500"
 
-  #USCITA DI UN UTENTE DA UN GRUPPO
   /conversation/{conversation_id}/leave:
     parameters:
       - $ref: "#/components/parameters/ConversationId"
@@ -829,7 +830,7 @@ paths:
       summary: Rename a group
       description: |-
         Allows any member of the group to change the group's name.
-      operationId: setGroupname
+      operationId: setGroupName
       requestBody:
         required: true
         content:
@@ -863,7 +864,7 @@ paths:
       summary: Update image group profile
       description: |-
         Allows any member of the group to change the group's properties, including the image. The image file must first be uploaded using the /upload endpoint.
-      operationId: updateGroup
+      operationId: setGroupPhoto
       requestBody:
         required: true
         content:

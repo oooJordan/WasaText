@@ -16,6 +16,7 @@ type httpRouterHandler func(http.ResponseWriter, *http.Request, httprouter.Param
 // wrap parses the request and adds a reqcontext.RequestContext instance related to the request.
 func (rt *_router) wrap(fn httpRouterHandler) func(http.ResponseWriter, *http.Request, httprouter.Params) {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		//UUID per identificare univocamente una richiesta HTTP
 		reqUUID, err := uuid.NewV4()
 		if err != nil {
 			rt.baseLogger.WithError(err).Error("can't generate a request UUID")
@@ -29,7 +30,7 @@ func (rt *_router) wrap(fn httpRouterHandler) func(http.ResponseWriter, *http.Re
 		// Create a request-specific logger
 		ctx.Logger = rt.baseLogger.WithFields(logrus.Fields{
 			"reqid":     ctx.ReqUUID.String(),
-			"remote-ip": r.RemoteAddr,
+			"remote-ip": r.RemoteAddr, //indirizzo IP client
 		})
 
 		// Call the next handler in chain (usually, the handler function for the path)
