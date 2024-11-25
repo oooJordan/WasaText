@@ -11,7 +11,6 @@ import (
 
 func (rt *_router) listUsers(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	username := r.URL.Query().Get("name")
-	ctx.Logger.Infof("Username received: '%s'", username)
 	/*
 		token, err := IsValidToken(r,w)
 		if err != nil{

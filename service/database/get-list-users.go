@@ -1,11 +1,7 @@
 package database
 
-import "fmt"
-
 func (db *appdbimpl) GetListUsers(name string) ([]Users, error) {
-	if name == "" {
-		return nil, fmt.Errorf("invalid search parameter: name is empty")
-	}
+
 	stringName := "%" + name + "%"
 	// Primo passo: seleziono i nomi corrispondenti
 	rows, err := db.c.Query("SELECT name FROM Users WHERE name LIKE ?", stringName)
