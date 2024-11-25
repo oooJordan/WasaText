@@ -1,11 +1,11 @@
 package database
 
 // Struttura che rappresenta un utente nel database
-type User struct {
-	User_ID  int    `json:"user_id"`
-	Username string `json:"username"`
+type UserIdDatabase struct {
+	User_ID int `json:"user_id"`
 }
 
+/*
 // Struttura per rappresentare un emoji nel commento
 type CommentEmoji struct {
 	CommentIdentifier int `json:"comment_identifier"`
@@ -28,3 +28,4 @@ type Conversation struct {
 	Conversation_ID int       `json:"conversation_id"`
 	Messages        []Message `json:"messages"` // lista di messaggi
 }
+*/

@@ -76,7 +76,7 @@ components:
       description: "represent a message or a comment or a feedback"
       example: "Ciao, come stai?"
       pattern: '^.*?$'
-      minLength: 3
+      minLength: 1
       maxLength: 200
     
     ContentType:
@@ -127,14 +127,6 @@ components:
 
     UserIdentifier:
       description: this object represents a user's ID
-      type: integer
-      minimum: 0
-      maximum: 9999
-      readOnly: true
-      example: 999
-    
-    Token:
-      description: this object represents a user's Token
       type: integer
       minimum: 0
       maximum: 9999
@@ -308,11 +300,8 @@ paths:
                 properties: 
                   identifier: 
                     $ref: "#/components/schemas/UserIdentifier"
-                  token:
-                    $ref: "#/components/schemas/Token"
               example:
                 identifier: 377
-                token: 432
         '400':
           $ref: "#/components/responses/Error400"
         '500':
@@ -445,7 +434,9 @@ paths:
 
   
   #RICERCA UTENTE NELL'APP ATTRAVERSO USERNAME
-  /users:
+  /users/{user_id}:
+    parameters:
+    - $ref: "#/components/parameters/UserId"
     get:
       tags: ["user"]
       summary: List all users

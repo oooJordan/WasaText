@@ -1,16 +1,19 @@
 package api
 
-import (
-	"time"
+//"time"
 
-	"github.com/oooJordan/WasaText/service/database"
-)
+//"github.com/oooJordan/WasaText/service/database"
 
-// Struttura che rappresenta un utente
-type User struct {
-	User_ID  int    `json:"user_id"`
-	Username string `json:"username"`
+// Struttura del login
+type LoginRequest struct {
+	User string `json:"user"`
 }
+
+type LoginResponse struct {
+	User_ID int `json:"user_id"`
+}
+
+/*
 
 // Struttura per rappresentare un emoji nel commento
 type CommentEmoji struct {
@@ -40,10 +43,10 @@ type Conversation struct {
 // INVIO DATI UTENTE (ID E USERNAME)
 func (details User) toDataBaseModel() database.User {
 	return database.User{
-		User_ID:  details.User_ID,
-		Username: details.Username,
+		User_ID: details.User_ID,
 	}
 }
+
 
 // INVIO ID DEL COMMENTO
 func (comment CommentEmoji) toDataBaseModel() database.CommentEmoji {
@@ -79,3 +82,4 @@ func (conversation Conversation) toDataBaseModel() database.Conversation {
 		Messages:        dbMessages,
 	}
 }
+*/

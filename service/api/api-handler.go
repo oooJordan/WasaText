@@ -9,8 +9,9 @@ func (rt *_router) Handler() http.Handler {
 	rt.router.GET("/context", rt.wrap(rt.getContextReply))
 
 	//LOGIN UTENTE
-	rt.router.POST("/session", rt.loginUser)
+	rt.router.POST("/session", rt.wrap(rt.loginUser))
 	rt.router.GET("/users", rt.wrap(rt.listUsers))
+	rt.router.POST("/upload", rt.wrap(rt.uploadImage))
 
 	// Register routes
 	/*
@@ -19,7 +20,7 @@ func (rt *_router) Handler() http.Handler {
 		rt.router.POST("/session/profile_image", rt.wrap(rt.updateProfileImage))
 		rt.router.GET("/session/profile_image", rt.wrap(rt.getProfileImage))
 
-		rt.router.POST("/upload", rt.wrap(rt.uploadImage))
+
 
 		rt.router.GET("/users", rt.wrap(rt.listUsers))
 

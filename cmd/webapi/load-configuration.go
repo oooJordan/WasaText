@@ -27,7 +27,7 @@ type WebAPIConfiguration struct {
 	}
 	Debug bool //flag per attivare o disattivare mod debug
 	DB    struct {
-		Filename string `conf:"default:/tmp/decaf.db"`
+		Filename string `conf:"default:/tmp/WasaText.db"`
 	}
 }
 

@@ -40,8 +40,8 @@ import (
 type AppDatabase interface {
 	GetName() (string, error)
 	SetName(name string) error
-
-	SearchUser(string) ([]User, error)
+	GetIdUser(name string) (int, error)
+	//SearchUser(string) ([]User, error)
 	//CheckUser(User) (User, error)
 
 	Ping() error
@@ -67,14 +67,14 @@ func New(db *sql.DB) (AppDatabase, error) { //inizializza il database
 	// controlla se il database esiste. se non esiste viene creata la struttura
 	var tableName string //variabile per memorizzare nome tabella
 	// viene eseguita una query SQL sul database per verificare se esiste una tabella chiamata example_table (ritorna 1 riga)
-	err := db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name='example_table';`).Scan(&tableName)
+	err := db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name='users';`).Scan(&tableName)
 	if errors.Is(err, sql.ErrNoRows) { //se non ha trovato nessuna tabella la crea
 
 		// Creazione DB per gli Users se non esiste
-		users := `CREATE TABLE IF NOT EXISTS Users 
-										(user_id INTEGER NOT NULL, 
-										nickname VARCHAR(25) NOT NULL UNIQUE,
-										PRIMARY KEY("user_id" AUTOINCREMENT));`
+		users := `CREATE TABLE users 
+						(user_id INTEGER NOT NULL, 
+						name VARCHAR(25) NOT NULL UNIQUE,
+						PRIMARY KEY("user_id" AUTOINCREMENT));`
 		_, err = db.Exec(users)
 		if err != nil {
 			return nil, fmt.Errorf("error creating database structure: Users %w", err)
