@@ -63,7 +63,7 @@ components:
         $ref: "#/components/schemas/UserIdentifier"
         
     UserName:
-      name: username
+      name: name
       in: query
       required: false
       description: The username to filter the list of users
@@ -446,13 +446,6 @@ paths:
       summary: List all users
       description: Returns a list of all users in the application, with an optional filter by username
       operationId: searchUsers
-      parameters:
-        - name: username
-          in: query
-          required: false
-          description: The username to filter the list of users
-          schema:
-            $ref: "#/components/schemas/Name"
       responses:
         '200':
           description: A list of users has been successfully retrieved

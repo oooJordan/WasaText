@@ -1,6 +1,11 @@
 package database
 
+import "fmt"
+
 func (db *appdbimpl) GetListUsers(name string) ([]Users, error) {
+	if name == "" {
+		return nil, fmt.Errorf("invalid search parameter: name is empty")
+	}
 	stringName := "%" + name + "%"
 	// Primo passo: seleziono i nomi corrispondenti
 	rows, err := db.c.Query("SELECT name FROM Users WHERE name LIKE ?", stringName)
@@ -26,8 +31,7 @@ func (db *appdbimpl) GetListUsers(name string) ([]Users, error) {
 	var users []Users
 	for _, userName := range names {
 		var user Users
-		err := db.c.QueryRow("SELECT name, user_id, profile_image FROM Users WHERE name = ?", userName).
-			Scan(&user.Name, &user.UserID, &user.ProfileImage)
+		err := db.c.QueryRow("SELECT name, user_id, profile_image FROM Users WHERE name = ?", userName).Scan(&user.Name, &user.UserID, &user.ProfileImage)
 		if err != nil {
 			return nil, err
 		}
