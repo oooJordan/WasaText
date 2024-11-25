@@ -41,7 +41,7 @@ type AppDatabase interface {
 	GetName() (string, error)
 	SetName(name string) error
 	GetIdUser(name string) (int, error)
-	//SearchUser(string) ([]User, error)
+	GetListUsers(name string) ([]Users, error)
 	//CheckUser(User) (User, error)
 
 	Ping() error
@@ -74,6 +74,7 @@ func New(db *sql.DB) (AppDatabase, error) { //inizializza il database
 		users := `CREATE TABLE users 
 						(user_id INTEGER NOT NULL, 
 						name VARCHAR(25) NOT NULL UNIQUE,
+						profile_image TEXT,
 						PRIMARY KEY("user_id" AUTOINCREMENT));`
 		_, err = db.Exec(users)
 		if err != nil {

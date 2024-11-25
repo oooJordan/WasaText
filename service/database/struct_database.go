@@ -5,6 +5,13 @@ type UserIdDatabase struct {
 	User_ID int `json:"user_id"`
 }
 
+// Struttura Users
+type Users struct {
+	Name         string `json:"name"`
+	UserID       int    `json:"user_id"`
+	ProfileImage string `json:"profile_image"`
+}
+
 /*
 // Struttura per rappresentare un emoji nel commento
 type CommentEmoji struct {

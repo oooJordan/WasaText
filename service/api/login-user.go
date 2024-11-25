@@ -22,6 +22,12 @@ func (rt *_router) loginUser(w http.ResponseWriter, r *http.Request, ps httprout
 		return
 	}
 
+	// controllo lunghezza
+	if !IsValidNickname(req.User) {
+		http.Error(w, "Username must be between 3 and 16 characters", http.StatusBadRequest)
+		return
+	}
+
 	// prendo l'id dell'utente dal database
 	userID, err := rt.db.GetIdUser(req.User)
 	if err != nil {

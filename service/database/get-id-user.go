@@ -12,7 +12,8 @@ func (db *appdbimpl) GetIdUser(name string) (int, error) {
 	if err != nil {
 		fmt.Println(err.Error())
 		if errors.Is(err, sql.ErrNoRows) {
-			result, err := db.c.Exec("INSERT INTO users (name) VALUES (?)", name)
+			DefaultImage := "https://example.com/default-profile-image.png"
+			result, err := db.c.Exec("INSERT INTO users (name, profile_image) VALUES (?, ?)", name, DefaultImage)
 			if err != nil {
 				return 0, err
 			}

@@ -173,9 +173,12 @@ components:
           $ref: "#/components/schemas/UserIdentifier"
         nickname:
           $ref: "#/components/schemas/Name"
+        image:
+            $ref: "#/components/schemas/Image"
       example:
         userId: 222
         username: "Matteo"
+        image: "https://example.com/images/12345.jpg"
 
     UsersList:
       description: List of users
@@ -190,6 +193,7 @@ components:
             $ref: "#/components/schemas/User"
       required:
         - users
+        
     
     Conversation:
       type: object
@@ -306,7 +310,7 @@ paths:
           $ref: "#/components/responses/Error400"
         '500':
           $ref: "#/components/responses/Error500"
-    
+  /username:
     #MODIFICA USERNAME UTENTE
     put:
       tags: ["login"]
@@ -434,9 +438,9 @@ paths:
 
   
   #RICERCA UTENTE NELL'APP ATTRAVERSO USERNAME
-  /users/{user_id}:
+  /users:
     parameters:
-    - $ref: "#/components/parameters/UserId"
+    - $ref: "#/components/parameters/UserName"
     get:
       tags: ["user"]
       summary: List all users
@@ -458,6 +462,8 @@ paths:
                 $ref: "#/components/schemas/UsersList"
         '400':
           $ref: "#/components/responses/Error400"
+        '403':
+          $ref: "#/components/responses/Error403"
         '404':
           $ref: "#/components/responses/Error404"
         '500':

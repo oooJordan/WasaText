@@ -6,11 +6,18 @@ package api
 
 // Struttura del login
 type LoginRequest struct {
-	User string `json:"user"`
+	User string `json:"name"`
 }
 
 type LoginResponse struct {
 	User_ID int `json:"user_id"`
+}
+
+// User rappresenta la struttura degli utenti restituiti
+type UserList struct {
+	Name         string `json:"name"`
+	UserID       int    `json:"user_id"`
+	ProfileImage string `json:"profile_image"`
 }
 
 /*
