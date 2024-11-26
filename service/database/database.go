@@ -42,6 +42,7 @@ type AppDatabase interface {
 	SetName(name string) error
 	GetIdUser(name string) (int, error)
 	GetListUsers(name string) ([]Users, error)
+	UpdateUsername(userid int, NewUsername string) error
 	//CheckUser(User) (User, error)
 
 	Ping() error

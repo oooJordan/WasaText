@@ -46,17 +46,9 @@ components:
       schema:
         $ref: "#/components/schemas/MessageIdentifier"
     
-    CommentId:
-      name: comment_id
-      in: path
-      required: true
-      description: "The unique identifier of the comment"
-      schema:
-        $ref: "#/components/schemas/CommentIdentifier"
-    
     UserId:
       name: user_id
-      in: query
+      in: path
       required: true
       description: "The unique identifier of the User"
       schema:
@@ -141,18 +133,6 @@ components:
       readOnly: true
       example: 888
 
-    CommentIdentifier:
-      type: object
-      description: "Schema for the unique identifier of the comment's emoji"
-      properties:
-        emojiId:
-          type: integer
-          description: "Unique identifier for the comment emoji"
-          minimum: 0
-          maximum: 9999
-          readOnly: true
-          example: 203
-    
     CommentEmoji:
       type: object
       description: "Schema for the emoji code associated with a comment"
@@ -229,7 +209,7 @@ components:
                 example: false
                 description: "Indicates whether the message has been read by the recipient (true if read, false if not)"
               emoji:
-                $ref: "#/components/schemas/CommentIdentifier"
+                $ref: "#/components/schemas/CommentEmoji"
       example:
         messages:
         - sender: "John Doe"
@@ -266,9 +246,6 @@ components:
       
     Error500:
       description: Internal server error
-
-security:
-  - bearerAuth: [] 
     
 #LOGIN UTENTE ATTRAVERSO USERNAME
 paths:
@@ -310,10 +287,13 @@ paths:
           $ref: "#/components/responses/Error400"
         '500':
           $ref: "#/components/responses/Error500"
-  /username:
+
+  /users/{user_id}/username:
     #MODIFICA USERNAME UTENTE
+    parameters:
+    - $ref: "#/components/parameters/UserId"
     put:
-      tags: ["login"]
+      tags: ["user"]
       summary: Update user username
       description: |-
         Allows the user to update their username. If the new username is already in use by another user, an error message will be sent.
@@ -341,9 +321,13 @@ paths:
           $ref: "#/components/responses/Error409"
         '500':
           $ref: "#/components/responses/Error500"
+      security:
+        - bearerAuth: [] 
 
  #CARICA IMMAGINE
-  /upload:
+  /users/{user_id}/upload:
+    parameters:
+    - $ref: "#/components/parameters/UserId"
     post:
       tags: ["upload"]
       summary: Upload an image
@@ -382,12 +366,15 @@ paths:
           $ref: "#/components/responses/Error415"
         '500':
           $ref: "#/components/responses/Error500"
-    
+      security:
+        - bearerAuth: [] 
 
   #MODIFICA IMMAGINE DI PROFILO UTENTE
-  /session/profile_image:
+  /users/{user_id}/profile_image:
+    parameters:
+    - $ref: "#/components/parameters/UserId"
     post: 
-      tags: ["login"]
+      tags: ["user"]
       summary: update user's profile image
       description: This endpoint allows the user to update a new profile image
       operationId: setMyPhoto
@@ -410,10 +397,12 @@ paths:
           $ref: "#/components/responses/Error401"
         '500':
           $ref: "#/components/responses/Error500"
+      security:
+        - bearerAuth: [] 
 
     #OTTIENI IMMAGINE 
     get:
-      tags: ["login"]
+      tags: ["user"]
       summary: get image
       description: This endpoint allows the user to get an image
       operationId: getImage
@@ -434,6 +423,8 @@ paths:
           $ref: "#/components/responses/Error401"
         '500':
           $ref: "#/components/responses/Error500"
+      security:
+        - bearerAuth: [] 
 
 
   
@@ -461,9 +452,13 @@ paths:
           $ref: "#/components/responses/Error404"
         '500':
           $ref: "#/components/responses/Error500"
+      security:
+        - bearerAuth: [] 
 
   #LISTA TUTTE CONVERSAZIONI DELL'UTENTE
-  /conversation:
+  /users/{user_id}/conversation:
+    parameters:
+    - $ref: "#/components/parameters/UserId"
     get:
       tags: ["conversation"]
       summary: User's conversation list
@@ -508,6 +503,8 @@ paths:
           $ref: "#/components/responses/Error401"
         '500':
           $ref: "#/components/responses/Error500"
+      security:
+        - bearerAuth: [] 
 
   #INIZIA UNA NUOVA CONVERSAZIONE (CHATPRIVATA O GRUPPO)
     post:
@@ -567,12 +564,15 @@ paths:
           $ref: "#/components/responses/Error403"
         '500':
           $ref: "#/components/responses/Error500"
+      security:
+        - bearerAuth: [] 
 
 #QUI POSSO VEDERE LA CRONOLOGIA DELLE CONVERSAZIONI
-  /conversation/{conversation_id}:
+  /users/{user_id}/conversation/{conversation_id}:
       parameters:
       - $ref: "#/components/parameters/ConversationId"
       - $ref: "#/components/parameters/UserName"
+      - $ref: "#/components/parameters/UserId"
       get:
         tags: ["conversation"]
         summary: Viewing message history
@@ -593,6 +593,8 @@ paths:
             $ref: "#/components/responses/Error404"
           '500':
             $ref: "#/components/responses/Error500"
+        security:
+          - bearerAuth: [] 
 
       #INVIO DI UN NUOVO MESSAGGIO (DI TESTO, GIF O ENTRAMBI)
       post:
@@ -642,12 +644,15 @@ paths:
             $ref: "#/components/responses/Error401"
           '500':
             $ref: "#/components/responses/Error500"
+        security:
+          - bearerAuth: [] 
 
   #INOLTRA UN MESSAGGIO
-  /conversation/{conversation_id}/messages/{message_id}:
+  /users/{user_id}/conversation/{conversation_id}/messages/{message_id}:
     parameters:
         - $ref: "#/components/parameters/ConversationId"
         - $ref: "#/components/parameters/MessageId"
+        - $ref: "#/components/parameters/UserId"
     post:
       tags: ["messages"]
       summary: Forwards a specific message
@@ -672,6 +677,8 @@ paths:
           $ref: "#/components/responses/Error404"
         '500':
           $ref: "#/components/responses/Error500"
+      security:
+        - bearerAuth: [] 
 
   #ELIMINA UN MESSAGGIO SPECIFICO
     delete:
@@ -696,12 +703,15 @@ paths:
           $ref: "#/components/responses/Error404"
         '500':
           $ref: "#/components/responses/Error500"
+      security:
+        - bearerAuth: [] 
 
   #AGGIUNGE UNA REACTION
-  /conversation/{conversation_id}/messages/{message_id}/comment:
+  /users/{user_id}/conversation/{conversation_id}/messages/{message_id}/comment:
     parameters:
         - $ref: "#/components/parameters/ConversationId"
         - $ref: "#/components/parameters/MessageId"
+        - $ref: "#/components/parameters/UserId"
     patch:
       tags: ["messages"]
       summary: Add comment (emoji reaction) to a message
@@ -733,14 +743,10 @@ paths:
           $ref: "#/components/responses/Error404"
         '500':
           $ref: "#/components/responses/Error500"
+      security:
+        - bearerAuth: [] 
 
   #ELIMINA UNA RECTION DA UN MESSAGGIO SPECIFICO
-  /conversation/{conversation_id}/messages/{message_id}/comment/{comment_id}:
-    parameters:
-        - $ref: "#/components/parameters/ConversationId"
-        - $ref: "#/components/parameters/MessageId"
-        - $ref: "#/components/parameters/CommentId"
-        - $ref: "#/components/parameters/UserId"
     delete:
       tags: ["messages"]
       summary: Remove reaction (emoji) from a message
@@ -761,12 +767,15 @@ paths:
           $ref: "#/components/responses/Error404"
         '500':
           $ref: "#/components/responses/Error500"
+      security:
+        - bearerAuth: [] 
 
   
   # AGGIUNTA DI MEMBRI AD UN GRUPPO GIA ESISTENTE
-  /conversation/{conversation_id}/names:
+  /users/{user_id}/conversation/{conversation_id}/names:
     parameters:
       - $ref: "#/components/parameters/ConversationId"
+      - $ref: "#/components/parameters/UserId"
     patch:
       tags: ["groups"]
       summary: Add users to a group
@@ -789,10 +798,13 @@ paths:
           $ref: "#/components/responses/Error400"
         '500':
           $ref: "#/components/responses/Error500"
+      security:
+        - bearerAuth: [] 
 
-  /conversation/{conversation_id}/leave:
+  /users/{user_id}/conversation/{conversation_id}/leave:
     parameters:
       - $ref: "#/components/parameters/ConversationId"
+      - $ref: "#/components/parameters/UserId"
     post:
       tags: ["groups"]
       summary: Leave a group
@@ -810,11 +822,14 @@ paths:
           $ref: "#/components/responses/Error404"
         '500':
           $ref: "#/components/responses/Error500"
+      security:
+        - bearerAuth: [] 
 
   #MODIFICA NOME DI UN GRUPPO GIA ESISTENTE
-  /conversation/{conversation_id}/name:
+  /users/{user_id}/conversation/{conversation_id}/name:
     parameters:
       - $ref: "#/components/parameters/ConversationId"
+      - $ref: "#/components/parameters/UserId"
     put:
       tags: ["groups"]
       summary: Rename a group
@@ -844,11 +859,14 @@ paths:
           $ref: "#/components/responses/Error404"
         '500':
           $ref: "#/components/responses/Error500"
+      security:
+        - bearerAuth: [] 
   
   #MODIFICA IMMAGINE DI UN GRUPPO GIA ESISTENTE
-  /conversation/{conversation_id}/groupimage:
+  /users/{user_id}/conversation/{conversation_id}/groupimage:
     parameters:
       - $ref: "#/components/parameters/ConversationId"
+      - $ref: "#/components/parameters/UserId"
     put:
       tags: ["groups"]
       summary: Update image group profile
@@ -876,3 +894,5 @@ paths:
           $ref: "#/components/responses/Error404"
         '500':
           $ref: "#/components/responses/Error500"
+      security:
+        - bearerAuth: [] 
