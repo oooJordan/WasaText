@@ -2,6 +2,8 @@ package database
 
 import "errors"
 
+var ErrUsernameAlreadyInUse = errors.New("username already in use")
+
 func (db *appdbimpl) UpdateUsername(userid int, newUsername string) error {
 	// Controllo se il nuovo username esiste già
 	var existing int
@@ -10,7 +12,7 @@ func (db *appdbimpl) UpdateUsername(userid int, newUsername string) error {
 		return err
 	}
 	if existing > 0 {
-		return errors.New("username already in use")
+		return ErrUsernameAlreadyInUse
 	}
 
 	// Aggiorno il nome utente

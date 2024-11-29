@@ -68,3 +68,19 @@ func extractUserIdFromToken(token string) int {
 	id, _ := strconv.Atoi(token)
 	return id
 }
+
+/*
+func checkFormatPhoto(body io.Reader, newR io.ReadCloser) error {
+	//decodifico l'immagine come JPEG
+	if _, err := jpeg.Decode(body); err != nil {
+		// Se non è un JPEG, ripristino il lettore e provo a decodificare come GIF
+		body = newR
+		if _, err := gif.Decode(body); err != nil {
+			//se non è nemmeno una gif ritorno errore
+			return errors.New("Invalid image format")
+		}
+	}
+	//immagine valida
+	return nil
+}
+*/

@@ -12,3 +12,5 @@ row := db.QueryRow("SELECT id, username FROM users WHERE id = ?", 1)
 var id int
 var username string
 err := row.Scan(&id, &username)
+
+//FIX la funzione che modifica username utente consente a tutti di farlo, cioè io con id 1 posso modificare username a id 2

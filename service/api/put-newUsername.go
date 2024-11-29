@@ -2,11 +2,13 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/oooJordan/WasaText/service/api/reqcontext"
+	"github.com/oooJordan/WasaText/service/database"
 )
 
 func (rt *_router) UpdateUsername(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
@@ -43,7 +45,14 @@ func (rt *_router) UpdateUsername(w http.ResponseWriter, r *http.Request, ps htt
 	}
 
 	// Aggiorna l'username nel database
-	if err := rt.db.UpdateUsername(userIDint, newUsername.NewUsername); err != nil {
+	err = rt.db.UpdateUsername(userIDint, newUsername.NewUsername)
+	if err != nil {
+		// Se l'errore è dovuto al conflitto di username, restituisci un errore 409
+		if errors.Is(err, database.ErrUsernameAlreadyInUse) {
+			http.Error(w, "Username already in use", http.StatusConflict) // 409
+			return
+		}
+		// 500
 		http.Error(w, "Failed to update username", http.StatusInternalServerError)
 		return
 	}

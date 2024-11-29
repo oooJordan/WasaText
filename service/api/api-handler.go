@@ -15,13 +15,11 @@ func (rt *_router) Handler() http.Handler {
 
 	// Register routes
 	/*
+		rt.router.POST("/upload", rt.wrap(rt.UploadImage))
 
 		rt.router.POST("/session/profile_image", rt.wrap(rt.updateProfileImage))
 		rt.router.GET("/session/profile_image", rt.wrap(rt.getProfileImage))
 		rt.router.POST("/upload", rt.wrap(rt.uploadImage))
-
-
-		rt.router.GET("/users", rt.wrap(rt.listUsers))
 
 		rt.router.GET("/conversation", rt.wrap(rt.conversationsList))
 		rt.router.GET("/conversation", rt.wrap(rt.getMyConversations))
