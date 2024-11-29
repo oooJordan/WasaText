@@ -33,7 +33,7 @@ package database
 import (
 	"database/sql"
 	"errors"
-	"fmt"
+	"log"
 )
 
 // in AppDatabase ci sono i metodi definiti in database.go
@@ -78,10 +78,67 @@ func New(db *sql.DB) (AppDatabase, error) { //inizializza il database
 						name VARCHAR(25) NOT NULL UNIQUE,
 						profile_image TEXT,
 						PRIMARY KEY("user_id" AUTOINCREMENT));`
-		_, err = db.Exec(users)
 
+		conversations := `CREATE TABLE conversations (
+						ConversationId INTEGER NOT NULL PRIMARY KEY, 
+						chatType TEXT NOT NULL, 
+						groupName TEXT, 
+						imageGroup TEXT, 
+						authorId INTEGER NOT NULL, 
+						timestamp DATETIME NOT NULL, 
+						FOREIGN KEY(authorId) REFERENCES users(user_id) );`
+
+		participants := `CREATE TABLE conversation_participants (
+							ConvId INTEGER NOT NULL, 
+							user_id INTEGER NOT NULL, 
+							UNIQUE(ConvId, user_id), 
+							FOREIGN KEY(ConvId) REFERENCES conversations(ConversationId),
+							FOREIGN KEY(user_id) REFERENCES users(user_id)
+						);`
+
+		messages := `CREATE TABLE messages (
+								id INTEGER NOT NULL PRIMARY KEY, 
+								ConversationId INTEGER NOT NULL, 
+								sender_id INTEGER NOT NULL, 
+								content TEXT NOT NULL, 
+								timestamp DATETIME NOT NULL, 
+								is_read BOOLEAN DEFAULT FALSE, 
+								FOREIGN KEY(ConversationId) REFERENCES conversations(ConvId),
+								FOREIGN KEY(sender_id) REFERENCES users(user_id)
+							);`
+
+		reactions := `CREATE TABLE message_reactions (
+								message_id INTEGER NOT NULL, 
+								user_id INTEGER NOT NULL, 
+								reaction TEXT NOT NULL, 
+								UNIQUE(message_id, user_id), 
+								FOREIGN KEY(message_id) REFERENCES messages(ConvId),
+								FOREIGN KEY(user_id) REFERENCES users(user_id)
+							);`
+
+		_, err = db.Exec(users)
 		if err != nil {
-			return nil, fmt.Errorf("error creating database structure: Users %w", err)
+			log.Fatal(err)
+		}
+
+		_, err = db.Exec(conversations)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		_, err = db.Exec(participants)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		_, err = db.Exec(messages)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		_, err = db.Exec(reactions)
+		if err != nil {
+			log.Fatal(err)
 		}
 
 		/*
