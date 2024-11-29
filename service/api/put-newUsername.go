@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"strconv"
+	"strings"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/oooJordan/WasaText/service/api/reqcontext"
@@ -12,13 +12,6 @@ import (
 )
 
 func (rt *_router) UpdateUsername(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
-	userIDStr := ps.ByName("user_id")
-	userIDint, err := strconv.Atoi(userIDStr)
-	if err != nil {
-		ctx.Logger.WithError(err).Error("error converting uid to int")
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
 	// Controllo se il token è valido
 	isValid, err := rt.IsValidToken(r, w)
 	if err != nil {
@@ -43,6 +36,10 @@ func (rt *_router) UpdateUsername(w http.ResponseWriter, r *http.Request, ps htt
 		http.Error(w, "Invalid username format", http.StatusBadRequest)
 		return
 	}
+
+	// ID utente dal token per aggiornare l'username
+	token := strings.Fields(r.Header.Get("Authorization"))[1]
+	userIDint := extractUserIdFromToken(token)
 
 	// Aggiorna l'username nel database
 	err = rt.db.UpdateUsername(userIDint, newUsername.NewUsername)

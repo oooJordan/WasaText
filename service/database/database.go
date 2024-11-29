@@ -79,6 +79,7 @@ func New(db *sql.DB) (AppDatabase, error) { //inizializza il database
 						profile_image TEXT,
 						PRIMARY KEY("user_id" AUTOINCREMENT));`
 		_, err = db.Exec(users)
+
 		if err != nil {
 			return nil, fmt.Errorf("error creating database structure: Users %w", err)
 		}

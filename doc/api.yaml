@@ -288,11 +288,9 @@ paths:
         '500':
           $ref: "#/components/responses/Error500"
 
-  /users/{user_id}/username:
+  /username:
     #MODIFICA USERNAME UTENTE
-    parameters:
-    - $ref: "#/components/parameters/UserId"
-    put:
+    patch:
       tags: ["user"]
       summary: Update user username
       description: |-
@@ -325,9 +323,7 @@ paths:
         - bearerAuth: [] 
 
  #CARICA IMMAGINE
-  /users/{user_id}/upload:
-    parameters:
-    - $ref: "#/components/parameters/UserId"
+  /upload:
     post:
       tags: ["upload"]
       summary: Upload an image
@@ -370,9 +366,7 @@ paths:
         - bearerAuth: [] 
 
   #MODIFICA IMMAGINE DI PROFILO UTENTE
-  /users/{user_id}/profile_image:
-    parameters:
-    - $ref: "#/components/parameters/UserId"
+  /profile_image:
     post: 
       tags: ["user"]
       summary: update user's profile image
@@ -456,9 +450,7 @@ paths:
         - bearerAuth: [] 
 
   #LISTA TUTTE CONVERSAZIONI DELL'UTENTE
-  /users/{user_id}/conversation:
-    parameters:
-    - $ref: "#/components/parameters/UserId"
+  /conversations:
     get:
       tags: ["conversation"]
       summary: User's conversation list
@@ -568,11 +560,10 @@ paths:
         - bearerAuth: [] 
 
 #QUI POSSO VEDERE LA CRONOLOGIA DELLE CONVERSAZIONI
-  /users/{user_id}/conversation/{conversation_id}:
+  /conversation/{conversation_id}:
       parameters:
       - $ref: "#/components/parameters/ConversationId"
       - $ref: "#/components/parameters/UserName"
-      - $ref: "#/components/parameters/UserId"
       get:
         tags: ["conversation"]
         summary: Viewing message history
@@ -648,11 +639,10 @@ paths:
           - bearerAuth: [] 
 
   #INOLTRA UN MESSAGGIO
-  /users/{user_id}/conversation/{conversation_id}/messages/{message_id}:
+  /conversation/{conversation_id}/messages/{message_id}:
     parameters:
         - $ref: "#/components/parameters/ConversationId"
         - $ref: "#/components/parameters/MessageId"
-        - $ref: "#/components/parameters/UserId"
     post:
       tags: ["messages"]
       summary: Forwards a specific message
@@ -707,11 +697,10 @@ paths:
         - bearerAuth: [] 
 
   #AGGIUNGE UNA REACTION
-  /users/{user_id}/conversation/{conversation_id}/messages/{message_id}/comment:
+  /conversation/{conversation_id}/messages/{message_id}/comment:
     parameters:
         - $ref: "#/components/parameters/ConversationId"
         - $ref: "#/components/parameters/MessageId"
-        - $ref: "#/components/parameters/UserId"
     patch:
       tags: ["messages"]
       summary: Add comment (emoji reaction) to a message
@@ -772,10 +761,9 @@ paths:
 
   
   # AGGIUNTA DI MEMBRI AD UN GRUPPO GIA ESISTENTE
-  /users/{user_id}/conversation/{conversation_id}/names:
+  /conversation/{conversation_id}/names:
     parameters:
       - $ref: "#/components/parameters/ConversationId"
-      - $ref: "#/components/parameters/UserId"
     patch:
       tags: ["groups"]
       summary: Add users to a group
@@ -800,11 +788,10 @@ paths:
           $ref: "#/components/responses/Error500"
       security:
         - bearerAuth: [] 
-
-  /users/{user_id}/conversation/{conversation_id}/leave:
+#ESCI DAL GRUPPO
+  /conversation/{conversation_id}/leave:
     parameters:
       - $ref: "#/components/parameters/ConversationId"
-      - $ref: "#/components/parameters/UserId"
     post:
       tags: ["groups"]
       summary: Leave a group
@@ -826,10 +813,9 @@ paths:
         - bearerAuth: [] 
 
   #MODIFICA NOME DI UN GRUPPO GIA ESISTENTE
-  /users/{user_id}/conversation/{conversation_id}/name:
+  /conversation/{conversation_id}/name:
     parameters:
       - $ref: "#/components/parameters/ConversationId"
-      - $ref: "#/components/parameters/UserId"
     put:
       tags: ["groups"]
       summary: Rename a group
@@ -863,10 +849,9 @@ paths:
         - bearerAuth: [] 
   
   #MODIFICA IMMAGINE DI UN GRUPPO GIA ESISTENTE
-  /users/{user_id}/conversation/{conversation_id}/groupimage:
+  /conversation/{conversation_id}/groupimage:
     parameters:
       - $ref: "#/components/parameters/ConversationId"
-      - $ref: "#/components/parameters/UserId"
     put:
       tags: ["groups"]
       summary: Update image group profile
