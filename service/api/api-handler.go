@@ -11,7 +11,7 @@ func (rt *_router) Handler() http.Handler {
 	//LOGIN UTENTE
 	rt.router.POST("/session", rt.wrap(rt.loginUser))
 	rt.router.GET("/users", rt.wrap(rt.listUsers))
-	rt.router.PUT("/users/:user_id/username", rt.wrap(rt.updateUsername))
+	rt.router.PUT("/users/:user_id/username", rt.wrap(rt.UpdateUsername))
 
 	// Register routes
 	/*

@@ -3,9 +3,9 @@ package database
 import "errors"
 
 func (db *appdbimpl) UpdateUsername(userid int, newUsername string) error {
-	// Controlla se il nuovo username esiste già
+	// Controllo se il nuovo username esiste già
 	var existing int
-	err := db.c.QueryRow("SELECT COUNT(*) FROM Users WHERE name = ?", newUsername).Scan(&existing)
+	err := db.c.QueryRow("SELECT COUNT(*) FROM users WHERE name = ?", newUsername).Scan(&existing)
 	if err != nil {
 		return err
 	}
@@ -13,8 +13,8 @@ func (db *appdbimpl) UpdateUsername(userid int, newUsername string) error {
 		return errors.New("username already in use")
 	}
 
-	// Aggiorna il nome utente
-	_, err = db.c.Exec("UPDATE Users SET name = ? WHERE user_id = ?", newUsername, userid)
+	// Aggiorno il nome utente
+	_, err = db.c.Exec("UPDATE users SET name = ? WHERE user_id = ?", newUsername, userid)
 	if err != nil {
 		return err
 	}

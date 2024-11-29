@@ -12,6 +12,12 @@ type Users struct {
 	ProfileImage string `json:"profile_image"`
 }
 
+// User-token struct
+type UserToken struct {
+	UserID int    `json:"user-id"`
+	Token  string `json:"auth-token"`
+}
+
 /*
 // Struttura per rappresentare un emoji nel commento
 type CommentEmoji struct {

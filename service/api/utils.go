@@ -2,8 +2,10 @@ package api
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -34,22 +36,35 @@ func IsValidNickname(nick string) bool {
 		return emojiCodeRegex.MatchString(emojicode)
 	}
 */
-func IsValidToken(req *http.Request, w http.ResponseWriter) (string, error) {
+func (rt *_router) IsValidToken(r *http.Request, w http.ResponseWriter) (bool, error) {
 	//valore dell'intestazione Authorization della richiesta HTTP
-	authHeader := req.Header.Get("Authorization")
+	authHeader := r.Header.Get("Authorization")
+	fmt.Println(authHeader + "\n")
 
-	//controllo della presenza dell'intestazione
+	//controllo se non è vuoto
 	if len(authHeader) == 0 {
 		http.Error(w, "Authorization Header missing", http.StatusForbidden)
-		return "", errors.New("authorization Header missing")
+		return false, errors.New("authorization Header missing")
 	}
-	//divido la stringa in base agli spazi es:["Barer", "user"]
+	//divido la stringa in base agli spazi es:["Barer", "user"] e cnontrollo se c'è barer
 	HeaderPart := strings.Fields(authHeader)
-	//se l'array ha meno di 2 elementi vuol dire che manca qualcosa
-	if len(HeaderPart) < 2 {
-		http.Error(w, "Invalid format Auth", http.StatusForbidden)
-		return "", errors.New("invalid format Auth")
+	if len(HeaderPart) < 2 || HeaderPart[0] != "Bearer" {
+		http.Error(w, "Invalid Authorization format", http.StatusForbidden)
+		return false, errors.New("invalid Authorization format")
 	}
-	//return ultimo elemento array
-	return HeaderPart[len(HeaderPart)-1], nil
+	token := HeaderPart[1] //prendo il token
+
+	userid := extractUserIdFromToken(token) //id_utente
+
+	found, err := rt.db.CheckIDDatabase(userid)
+	if err != nil || !found {
+		http.Error(w, "Non autorizzato", http.StatusUnauthorized)
+		return false, nil
+	}
+	return true, nil
+}
+
+func extractUserIdFromToken(token string) int {
+	id, _ := strconv.Atoi(token)
+	return id
 }

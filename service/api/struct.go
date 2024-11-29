@@ -13,6 +13,11 @@ type LoginResponse struct {
 	User_ID int `json:"user_id"`
 }
 
+// Struttura per mappare il corpo JSON
+type UpdateUsernameRequest struct {
+	NewUsername string `json:"newUsername"`
+}
+
 // User rappresenta la struttura degli utenti restituiti
 type UserList struct {
 	Name         string `json:"name"`

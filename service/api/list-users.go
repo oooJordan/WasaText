@@ -1,7 +1,6 @@
 package api
 
 import (
-	//"encoding/json"
 	"encoding/json"
 	"net/http"
 
@@ -11,15 +10,18 @@ import (
 
 func (rt *_router) listUsers(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	username := r.URL.Query().Get("name")
-	/*
-		token, err := IsValidToken(r,w)
-		if err != nil{
-			ctx.Logger.WithError(err).Error("token: Authentication Error")
-			w.WriteHeader(http.StatusForbidden) //403
-			return
-		}
-		userid, _ := strconv.Atoi(token)
-	*/
+
+	isValid, err := rt.IsValidToken(r, w)
+	if err != nil {
+		// La risposta HTTP è già gestita all'interno di IsValidToken
+		return
+	}
+	if !isValid {
+		// Token non valido
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	users, err := rt.db.GetListUsers(username)
 	if err != nil {
 		ctx.Logger.WithError(err).Error("Error executing query")
