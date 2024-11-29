@@ -81,9 +81,10 @@ func New(db *sql.DB) (AppDatabase, error) { //inizializza il database
 
 		conversations := `CREATE TABLE conversations (
 						ConversationId INTEGER NOT NULL PRIMARY KEY, 
-						chatType TEXT NOT NULL, 
+						chatType TEXT NOT NULL,
 						groupName TEXT, 
 						imageGroup TEXT, 
+						last_message TEXT,
 						authorId INTEGER NOT NULL, 
 						timestamp DATETIME NOT NULL, 
 						FOREIGN KEY(authorId) REFERENCES users(user_id) );`
@@ -93,28 +94,37 @@ func New(db *sql.DB) (AppDatabase, error) { //inizializza il database
 							user_id INTEGER NOT NULL, 
 							UNIQUE(ConvId, user_id), 
 							FOREIGN KEY(ConvId) REFERENCES conversations(ConversationId),
-							FOREIGN KEY(user_id) REFERENCES users(user_id)
+							FOREIGN KEY(user_id) REFERENCES users(user_id),
+							PRIMARY KEY(ConvId, user_id)
 						);`
 
 		messages := `CREATE TABLE messages (
-								id INTEGER NOT NULL PRIMARY KEY, 
-								ConversationId INTEGER NOT NULL, 
-								sender_id INTEGER NOT NULL, 
-								content TEXT NOT NULL, 
-								timestamp DATETIME NOT NULL, 
-								is_read BOOLEAN DEFAULT FALSE, 
-								FOREIGN KEY(ConversationId) REFERENCES conversations(ConvId),
-								FOREIGN KEY(sender_id) REFERENCES users(user_id)
-							);`
+						MessageId INTEGER NOT NULL PRIMARY KEY, 
+						ConversationId INTEGER NOT NULL, 
+						sender_id INTEGER NOT NULL, 
+						content TEXT, 
+						media TEXT,
+						timestamp DATETIME NOT NULL, 
+						FOREIGN KEY(ConversationId) REFERENCES conversations(ConvId),
+						FOREIGN KEY(sender_id) REFERENCES users(user_id)
+					);`
 
 		reactions := `CREATE TABLE message_reactions (
 								message_id INTEGER NOT NULL, 
 								user_id INTEGER NOT NULL, 
 								reaction TEXT NOT NULL, 
 								UNIQUE(message_id, user_id), 
-								FOREIGN KEY(message_id) REFERENCES messages(ConvId),
+								FOREIGN KEY(message_id) REFERENCES messages(MessageId),
 								FOREIGN KEY(user_id) REFERENCES users(user_id)
 							);`
+		Message_read := `CREATE TABLE messages_read_status (
+							message_id INTEGER NOT NULL,
+							user_id INTEGER NOT NULL,
+							is_read BOOLEAN NOT NULL DEFAULT FALSE,
+							FOREIGN KEY(message_id) REFERENCES messages(MessageId),
+							FOREIGN KEY(user_id) REFERENCES users(user_id),
+							PRIMARY KEY(message_id, user_id)
+						);`
 
 		_, err = db.Exec(users)
 		if err != nil {
@@ -137,6 +147,11 @@ func New(db *sql.DB) (AppDatabase, error) { //inizializza il database
 		}
 
 		_, err = db.Exec(reactions)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		_, err = db.Exec(Message_read)
 		if err != nil {
 			log.Fatal(err)
 		}
