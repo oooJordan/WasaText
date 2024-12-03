@@ -16,7 +16,7 @@ func registerWebUI(hdl http.Handler) (http.Handler, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error embedding WebUI dist/ directory: %w", err)
 	}
-	//definito un nuovo handler
+	// definito un nuovo handler
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasPrefix(r.RequestURI, "/dashboard/") {
 			http.StripPrefix("/dashboard/", http.FileServer(http.FS(distDirectory))).ServeHTTP(w, r)

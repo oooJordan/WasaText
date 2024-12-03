@@ -8,10 +8,11 @@ import (
 func (rt *_router) Handler() http.Handler {
 	rt.router.GET("/context", rt.wrap(rt.getContextReply))
 
-	//LOGIN UTENTE
+	// LOGIN UTENTE
 	rt.router.POST("/session", rt.wrap(rt.loginUser))
 	rt.router.GET("/users", rt.wrap(rt.listUsers))
 	rt.router.PATCH("/username", rt.wrap(rt.UpdateUsername))
+	rt.router.POST("/conversation", rt.newConversation)
 
 	// Register routes
 	/*
@@ -23,7 +24,7 @@ func (rt *_router) Handler() http.Handler {
 
 		rt.router.GET("/conversation", rt.wrap(rt.conversationsList))
 		rt.router.GET("/conversation", rt.wrap(rt.getMyConversations))
-		rt.router.POST("/conversation", rt.wrap(rt.newConversation))
+
 		rt.router.GET("/conversation/:conversation_id", rt.wrap(rt.messageHistory))
 		rt.router.POST("/conversation/:conversation_id", rt.wrap(rt.sendNewMessage))
 

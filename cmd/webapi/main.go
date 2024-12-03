@@ -79,8 +79,8 @@ func run() error {
 			il monitoraggio o la diagnosi durante lo sviluppo e l'esecuzione dell'applicazione.
 	*/
 	logger := logrus.New()
-	logger.SetOutput(os.Stdout) //imposta output logger (stdout)
-	if cfg.Debug {              //se la modalità di debug è attiva nella configurazione
+	logger.SetOutput(os.Stdout) // imposta output logger (stdout)
+	if cfg.Debug {              // se la modalità di debug è attiva nella configurazione
 		logger.SetLevel(logrus.DebugLevel) // Imposta il livello di log a DebugLevel (+ dettagliato)
 	} else {
 		logger.SetLevel(logrus.InfoLevel) // Altrimenti, imposta il livello di log a InfoLevel
@@ -91,13 +91,13 @@ func run() error {
 	// Connessione al database utilizzando percorso definito nella configurazione (cfg.DB.Filename)
 	logger.Println("initializing database support")
 	dbconn, err := sql.Open("sqlite3", cfg.DB.Filename) // Apre una connessione al database SQLite
-	if err != nil {                                     //se ci sono errori termina
+	if err != nil {                                     // se ci sono errori termina
 		logger.WithError(err).Error("error opening SQLite DB")
 		return fmt.Errorf("opening SQLite: %w", err)
 	}
 	defer func() {
 		logger.Debug("database stopping") // Log un messaggio di debug quando la connessione al database sta per essere chiusa
-		_ = dbconn.Close()                //chiude connessione
+		_ = dbconn.Close()                // chiude connessione
 	}()
 	db, err := database.New(dbconn) // Crea una nuova istanza del database usando la connessione appena aperta
 	if err != nil {
@@ -122,15 +122,15 @@ func run() error {
 	// gestisce le rotte (navigatore)
 	apirouter, err := api.New(api.Config{
 		Logger:   logger,
-		Database: db, //connessione al db
+		Database: db, // connessione al db
 	})
 	if err != nil {
 		logger.WithError(err).Error("error creating the API server instance")
 		return fmt.Errorf("creating the API server instance: %w", err)
 	}
-	router := apirouter.Handler() //gestisce richieste HTTP (manipolatore)
+	router := apirouter.Handler() // gestisce richieste HTTP (manipolatore)
 
-	//per controllare se è necessario aggiungere rotte extra per un Web UI
+	// per controllare se è necessario aggiungere rotte extra per un Web UI
 	router, err = registerWebUI(router)
 	if err != nil {
 		logger.WithError(err).Error("error registering web UI handler")
@@ -143,11 +143,11 @@ func run() error {
 
 	// Creazione di API server
 	apiserver := http.Server{
-		Addr:              cfg.Web.APIHost,      //indirizzo in cui il server ascolta
-		Handler:           router,               //router che gestisce le richieste
-		ReadTimeout:       cfg.Web.ReadTimeout,  //timeout per la lettura di una richiesta
-		ReadHeaderTimeout: cfg.Web.ReadTimeout,  //timaout per la scrittura di una richiesta
-		WriteTimeout:      cfg.Web.WriteTimeout, //timeout per inviare una risposta
+		Addr:              cfg.Web.APIHost,      // indirizzo in cui il server ascolta
+		Handler:           router,               // router che gestisce le richieste
+		ReadTimeout:       cfg.Web.ReadTimeout,  // timeout per la lettura di una richiesta
+		ReadHeaderTimeout: cfg.Web.ReadTimeout,  // timaout per la scrittura di una richiesta
+		WriteTimeout:      cfg.Web.WriteTimeout, // timeout per inviare una risposta
 	}
 
 	// Start the service listening for requests in a separate goroutine
@@ -161,11 +161,11 @@ func run() error {
 
 	// Waiting for shutdown signal or POSIX signals
 	select {
-	case err := <-serverErrors: //errore non recuperabile nel server
+	case err := <-serverErrors: // errore non recuperabile nel server
 		// Non-recoverable server error
 		return fmt.Errorf("server error: %w", err)
 
-	case sig := <-shutdown: //segnale di terminazione
+	case sig := <-shutdown: // segnale di terminazione
 		logger.Infof("signal %v received, start shutdown", sig)
 
 		// chiude il router, segnala che non deve più ricevere nuove richieste
@@ -194,6 +194,6 @@ func run() error {
 			return fmt.Errorf("could not stop server gracefully: %w", err)
 		}
 	}
-	//terminazione del server senza errori
+	// terminazione del server senza errori
 	return nil
 }

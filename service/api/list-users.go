@@ -11,7 +11,7 @@ import (
 func (rt *_router) listUsers(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	username := r.URL.Query().Get("name")
 
-	isValid, err := rt.IsValidToken(r, w)
+	isValid, _, err := rt.IsValidToken(r, w)
 	if err != nil {
 		// La risposta HTTP è già gestita all'interno di IsValidToken
 		return

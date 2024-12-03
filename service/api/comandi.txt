@@ -5,6 +5,18 @@ curl -X POST -H "Authorization: Bearer USERID" -H "Content-Type: application/jso
 
 
 
+curl -X POST -H "Authorization: Bearer 1" -H "Content-Type: application/json" -d '{
+           "chatType": "private_chat",
+           "usersname": ["Tommy", "Matteo2"],
+           "startMessage": {
+             "content": "Hello, this is the first message!",
+             "media": "",
+             "image": ""
+           }
+         }' http://localhost:3000/conversations
+
+
+
 //TODO ->  SCAN
 prende i dati dalla query e le inserisce in delle variabili
 //OPTIMIZE esempio -> qui vengono compiati i risultati presi dalla tabella nelle variabili id e username grazie a Scan

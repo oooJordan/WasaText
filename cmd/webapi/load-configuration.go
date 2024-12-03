@@ -17,15 +17,15 @@ type WebAPIConfiguration struct {
 	Config struct {
 		Path string `conf:"default:/conf/config.yml"` //posizione del file YAML di configurazione
 	}
-	Web struct { //configurazione webserver
+	Web struct { // configurazione webserver
 		APIHost   string `conf:"default:0.0.0.0:3000"` //porta in cui API è in ascolto
 		DebugHost string `conf:"default:0.0.0.0:4000"` //indirizzo e porta per l'host di debug
-		//tempi di timeout per le operazioni di lettura, scrittura e spegnimento
+		// tempi di timeout per le operazioni di lettura, scrittura e spegnimento
 		ReadTimeout     time.Duration `conf:"default:5s"`
 		WriteTimeout    time.Duration `conf:"default:5s"`
 		ShutdownTimeout time.Duration `conf:"default:5s"`
 	}
-	Debug bool //flag per attivare o disattivare mod debug
+	Debug bool // flag per attivare o disattivare mod debug
 	DB    struct {
 		Filename string `conf:"default:/tmp/WasaText.db"`
 	}
@@ -47,7 +47,7 @@ func loadConfiguration() (WebAPIConfiguration, error) {
 			if err != nil {
 				return cfg, fmt.Errorf("generating config usage: %w", err)
 			}
-			fmt.Println(usage) //nolint:forbidigo
+			fmt.Println(usage) // nolint:forbidigo
 			return cfg, conf.ErrHelpWanted
 		}
 		return cfg, fmt.Errorf("parsing config: %w", err)
@@ -62,11 +62,11 @@ func loadConfiguration() (WebAPIConfiguration, error) {
 	if err != nil && !os.IsNotExist(err) {
 		return cfg, fmt.Errorf("can't read the config file, while it exists: %w", err)
 	} else if err == nil {
-		yamlFile, err := io.ReadAll(fp) //legge file YAML
+		yamlFile, err := io.ReadAll(fp) // legge file YAML
 		if err != nil {                 // se è diverso c'è errore
 			return cfg, fmt.Errorf("can't read config file: %w", err)
 		}
-		err = yaml.Unmarshal(yamlFile, &cfg) //file deserializzato in un oggetto Go
+		err = yaml.Unmarshal(yamlFile, &cfg) // file deserializzato in un oggetto Go
 		if err != nil {                      // se è diverso c'è errore
 			return cfg, fmt.Errorf("can't unmarshal config file: %w", err)
 		}

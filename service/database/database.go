@@ -33,7 +33,7 @@ package database
 import (
 	"database/sql"
 	"errors"
-	"log"
+	"fmt"
 )
 
 // in AppDatabase ci sono i metodi definiti in database.go
@@ -43,8 +43,9 @@ type AppDatabase interface {
 	GetIdUser(name string) (int, error)
 	GetListUsers(name string) ([]Users, error)
 	UpdateUsername(userid int, NewUsername string) error
-	CheckIDDatabase(userid int) (bool, error)
-	//CheckUser(User) (User, error)
+	CheckIDDatabase(userid int) (bool, string, error)
+	CreateConversationDB(author int, req ConversationRequest) (int, error)
+	// CheckUser(User) (User, error)
 
 	Ping() error
 }
@@ -55,7 +56,7 @@ type appdbimpl struct {
 
 // New returns a new instance of AppDatabase based on the SQLite connection `db`.
 // `db` is required - an error will be returned if `db` is `nil`.
-func New(db *sql.DB) (AppDatabase, error) { //inizializza il database
+func New(db *sql.DB) (AppDatabase, error) { // inizializza il database
 	if db == nil {
 		return nil, errors.New("database is required when building a AppDatabase")
 	}
@@ -67,27 +68,31 @@ func New(db *sql.DB) (AppDatabase, error) { //inizializza il database
 	}
 
 	// controlla se il database esiste. se non esiste viene creata la struttura
-	var tableName string //variabile per memorizzare nome tabella
+	var tableName string // variabile per memorizzare nome tabella
 	// viene eseguita una query SQL sul database per verificare se esiste una tabella chiamata example_table (ritorna 1 riga)
 	err := db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name='users';`).Scan(&tableName)
-	if errors.Is(err, sql.ErrNoRows) { //se non ha trovato nessuna tabella la crea
+	if errors.Is(err, sql.ErrNoRows) { // se non ha trovato nessuna tabella la crea
 
 		// Creazione DB per gli Users se non esiste
 		users := `CREATE TABLE users 
-						(user_id INTEGER NOT NULL, 
-						name VARCHAR(25) NOT NULL UNIQUE,
-						profile_image TEXT,
-						PRIMARY KEY("user_id" AUTOINCREMENT));`
+					(user_id INTEGER NOT NULL, 
+					name VARCHAR(25) NOT NULL UNIQUE,
+					profile_image TEXT,
+					PRIMARY KEY("user_id" AUTOINCREMENT)
+				);`
 
 		conversations := `CREATE TABLE conversations (
-						ConversationId INTEGER NOT NULL PRIMARY KEY, 
-						chatType TEXT NOT NULL,
-						groupName TEXT, 
-						imageGroup TEXT, 
-						last_message TEXT,
-						authorId INTEGER NOT NULL, 
-						timestamp DATETIME NOT NULL, 
-						FOREIGN KEY(authorId) REFERENCES users(user_id) );`
+							ConversationId INTEGER PRIMARY KEY AUTOINCREMENT,
+							chatType TEXT CHECK(chatType IN ('private_chat', 'group_chat')) NOT NULL,
+							groupName TEXT, 
+							imageGroup TEXT, 
+							lastMessageId INTEGER,
+							FOREIGN KEY(lastMessageId) REFERENCES messages(MessageId) ON DELETE SET NULL,
+							CHECK(
+								(chatType = 'private_chat' AND groupName IS NULL AND imageGroup IS NULL) OR 
+								(chatType = 'group_chat' AND groupName IS NOT NULL AND imageGroup IS NOT NULL)
+							)
+						);`
 
 		participants := `CREATE TABLE conversation_participants (
 							ConvId INTEGER NOT NULL, 
@@ -99,61 +104,65 @@ func New(db *sql.DB) (AppDatabase, error) { //inizializza il database
 						);`
 
 		messages := `CREATE TABLE messages (
-						MessageId INTEGER NOT NULL PRIMARY KEY, 
+						MessageId INTEGER, 
 						ConversationId INTEGER NOT NULL, 
 						sender_id INTEGER NOT NULL, 
+						Timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+						type TEXT CHECK(type IN ('text', 'image', 'text_image')) NOT NULL,
 						content TEXT, 
 						media TEXT,
-						timestamp DATETIME NOT NULL, 
-						FOREIGN KEY(ConversationId) REFERENCES conversations(ConvId),
+						is_read BOOLEAN NOT NULL DEFAULT FALSE,
+						FOREIGN KEY(ConversationId) REFERENCES conversations(ConvId) ,
 						FOREIGN KEY(sender_id) REFERENCES users(user_id)
+						PRIMARY KEY("MessageId" AUTOINCREMENT)
 					);`
-
-		reactions := `CREATE TABLE message_reactions (
-								message_id INTEGER NOT NULL, 
-								user_id INTEGER NOT NULL, 
-								reaction TEXT NOT NULL, 
-								UNIQUE(message_id, user_id), 
-								FOREIGN KEY(message_id) REFERENCES messages(MessageId),
-								FOREIGN KEY(user_id) REFERENCES users(user_id)
-							);`
 		Message_read := `CREATE TABLE messages_read_status (
 							message_id INTEGER NOT NULL,
 							user_id INTEGER NOT NULL,
+							is_delivered NOT NULL DEFAULT FALSE,
 							is_read BOOLEAN NOT NULL DEFAULT FALSE,
 							FOREIGN KEY(message_id) REFERENCES messages(MessageId),
 							FOREIGN KEY(user_id) REFERENCES users(user_id),
 							PRIMARY KEY(message_id, user_id)
 						);`
 
+		reactions := `CREATE TABLE message_reactions (
+						message_id INTEGER NOT NULL,
+						user_id INTEGER NOT NULL,
+						reaction TEXT NOT NULL,
+						UNIQUE(message_id, user_id),
+						FOREIGN KEY(message_id) REFERENCES messages(MessageId),
+						FOREIGN KEY(user_id) REFERENCES users(user_id)
+					);`
+
 		_, err = db.Exec(users)
 		if err != nil {
-			log.Fatal(err)
+			return nil, fmt.Errorf("error users table")
 		}
 
 		_, err = db.Exec(conversations)
 		if err != nil {
-			log.Fatal(err)
+			return nil, fmt.Errorf("error conversation table")
 		}
 
 		_, err = db.Exec(participants)
 		if err != nil {
-			log.Fatal(err)
+			return nil, fmt.Errorf("error participants table")
 		}
 
 		_, err = db.Exec(messages)
 		if err != nil {
-			log.Fatal(err)
-		}
-
-		_, err = db.Exec(reactions)
-		if err != nil {
-			log.Fatal(err)
+			return nil, fmt.Errorf("error messages table")
 		}
 
 		_, err = db.Exec(Message_read)
 		if err != nil {
-			log.Fatal(err)
+			return nil, fmt.Errorf("error message read table")
+		}
+
+		_, err = db.Exec(reactions)
+		if err != nil {
+			return nil, fmt.Errorf("error reactions table")
 		}
 
 		/*

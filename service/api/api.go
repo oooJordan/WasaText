@@ -78,7 +78,7 @@ func New(cfg Config) (Router, error) { //cfg è la configurazione necessaria per
 	router.RedirectTrailingSlash = false
 	router.RedirectFixedPath = false
 
-	//struttura router
+	// struttura router
 	return &_router{
 		router:     router,
 		baseLogger: cfg.Logger,
@@ -93,6 +93,6 @@ type _router struct {
 	// Use context logger if available (e.g., in requests) instead of this logger.
 	baseLogger logrus.FieldLogger
 
-	//connessione al database consente di eseguire query e operazioni di lettura e scrittura
+	// connessione al database consente di eseguire query e operazioni di lettura e scrittura
 	db database.AppDatabase
 }

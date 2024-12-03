@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"strings"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/oooJordan/WasaText/service/api/reqcontext"
@@ -13,7 +12,7 @@ import (
 
 func (rt *_router) UpdateUsername(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	// Controllo se il token è valido
-	isValid, err := rt.IsValidToken(r, w)
+	isValid, author, err := rt.IsValidToken(r, w)
 	if err != nil {
 		// La risposta HTTP è già gestita all'interno di IsValidToken
 		return
@@ -37,12 +36,8 @@ func (rt *_router) UpdateUsername(w http.ResponseWriter, r *http.Request, ps htt
 		return
 	}
 
-	// ID utente dal token per aggiornare l'username
-	token := strings.Fields(r.Header.Get("Authorization"))[1]
-	userIDint := extractUserIdFromToken(token)
-
 	// Aggiorna l'username nel database
-	err = rt.db.UpdateUsername(userIDint, newUsername.NewUsername)
+	err = rt.db.UpdateUsername(author, newUsername.NewUsername)
 	if err != nil {
 		// Se l'errore è dovuto al conflitto di username, restituisci un errore 409
 		if errors.Is(err, database.ErrUsernameAlreadyInUse) {

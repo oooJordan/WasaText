@@ -18,6 +18,20 @@ type UserToken struct {
 	Token  string `json:"auth-token"`
 }
 
+type ConversationRequest struct {
+	ChatType     string      `json:"chatType"`
+	ImageGroup   string      `json:"imageGroup,omitempty"`
+	GroupName    string      `json:"groupName,omitempty"`
+	Usersname    []string    `json:"usersname"`
+	StartMessage MessageSent `json:"startMessage"`
+}
+
+type MessageSent struct {
+	Content string `json:"content,omitempty"`
+	Media   string `json:"media"`
+	Image   string `json:"image,omitempty"`
+}
+
 /*
 // Struttura per rappresentare un emoji nel commento
 type CommentEmoji struct {

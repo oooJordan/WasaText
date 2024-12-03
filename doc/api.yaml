@@ -132,6 +132,19 @@ components:
       maximum: 9999
       readOnly: true
       example: 888
+    
+    MessageSent:
+      type: object
+      description: "message costruct"
+      properties:             
+        content:
+          $ref: "#/components/schemas/Stringa" #text
+        media:
+          $ref: "#/components/schemas/ContentType" #enum
+        image:
+            $ref: "#/components/schemas/Image" #immagine
+      required:
+        - media 
 
     CommentEmoji:
       type: object
@@ -479,7 +492,7 @@ paths:
                         conversationId:
                           $ref: "#/components/schemas/ConversationId"
                         lastMessage:
-                          $ref: "#/components/schemas/Stringa"
+                          $ref: "#/components/schemas/MessageSent"
                         timestamp:
                           $ref: "#/components/schemas/Timestamp"
                         statusMessageRead:
@@ -518,26 +531,20 @@ paths:
                   $ref: "#/components/schemas/ChatType"
                 imageGroup:
                   $ref: "#/components/schemas/Image"
-                authorId:
-                  $ref: "#/components/schemas/UserIdentifier"
-                usersId:
+                usersname:
                   type: array
-                  description: "User identifier"
+                  description: "Username"
                   items:
-                    type: object
-                    properties:
-                      user:
-                        $ref: "#/components/schemas/UserIdentifier"
+                    $ref: "#/components/schemas/Name"
                   minItems: 1
                   maxItems: 50
                 startMessage:
-                  $ref: "#/components/schemas/Stringa"
+                  $ref: "#/components/schemas/MessageSent"
                 groupName:
-                  $ref: "#/components/schemas/Stringa"
+                  $ref: "#/components/schemas/Name"
               required:
                 - chatType
                 - usersId
-                - authorId
                 - startMessage
         required: true
       responses:
@@ -600,23 +607,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                description: "message costruct"
-                properties:             
-                  senderId:
-                    $ref: "#/components/schemas/UserIdentifier"
-                  content:
-                    $ref: "#/components/schemas/Stringa"
-                  media:
-                    $ref: "#/components/schemas/ContentType"
-                  image:
-                     $ref: "#/components/schemas/Image"
-                  timestamp:
-                    $ref: "#/components/schemas/Timestamp"
-                required:
-                  - senderId
-                  - media 
-
+                $ref: "#/components/schemas/MessageSent"
         responses:
           '201':
             description: |-

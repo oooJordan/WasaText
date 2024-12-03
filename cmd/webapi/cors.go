@@ -11,18 +11,18 @@ import (
 // policy. This function sends the policy of this API server.
 func applyCORSHandler(h http.Handler) http.Handler {
 	return handlers.CORS(
-		/*questa parte permette che le richieste includano le due intestazioni
+		/* questa parte permette che le richieste includano le due intestazioni
 		Utile per la gestione dei token (come nel caso di JWT) e specificare il
-		tipo di contenuto delle richieste (es application/json)*/
+		tipo di contenuto delle richieste (es application/json) */
 		handlers.AllowedHeaders([]string{
 			"Authorization",
 			"content-type",
 		}),
-		//metodi permessi
+		// metodi permessi
 		handlers.AllowedMethods([]string{"GET", "POST", "PATCH", "OPTIONS", "DELETE", "PUT"}),
 		// Do not modify the CORS origin and max age, they are used in the evaluation.
-		handlers.AllowedOrigins([]string{"*"}), //permette richieste provenienti da qualsiasi dominio
-		handlers.MaxAge(1),                     //quanto tempo le informazioni CORS sono memorizzate nella cache del browser
+		handlers.AllowedOrigins([]string{"*"}), // permette richieste provenienti da qualsiasi dominio
+		handlers.MaxAge(1),                     // quanto tempo le informazioni CORS sono memorizzate nella cache del browser
 	)(h)
 }
 
