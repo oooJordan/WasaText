@@ -12,7 +12,7 @@ func (rt *_router) Handler() http.Handler {
 	rt.router.POST("/session", rt.wrap(rt.loginUser))
 	rt.router.GET("/users", rt.wrap(rt.listUsers))
 	rt.router.PATCH("/username", rt.wrap(rt.UpdateUsername))
-	rt.router.POST("/conversation", rt.wrap(rt.newConversation))
+	rt.router.POST("/conversations", rt.wrap(rt.newConversation))
 
 	// Register routes
 	/*
