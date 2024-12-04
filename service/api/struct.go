@@ -46,7 +46,6 @@ type MessageSent struct {
 }
 
 func convertToDatabaseConversationRequest(req ConversationRequest) database.ConversationRequest {
-	// Crea un oggetto database.ConversationRequest da ConversationRequest
 	return database.ConversationRequest{
 		ChatType:   req.ChatType,
 		ImageGroup: req.ImageGroup,
