@@ -82,12 +82,12 @@ func New(db *sql.DB) (AppDatabase, error) { // inizializza il database
 				);`
 
 		conversations := `CREATE TABLE conversations (
-							ConversationId INTEGER PRIMARY KEY AUTOINCREMENT,
+							conversation_id INTEGER PRIMARY KEY AUTOINCREMENT,
 							chatType TEXT CHECK(chatType IN ('private_chat', 'group_chat')) NOT NULL,
 							groupName TEXT, 
 							imageGroup TEXT, 
 							lastMessageId INTEGER,
-							FOREIGN KEY(lastMessageId) REFERENCES messages(MessageId) ON DELETE SET NULL,
+							FOREIGN KEY(lastMessageId) REFERENCES messages(message_id) ON DELETE SET NULL,
 							CHECK(
 								(chatType = 'private_chat' AND groupName IS NULL AND imageGroup IS NULL) OR 
 								(chatType = 'group_chat' AND groupName IS NOT NULL AND imageGroup IS NOT NULL)
@@ -95,33 +95,33 @@ func New(db *sql.DB) (AppDatabase, error) { // inizializza il database
 						);`
 
 		participants := `CREATE TABLE conversation_participants (
-							ConvId INTEGER NOT NULL, 
+							conversation_id INTEGER NOT NULL, 
 							user_id INTEGER NOT NULL, 
-							UNIQUE(ConvId, user_id), 
-							FOREIGN KEY(ConvId) REFERENCES conversations(ConversationId),
+							UNIQUE(conversation_id, user_id), 
+							FOREIGN KEY(conversation_id) REFERENCES conversations(conversation_id),
 							FOREIGN KEY(user_id) REFERENCES users(user_id),
-							PRIMARY KEY(ConvId, user_id)
+							PRIMARY KEY(conversation_id, user_id)
 						);`
 
 		messages := `CREATE TABLE messages (
-						MessageId INTEGER, 
-						ConversationId INTEGER NOT NULL, 
-						sender_id INTEGER NOT NULL, 
-						Timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+						message_id INTEGER, 
+						conversation_id INTEGER NOT NULL, 
+						user_id INTEGER NOT NULL, 
+						timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
 						type TEXT CHECK(type IN ('text', 'image', 'text_image')) NOT NULL,
 						content TEXT, 
 						media TEXT,
 						is_read BOOLEAN NOT NULL DEFAULT FALSE,
-						FOREIGN KEY(ConversationId) REFERENCES conversations(ConvId) ,
-						FOREIGN KEY(sender_id) REFERENCES users(user_id)
-						PRIMARY KEY("MessageId" AUTOINCREMENT)
+						FOREIGN KEY(conversation_id) REFERENCES conversations(conversation_id) ,
+						FOREIGN KEY(user_id) REFERENCES users(user_id)
+						PRIMARY KEY("message_id" AUTOINCREMENT)
 					);`
 		Message_read := `CREATE TABLE messages_read_status (
 							message_id INTEGER NOT NULL,
 							user_id INTEGER NOT NULL,
 							is_delivered NOT NULL DEFAULT FALSE,
 							is_read BOOLEAN NOT NULL DEFAULT FALSE,
-							FOREIGN KEY(message_id) REFERENCES messages(MessageId),
+							FOREIGN KEY(message_id) REFERENCES messages(message_id),
 							FOREIGN KEY(user_id) REFERENCES users(user_id),
 							PRIMARY KEY(message_id, user_id)
 						);`
@@ -131,7 +131,7 @@ func New(db *sql.DB) (AppDatabase, error) { // inizializza il database
 						user_id INTEGER NOT NULL,
 						reaction TEXT NOT NULL,
 						UNIQUE(message_id, user_id),
-						FOREIGN KEY(message_id) REFERENCES messages(MessageId),
+						FOREIGN KEY(message_id) REFERENCES messages(message_id),
 						FOREIGN KEY(user_id) REFERENCES users(user_id)
 					);`
 

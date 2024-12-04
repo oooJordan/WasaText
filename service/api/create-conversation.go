@@ -36,6 +36,7 @@ func (rt *_router) newConversation(w http.ResponseWriter, r *http.Request, ps ht
 
 	conversationID, err := rt.db.CreateConversationDB(author, dbReq)
 	if err != nil {
+		ctx.Logger.Error(err)
 		http.Error(w, "Error creating conversation", http.StatusInternalServerError)
 		return
 	}

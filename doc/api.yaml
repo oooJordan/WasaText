@@ -45,14 +45,6 @@ components:
       description: "The unique identifier of the message"
       schema:
         $ref: "#/components/schemas/MessageIdentifier"
-    
-    UserId:
-      name: user_id
-      in: path
-      required: true
-      description: "The unique identifier of the User"
-      schema:
-        $ref: "#/components/schemas/UserIdentifier"
         
     UserName:
       name: name
@@ -544,7 +536,7 @@ paths:
                   $ref: "#/components/schemas/Name"
               required:
                 - chatType
-                - usersId
+                - usersname
                 - startMessage
         required: true
       responses:

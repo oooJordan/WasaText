@@ -41,8 +41,8 @@ type CreateConversationResponse struct {
 
 type MessageSent struct {
 	Content string `json:"content,omitempty"`
-	Media   string `json:"media"`
-	Image   string `json:"image,omitempty"`
+	Media   string `json:"media,omitempty"`
+	Type    string `json:"type"`
 }
 
 func convertToDatabaseConversationRequest(req ConversationRequest) database.ConversationRequest {
@@ -54,7 +54,7 @@ func convertToDatabaseConversationRequest(req ConversationRequest) database.Conv
 		StartMessage: database.MessageSent{
 			Content: req.StartMessage.Content,
 			Media:   req.StartMessage.Media,
-			Image:   req.StartMessage.Image,
+			Type:    req.StartMessage.Type,
 		},
 	}
 }
