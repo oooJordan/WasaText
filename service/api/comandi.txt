@@ -4,7 +4,7 @@ curl -X GET -H "Authorization: Bearer USERID" "http://localhost:3000/users?name=
 curl -X POST -H "Authorization: Bearer USERID" -H "Content-Type: application/json" -d '{"newUsername":"NUOVOUSERNAME"}' http://localhost:3000/users/USERID/username
 
 
-
+//TODO -> CREAZIONE CON
 curl -X POST -H "Authorization: Bearer 1" -H "Content-Type: application/json" -d '{
            "chatType": "private_chat",
            "usersname": ["Tommy", "Matteo2"],
