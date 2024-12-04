@@ -23,6 +23,9 @@ func (db *appdbimpl) CreateConversationDB(author int, req ConversationRequest) (
 	} else {
 		return 0, errors.New("invalid chat type")
 	}
+	if err != nil {
+		return 0, err
+	}
 
 	// Recuper l'ID della nuova conversazione (supponendo che ci sia un ID autoincrementale)
 	conversationID, err := result.LastInsertId()

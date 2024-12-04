@@ -5,9 +5,10 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/oooJordan/WasaText/service/api/reqcontext"
 )
 
-func (rt *_router) newConversation(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (rt *_router) newConversation(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	isValid, author, err := rt.IsValidToken(r, w)
 	if err != nil {
 		// La risposta HTTP è già gestita all'interno di IsValidToken
