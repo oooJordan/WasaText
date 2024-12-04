@@ -2,7 +2,6 @@ package api
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -39,7 +38,6 @@ func IsValidNickname(nick string) bool {
 func (rt *_router) IsValidToken(r *http.Request, w http.ResponseWriter) (bool, int, error) {
 	// valore dell'intestazione Authorization della richiesta HTTP
 	authHeader := r.Header.Get("Authorization")
-	fmt.Println(authHeader + "\n")
 
 	// controllo se non è vuoto
 	if len(authHeader) == 0 {
