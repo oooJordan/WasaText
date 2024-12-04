@@ -50,9 +50,9 @@ func (rt *_router) IsValidToken(r *http.Request, w http.ResponseWriter) (bool, i
 		http.Error(w, "Invalid Authorization format", http.StatusForbidden)
 		return false, 0, errors.New("invalid Authorization format")
 	}
-	token := HeaderPart[1] //prendo il token
+	token := HeaderPart[1] // prendo il token
 
-	userid := ExtractUserIdFromToken(token) //id_utente
+	userid := ExtractUserIdFromToken(token) // id_utente
 
 	found, _, err := rt.db.CheckIDDatabase(userid)
 	if err != nil || !found {

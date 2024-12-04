@@ -2,8 +2,6 @@ package api
 
 import "github.com/oooJordan/WasaText/service/database"
 
-//"time"
-
 // Struttura del login
 type LoginRequest struct {
 	User string `json:"name"`
