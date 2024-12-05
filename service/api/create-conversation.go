@@ -27,11 +27,10 @@ func (rt *_router) newConversation(w http.ResponseWriter, r *http.Request, ps ht
 		return
 	}
 
-	if req.ChatType == "" || req.StartMessage.Media == "" || len(req.Usersname) == 0 {
+	if req.ChatType == "" || req.StartMessage.Type == "" || len(req.Usersname) == 0 {
 		http.Error(w, "Missing required fields", http.StatusBadRequest)
 		return
 	}
-
 	dbReq := convertToDatabaseConversationRequest(req)
 
 	conversationID, err := rt.db.CreateConversationDB(author, dbReq)

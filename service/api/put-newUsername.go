@@ -39,6 +39,7 @@ func (rt *_router) UpdateUsername(w http.ResponseWriter, r *http.Request, ps htt
 	// Aggiorno l'username nel database
 	err = rt.db.UpdateUsername(author, newUsername.NewUsername)
 	if err != nil {
+		ctx.Logger.Error(err)
 		// Se l'errore è dovuto al conflitto di username, restituisco errore 409
 		if errors.Is(err, database.ErrUsernameAlreadyInUse) {
 			http.Error(w, "Username already in use", http.StatusConflict) // 409

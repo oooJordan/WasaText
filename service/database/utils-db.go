@@ -1,6 +1,9 @@
 package database
 
-import "database/sql"
+import (
+	"database/sql"
+	"errors"
+)
 
 func (db *appdbimpl) CheckIDDatabase(userid int) (bool, string, error) {
 	var name string
@@ -17,4 +20,17 @@ func (db *appdbimpl) CheckIDDatabase(userid int) (bool, string, error) {
 
 	// Se l'utente è stato trovato, restituiamo true e l'username
 	return true, name, nil
+}
+
+// ritorna l'userID partendo dall'username di un utente
+func (db *appdbimpl) GetUserIDByUsername(username string) (int, error) {
+	var userID int
+	err := db.c.QueryRow("SELECT user_id FROM users WHERE name = ?", username).Scan(&userID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return 0, errors.New("user not found: " + username)
+		}
+		return 0, errors.New("failed to retrieve user ID: " + err.Error())
+	}
+	return userID, nil
 }

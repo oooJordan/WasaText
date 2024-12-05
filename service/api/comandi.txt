@@ -1,19 +1,31 @@
 //TODO ->  LISTA UTENTI
 curl -X GET -H "Authorization: Bearer USERID" "http://localhost:3000/users?name=NOMEDACERCARE"
 //TODO -> CAMBIO USERNAME
-curl -X POST -H "Authorization: Bearer USERID" -H "Content-Type: application/json" -d '{"newUsername":"NUOVOUSERNAME"}' http://localhost:3000/users/USERID/username
+curl -X PATCH -H "Authorization: Bearer USERID" -H "Content-Type: application/json" -d '{"newUsername":"NOMENUOVO"}' http://localhost:3000/username
 
 
-//TODO -> CREAZIONE CON
-curl -X POST -H "Authorization: Bearer 1" -H "Content-Type: application/json" -d '{
-           "chatType": "private_chat",
-           "usersname": ["Tommy", "Matteo2"],
-           "startMessage": {
-             "content": "Hello, this is the first message!",
-             "media": "",
-             "image": ""
-           }
-         }' http://localhost:3000/conversations
+//TODO -> CREAZIONE private_chat
+curl -X POST -H "Authorization: Bearer USERID" -H "Content-Type: application/json" -d '{
+      "chatType": "private_chat",
+      "usersname": ["NOMEUTENTE"],
+      "startMessage": {
+        "content": "MESSAGGIO INIZIALE",
+        "media": "FOTO INIZIALE",
+        "type": "TIPO DI MESSAGGIO"
+      }
+}' http://localhost:3000/conversations
+//TODO -> CREAZIONE group_chat
+curl -X POST -H "Authorization: Bearer USERID" -H "Content-Type: application/json" -d '{
+      "chatType": "group_chat",
+      "groupName": "NOME GRUPPO",
+      "imageGroup": "FOTO GRUPPO",
+      "usersname": [USERNAME UTENTI GRUPPO],
+      "startMessage": {
+        "content": "MESSAGGIO INIZIALE",
+        "media": "FOTO INIZIALE",
+        "type": "TIPO DI MESSAGGIO"
+      }
+}' http://localhost:3000/conversations
 
 
 
