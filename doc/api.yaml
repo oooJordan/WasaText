@@ -69,12 +69,19 @@ components:
       description: "The type of content in the message. Can be 'text', 'gif', or 'text_with_gif'"
       example: "gif"
 
-    ChatType:
-      type: string
-      enum: [private_chat, group_chat] #tipo di chat che voglio creare
-      description: |-
-        Type of conversation I want to create
-      example: "group_chat"
+    ResChatType:
+      type: object
+      description: "Chat type"
+      properties:
+        ChatType:
+          type: string
+          enum: [private_chat, group_chat]
+          description: |
+            Type of conversation I want to create
+          example: "group_chat"
+      required: 
+        - ChatType  # Ensure ChatType is required in the parent object
+      
 
     ConversationId:
       type: integer
@@ -136,12 +143,41 @@ components:
         image:
             $ref: "#/components/schemas/Image" #immagine
       required:
-        - media 
+        - media
+
+    MessageRicv:
+      type: object
+      description: "message recv costruct"
+      properties:
+        username:
+          $ref: "#/components/schemas/Name"
+        message_id:
+          $ref: "#/components/schemas/MessageIdentifier" #message_id
+        content:
+          $ref: "#/components/schemas/Stringa" #text
+        media:
+          $ref: "#/components/schemas/ContentType" #enum
+        image:
+            $ref: "#/components/schemas/Image" #immagine
+        timestamp:
+            $ref: "#/components/schemas/Timestamp" #timestamp
+        statusMessageRead:
+            type: boolean
+            description: "Status of whether the message has been read"
+        comment:
+          $ref: "#/components/schemas/CommentEmoji"
+      required:
+        - media
+        - timestamp
+        - username
+
 
     CommentEmoji:
       type: object
       description: "Schema for the emoji code associated with a comment"
       properties:
+        username:
+          $ref: "#/components/schemas/Name"
         emojiCode:
           type: string
           description: "Unicode code for the emoji used in the comment"
@@ -154,8 +190,6 @@ components:
       description: this object represents a user
       type: object
       properties:
-        userId:
-          $ref: "#/components/schemas/UserIdentifier"
         nickname:
           $ref: "#/components/schemas/Name"
         image:
@@ -185,7 +219,10 @@ components:
       description: "all messages with details"
       required:
         - messages
+        - utenti
       properties:
+        utenti:
+           $ref: "#/components/schemas/UsersList"
         messages:
           type: array
           minItems: 1
@@ -194,38 +231,9 @@ components:
           items:
             type: object
             description: "specific to the message"
-            required:
-              - sender
-              - timestamp
-              - contentType
             properties:
-              sender:
-                $ref: "#/components/schemas/Name"
-              timestamp:
-                $ref: "#/components/schemas/Timestamp"
-              contentType:
-                $ref: "#/components/schemas/ContentType"
-              content:
-                $ref: "#/components/schemas/Stringa"
-              imageUrl:
-                $ref: "#/components/schemas/Image"
-              statusMessageRead:
-                type: boolean
-                example: false
-                description: "Indicates whether the message has been read by the recipient (true if read, false if not)"
-              emoji:
-                $ref: "#/components/schemas/CommentEmoji"
-      example:
-        messages:
-        - sender: "John Doe"
-          timestamp: "2024-11-13T12:00:00Z"
-          contentType: "gif_with_text"
-          content: "ciao, come stai?"
-          imageUrl: "https://example.com/image.jpg"
-          statusMessageRead: false
-          emoji:
-            id: 290
-            unicode: "U+1F602"
+              message:
+                $ref: "#/components/schemas/MessageRicv"
 
   responses:
     Error400:
@@ -295,7 +303,7 @@ paths:
 
   /username:
     #MODIFICA USERNAME UTENTE
-    patch:
+    put:
       tags: ["user"]
       summary: Update user username
       description: |-
@@ -484,16 +492,14 @@ paths:
                         conversationId:
                           $ref: "#/components/schemas/ConversationId"
                         lastMessage:
-                          $ref: "#/components/schemas/MessageSent"
-                        timestamp:
-                          $ref: "#/components/schemas/Timestamp"
-                        statusMessageRead:
-                          type: boolean
-                          description: "Status of whether the message has been read"
+                          $ref: "#/components/schemas/MessageRicv"
                         profileimage:
                           $ref: "#/components/schemas/Image"
                         nameChat:
                           $ref: "#/components/schemas/Name"
+                        chatType:
+                          $ref: "#/components/schemas/ResChatType"
+
         '204':
           description: "The request has been made but there aren't conversations to view"
         '401':
@@ -520,7 +526,7 @@ paths:
               description: "type of chat"
               properties:
                 chatType:
-                  $ref: "#/components/schemas/ChatType"
+                  $ref: "#/components/schemas/ResChatType"
                 imageGroup:
                   $ref: "#/components/schemas/Image"
                 usersname:
@@ -684,7 +690,7 @@ paths:
     parameters:
         - $ref: "#/components/parameters/ConversationId"
         - $ref: "#/components/parameters/MessageId"
-    patch:
+    put:
       tags: ["messages"]
       summary: Add comment (emoji reaction) to a message
       description: |-
@@ -696,7 +702,7 @@ paths:
           Details of the emoji reaction to be added to the message
         required: true
         content: 
-          application/merge-patch+json:
+          application/json:
             schema:
               type: object
               description: "add an emoji on a message"
@@ -747,7 +753,7 @@ paths:
   /conversation/{conversation_id}/names:
     parameters:
       - $ref: "#/components/parameters/ConversationId"
-    patch:
+    put:
       tags: ["groups"]
       summary: Add users to a group
       description: "This endpoint adds one or more users to a specific group conversation based on the conversation ID"
@@ -755,7 +761,7 @@ paths:
       requestBody:
         required: true
         content:
-          application/merge-patch+json:
+          application/json:
             schema:
               $ref: "#/components/schemas/Name"
       responses:

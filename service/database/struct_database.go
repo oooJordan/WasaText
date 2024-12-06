@@ -32,6 +32,30 @@ type MessageSent struct {
 	Type    string `json:"type"`
 }
 
+type ConversationsDb struct {
+	ConversationId int
+	Message        MessageRicvDb
+	ProfileImage   string
+	ChatName       string
+	ChatType       string
+}
+
+type MessageRicvDb struct {
+	UserName          string
+	Message_ID        int
+	Text_message      string
+	Type_message      string
+	Image             string
+	Timestamp         string
+	StatusMessageRead bool
+	Comment           []CommentDb
+}
+
+type CommentDb struct {
+	UserName     string
+	CommentEmoji string
+}
+
 /*
 // Struttura per rappresentare un emoji nel commento
 type CommentEmoji struct {

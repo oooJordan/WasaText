@@ -19,7 +19,7 @@ func applyCORSHandler(h http.Handler) http.Handler {
 			"content-type",
 		}),
 		// metodi permessi
-		handlers.AllowedMethods([]string{"GET", "POST", "PATCH", "OPTIONS", "DELETE", "PUT"}),
+		handlers.AllowedMethods([]string{"GET", "POST", "OPTIONS", "DELETE", "PUT"}),
 		// Do not modify the CORS origin and max age, they are used in the evaluation.
 		handlers.AllowedOrigins([]string{"*"}), // permette richieste provenienti da qualsiasi dominio
 		handlers.MaxAge(1),                     // quanto tempo le informazioni CORS sono memorizzate nella cache del browser

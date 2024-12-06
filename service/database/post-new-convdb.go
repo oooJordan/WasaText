@@ -21,7 +21,26 @@ func (db *appdbimpl) CreateConversationDB(author int, req ConversationRequest) (
 
 	var result sql.Result
 	if req.ChatType == "private_chat" {
-		query := "INSERT INTO conversations (chatType) VALUES (?)"
+		//controllo se esiste già una conversazione privata tra l'autore e l'utente
+		query := `
+			SELECT conv.conversation_id
+			FROM conversations conv
+			INNER JOIN conversation_participants conv_p_1 ON conv.conversation_id = conv_p_1.conversation_id
+			INNER JOIN conversation_participants conv_p_2 ON conv.conversation_id = conv_p_2.conversation_id
+			WHERE conv.chatType = 'private_chat' AND conv_p_1.user_id = ? AND conv_p_2.user_id = ?;`
+
+		var conversation_id int
+		id_utente_2, _ := db.GetUserIDByUsername(req.Usersname[0])
+		err = db.c.QueryRow(query, author, id_utente_2).Scan(&conversation_id)
+		if err != nil {
+			if err != sql.ErrNoRows {
+				return 0, errors.New("error during creation chat")
+			}
+		} else {
+			return 0, errors.New("private conversation with this two utent already exists")
+		}
+
+		query = "INSERT INTO conversations (chatType) VALUES (?)"
 		result, err = trans.Exec(query, req.ChatType)
 	} else if req.ChatType == "group_chat" {
 		if req.GroupName == "" || req.ImageGroup == "" {
@@ -74,9 +93,22 @@ func (db *appdbimpl) CreateConversationDB(author int, req ConversationRequest) (
 
 	// Inserisco il messaggio dopo la validazione
 	query := "INSERT INTO messages (conversation_id, user_id, content, media, type) VALUES (?, ?, ?, ?, ?)"
-	_, err = trans.Exec(query, conversationID, author, req.StartMessage.Content, req.StartMessage.Media, req.StartMessage.Type)
+	result, err = trans.Exec(query, conversationID, author, req.StartMessage.Content, req.StartMessage.Media, req.StartMessage.Type)
 	if err != nil {
 		return 0, errors.New("failed to insert start message: " + err.Error())
+	}
+
+	// prendo id del messaggio appena creato
+	messageID, err := result.LastInsertId()
+	if err != nil {
+		return 0, errors.New("failed to retrieve last insert ID: " + err.Error())
+	}
+
+	// Aggiorno la tabella conversations con il lastMessageId
+	updateQuery := "UPDATE conversations SET lastMessageId = ? WHERE conversation_id = ?"
+	_, err = trans.Exec(updateQuery, messageID, conversationID)
+	if err != nil {
+		return 0, errors.New("failed to update lastMessageId in conversation: " + err.Error())
 	}
 
 	// prima recupero id dell'utente partendo dal suo username (per ogni utente)

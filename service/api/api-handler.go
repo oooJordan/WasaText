@@ -11,8 +11,9 @@ func (rt *_router) Handler() http.Handler {
 	// LOGIN UTENTE
 	rt.router.POST("/session", rt.wrap(rt.loginUser))
 	rt.router.GET("/users", rt.wrap(rt.listUsers))
-	rt.router.PATCH("/username", rt.wrap(rt.UpdateUsername))
+	rt.router.PUT("/username", rt.wrap(rt.UpdateUsername))
 	rt.router.POST("/conversations", rt.wrap(rt.newConversation))
+	rt.router.GET("/conversation", rt.wrap(rt.getMyConversations))
 
 	// Register routes
 	/*
