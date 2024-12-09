@@ -87,8 +87,8 @@ func New(db *sql.DB) (AppDatabase, error) { // inizializza il database
 							chatType TEXT CHECK(chatType IN ('private_chat', 'group_chat')) NOT NULL,
 							groupName TEXT, 
 							imageGroup TEXT, 
-							lastMessageId INTEGER,
-							FOREIGN KEY(lastMessageId) REFERENCES messages(message_id) ON DELETE SET NULL,
+							message_id INTEGER,
+							FOREIGN KEY(message_id) REFERENCES messages(message_id) ON DELETE SET NULL,
 							CHECK(
 								(chatType = 'private_chat' AND groupName IS NULL AND imageGroup IS NULL) OR 
 								(chatType = 'group_chat' AND groupName IS NOT NULL AND imageGroup IS NOT NULL)
@@ -112,7 +112,6 @@ func New(db *sql.DB) (AppDatabase, error) { // inizializza il database
 						type TEXT CHECK(type IN ('text', 'image', 'text_image')) NOT NULL,
 						content TEXT, 
 						media TEXT,
-						is_read BOOLEAN NOT NULL DEFAULT FALSE,
 						FOREIGN KEY(conversation_id) REFERENCES conversations(conversation_id) ,
 						FOREIGN KEY(user_id) REFERENCES users(user_id)
 						PRIMARY KEY("message_id" AUTOINCREMENT)

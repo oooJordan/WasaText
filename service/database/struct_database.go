@@ -1,5 +1,7 @@
 package database
 
+import "database/sql"
+
 // Struttura che rappresenta un utente nel database
 type UserIdDatabase struct {
 	User_ID int `json:"user_id"`
@@ -32,6 +34,39 @@ type MessageSent struct {
 	Type    string `json:"type"`
 }
 
+//GET CONVERSATIONS
+
+type triplos struct {
+	Conversation ConversationsDb
+	Message      MessageRicvDb
+	Commento     []CommentDb
+}
+
+type ConversationsDb struct {
+	ConversationId int
+	ChatType       string
+	GroupName      string
+	ImageGroup     string
+	MessageId      int
+}
+
+type MessageRicvDb struct {
+	MessageId      int
+	ConversationId int
+	UserID         int
+	Timestamp      sql.NullTime
+	MessageType    string
+	Testo          string
+	Image          string
+}
+
+type CommentDb struct {
+	UserID       int
+	MessageId    int
+	CommentEmoji string
+}
+
+/*
 type ConversationsDb struct {
 	ConversationId int
 	Message        MessageRicvDb
@@ -41,14 +76,13 @@ type ConversationsDb struct {
 }
 
 type MessageRicvDb struct {
-	UserName          string
-	Message_ID        int
-	Text_message      string
-	Type_message      string
-	Image             string
-	Timestamp         string
-	StatusMessageRead bool
-	Comment           []CommentDb
+	UserName     string
+	Message_ID   int
+	Text_message string
+	Type_message string
+	Image        string
+	Timestamp    string
+	Comment      []CommentDb
 }
 
 type CommentDb struct {
@@ -56,7 +90,7 @@ type CommentDb struct {
 	CommentEmoji string
 }
 
-/*
+
 // Struttura per rappresentare un emoji nel commento
 type CommentEmoji struct {
 	CommentIdentifier int `json:"comment_identifier"`

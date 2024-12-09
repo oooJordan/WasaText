@@ -64,14 +64,13 @@ type ConversationsApi struct {
 }
 
 type MessageRicvApi struct {
-	UserName          string       `json:"username"`
-	Message_ID        int          `json:"message_id"`
-	Text_message      string       `json:"content"`
-	Type_message      string       `json:"media"`
-	Image             string       `json:"image"`
-	Timestamp         string       `json:"timestamp"`
-	StatusMessageRead bool         `json:"statusMessageRead"`
-	Comment           []CommentApi `json:"comment"`
+	UserName     string       `json:"username"`
+	Message_ID   int          `json:"message_id"`
+	Text_message string       `json:"content"`
+	Type_message string       `json:"media"`
+	Image        string       `json:"image"`
+	Timestamp    string       `json:"timestamp"`
+	Comment      []CommentApi `json:"comment"`
 }
 
 type CommentApi struct {
@@ -93,6 +92,7 @@ func convertToDatabaseConversationRequest(req ConversationRequest) database.Conv
 	}
 }
 
+/*
 func convertCommentFromDatabase(req []database.CommentDb) []CommentApi {
 	comments := make([]CommentApi, len(req))
 	for i, comment := range req {
@@ -106,14 +106,13 @@ func convertCommentFromDatabase(req []database.CommentDb) []CommentApi {
 
 func convertMessageFromDatabase(req database.MessageRicvDb) MessageRicvApi {
 	return MessageRicvApi{
-		UserName:          req.UserName,
-		Message_ID:        req.Message_ID,
-		Text_message:      req.Text_message,
-		Type_message:      req.Type_message,
-		Image:             req.Image,
-		Timestamp:         req.Timestamp,
-		StatusMessageRead: req.StatusMessageRead,
-		Comment:           convertCommentFromDatabase(req.Comment),
+		UserName:     req.UserName,
+		Message_ID:   req.Message_ID,
+		Text_message: req.Text_message,
+		Type_message: req.Type_message,
+		Image:        req.Image,
+		Timestamp:    req.Timestamp,
+		Comment:      convertCommentFromDatabase(req.Comment),
 	}
 
 }
@@ -127,3 +126,4 @@ func convertConversationFromDatabase(req database.ConversationsDb) Conversations
 		ChatType:       req.ChatType,
 	}
 }
+*/
