@@ -6,7 +6,7 @@ import (
 )
 
 // Funzione per ottenere le conversazioni di un utente
-func (db *appdbimpl) GetUserConversations(author int) ([]ConversationsDb, error) {
+func (db *appdbimpl) GetUserConversations(author int) ([]triplos, error) {
 	query := ` SELECT
 				conversations.conversation_id,
 				conversations.chatType,
@@ -18,7 +18,7 @@ func (db *appdbimpl) GetUserConversations(author int) ([]ConversationsDb, error)
 			NATURAL JOIN 
 				conversations
 			WHERE
-				conversation_participants.user_id = ?
+				conversation_participants.user_id = ?;
 	`
 	rows, err := db.c.Query(query, author)
 	if err != nil {
@@ -29,14 +29,81 @@ func (db *appdbimpl) GetUserConversations(author int) ([]ConversationsDb, error)
 		return nil, errors.New("error executing query to fetch user conversations")
 	}
 	defer rows.Close()
-	var conv ConversationsDb
+	var conversations []triplos
+
 	//itero sui risultati
 	for rows.Next() {
-		if err := rows.Scan(&conv.ConversationId, &conv.MessageId, &conv.ImageGroup, &conv.GroupName, &conv.ChatType); err != nil {
+		var conv ConversationsDb
+		var mex MessageRicvDb
+		var comments []CommentDb
+		var c triplos
+		if err := rows.Scan(&conv.ConversationId, &conv.MessageId, &conv.ChatImage, &conv.ChatName, &conv.ChatType); err != nil {
 			return nil, errors.New("error scanning conversation row")
 		}
 
+		if conv.ChatType == "private_chat" {
+			query := `  SELECT 
+								users.name,
+								users.profile_image
+						FROM
+								conversation_participants
+						INNER JOIN
+								users ON conversation_participants.user_id = users.user_id
+						WHERE 
+								conversation_id = ? AND user_id != ?;
+			`
+			err := db.c.QueryRow(query, author).Scan(&conv.ChatName, &conv.ChatImage)
+			if err != nil {
+				return nil, errors.New("error executing query to fetch user details")
+			}
+		}
+		query := ` SELECT
+							user_id,
+							timestamp,
+							type,
+							content,
+							media
+					FROM 
+							messages 
+					WHERE 
+							message_id = ?; `
+
+		err := db.c.QueryRow(query, conv.MessageId).Scan(&mex.UserID, &mex.Timestamp, &mex.MessageType, &mex.Testo, &mex.Image)
+		if err != nil {
+			return nil, errors.New("error executing query to fetch message details")
+		}
+		quer := ` SELECT
+						reaction,
+						user_id
+					FROM 
+						reactions 
+					WHERE 
+						message_id = ?;`
+
+		rowComm, err := db.c.Query(quer, conv.MessageId)
+		if err != nil {
+			if err != sql.ErrNoRows {
+				return nil, errors.New("error executing query to fetch comment details")
+			}
+		} else {
+			defer rowComm.Close()
+
+			for rowComm.Next() {
+				var commento CommentDb
+				if err := rowComm.Scan(&commento.CommentEmoji, &commento.UserID); err != nil {
+					return nil, errors.New("error scanning comments row")
+				}
+				comments = append(comments, commento)
+			}
+		}
+
+		c.Conversation = conv
+		c.Message = mex
+		c.Commento = comments
+
+		conversations = append(conversations, c)
+
 	}
 
-	return []ConversationsDb{}, nil
+	return conversations, nil
 }

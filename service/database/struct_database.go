@@ -34,8 +34,7 @@ type MessageSent struct {
 	Type    string `json:"type"`
 }
 
-//GET CONVERSATIONS
-
+// GET CONVERSATIONS
 type triplos struct {
 	Conversation ConversationsDb
 	Message      MessageRicvDb
@@ -45,19 +44,17 @@ type triplos struct {
 type ConversationsDb struct {
 	ConversationId int
 	ChatType       string
-	GroupName      string
-	ImageGroup     string
+	ChatName       string
+	ChatImage      string
 	MessageId      int
 }
 
 type MessageRicvDb struct {
-	MessageId      int
-	ConversationId int
-	UserID         int
-	Timestamp      sql.NullTime
-	MessageType    string
-	Testo          string
-	Image          string
+	UserID      int
+	Timestamp   sql.NullTime
+	MessageType string
+	Testo       string
+	Image       string
 }
 
 type CommentDb struct {

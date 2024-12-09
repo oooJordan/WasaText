@@ -45,7 +45,7 @@ type AppDatabase interface {
 	UpdateUsername(userid int, NewUsername string) error
 	CheckIDDatabase(userid int) (bool, string, error)
 	CreateConversationDB(author int, req ConversationRequest) (int, error)
-	GetUserConversations(user_id int) ([]ConversationsDb, error)
+	GetUserConversations(user_id int) ([]triplos, error)
 	// CheckUser(User) (User, error)
 
 	Ping() error
