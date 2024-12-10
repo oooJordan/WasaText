@@ -35,7 +35,7 @@ type MessageSent struct {
 }
 
 // GET CONVERSATIONS
-type triplos struct {
+type Triplos struct {
 	Conversation ConversationsDb
 	Message      MessageRicvDb
 	Commento     []CommentDb
@@ -47,6 +47,7 @@ type ConversationsDb struct {
 	ChatName       string
 	ChatImage      string
 	MessageId      int
+	MessageNotRead int
 }
 
 type MessageRicvDb struct {

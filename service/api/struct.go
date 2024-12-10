@@ -55,29 +55,6 @@ type Conversations []struct {
 	Isread         bool        `json:"is_read"`
 }
 
-type ConversationsApi struct {
-	ConversationId int            `json:"conversationId"`
-	Message        MessageRicvApi `json:"lastMessage"`
-	ProfileImage   string         `json:"profileimage"`
-	ChatName       string         `json:"nameChat"`
-	ChatType       string         `json:"chatType"`
-}
-
-type MessageRicvApi struct {
-	UserName     string       `json:"username"`
-	Message_ID   int          `json:"message_id"`
-	Text_message string       `json:"content"`
-	Type_message string       `json:"media"`
-	Image        string       `json:"image"`
-	Timestamp    string       `json:"timestamp"`
-	Comment      []CommentApi `json:"comment"`
-}
-
-type CommentApi struct {
-	UserName     string `json:"username"`
-	CommentEmoji string `json:"emojiCode"`
-}
-
 func convertToDatabaseConversationRequest(req ConversationRequest) database.ConversationRequest {
 	return database.ConversationRequest{
 		ChatType:   req.ChatType,
@@ -92,7 +69,49 @@ func convertToDatabaseConversationRequest(req ConversationRequest) database.Conv
 	}
 }
 
+type ConversationsApi struct {
+	ConversationID int            `json:"conversationId"`
+	Message        MessageRicvApi `json:"lastMessage"`
+	ChatImage      string         `json:"profileimage"`
+	ChatName       string         `json:"nameChat"`
+	ChatType       string         `json:"chatType"`
+	MessageNotRead int            `json:"statusMessageRead"`
+}
+
+type MessageRicvApi struct {
+	UserID      int          `json:"user_id"`
+	Message_ID  int          `json:"message_id"`
+	Testo       string       `json:"content"`
+	MessageType string       `json:"media"`
+	Image       string       `json:"image"`
+	Timestamp   string       `json:"timestamp"`
+	Comment     []CommentApi `json:"comment"`
+}
+
+type CommentApi struct {
+	UserName     string `json:"username"`
+	CommentEmoji string `json:"emojiCode"`
+}
+
+func ConvertConversationFromDatabase(req database.Triplos) ConversationsApi {
+	return ConversationsApi{
+		ConversationID: req.Conversation.ConversationId,
+		ChatType:       req.Conversation.ChatType,
+		ChatName:       req.Conversation.ChatName,
+		ChatImage:      req.Conversation.ChatImage,
+		MessageNotRead: req.Conversation.MessageNotRead,
+		Message: MessageRicvApi{
+			UserID:      req.Message.UserID,
+			Timestamp:   req.Message.Timestamp.Time.GoString(),
+			MessageType: req.Message.MessageType,
+			Testo:       req.Message.Testo,
+			Image:       req.Message.Image,
+		},
+	}
+}
+
 /*
+
 func convertCommentFromDatabase(req []database.CommentDb) []CommentApi {
 	comments := make([]CommentApi, len(req))
 	for i, comment := range req {

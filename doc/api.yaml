@@ -161,9 +161,6 @@ components:
             $ref: "#/components/schemas/Image" #immagine
         timestamp:
             $ref: "#/components/schemas/Timestamp" #timestamp
-        statusMessageRead:
-            type: boolean
-            description: "Status of whether the message has been read"
         comment:
           $ref: "#/components/schemas/CommentEmoji"
       required:
@@ -499,6 +496,11 @@ paths:
                           $ref: "#/components/schemas/Name"
                         chatType:
                           $ref: "#/components/schemas/ResChatType"
+                        statusMessageRead:
+                          type: integer
+                          description: "number of messages to read"
+                          minimum: 0
+                          maximum: 2500
 
         '204':
           description: "The request has been made but there aren't conversations to view"

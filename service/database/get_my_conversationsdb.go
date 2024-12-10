@@ -6,7 +6,7 @@ import (
 )
 
 // Funzione per ottenere le conversazioni di un utente
-func (db *appdbimpl) GetUserConversations(author int) ([]triplos, error) {
+func (db *appdbimpl) GetUserConversations(author int) ([]Triplos, error) {
 	query := ` SELECT
 				conversations.conversation_id,
 				conversations.chatType,
@@ -29,14 +29,13 @@ func (db *appdbimpl) GetUserConversations(author int) ([]triplos, error) {
 		return nil, errors.New("error executing query to fetch user conversations")
 	}
 	defer rows.Close()
-	var conversations []triplos
-
+	var conversations []Triplos
 	//itero sui risultati
 	for rows.Next() {
 		var conv ConversationsDb
 		var mex MessageRicvDb
 		var comments []CommentDb
-		var c triplos
+		var c Triplos
 		if err := rows.Scan(&conv.ConversationId, &conv.MessageId, &conv.ChatImage, &conv.ChatName, &conv.ChatType); err != nil {
 			return nil, errors.New("error scanning conversation row")
 		}
@@ -58,13 +57,15 @@ func (db *appdbimpl) GetUserConversations(author int) ([]triplos, error) {
 			}
 		}
 		query := ` SELECT
-							user_id,
-							timestamp,
-							type,
-							content,
-							media
+							users.name,
+							messages.timestamp,
+							messages.type,
+							messages.content,
+							messages.media
 					FROM 
 							messages 
+					INNER JOIN
+							users ON messages.user_id = users.user_id
 					WHERE 
 							message_id = ?; `
 
@@ -96,7 +97,7 @@ func (db *appdbimpl) GetUserConversations(author int) ([]triplos, error) {
 				comments = append(comments, commento)
 			}
 		}
-
+		//popolo i dati della tripla
 		c.Conversation = conv
 		c.Message = mex
 		c.Commento = comments
