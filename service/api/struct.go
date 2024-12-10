@@ -74,7 +74,7 @@ type ConversationsApi struct {
 	Message        MessageRicvApi `json:"lastMessage"`
 	ChatImage      string         `json:"profileimage"`
 	ChatName       string         `json:"nameChat"`
-	ChatType       string         `json:"chatType"`
+	ChatType       string         `json:"ChatType"`
 	MessageNotRead int            `json:"statusMessageRead"`
 }
 

@@ -80,7 +80,7 @@ components:
             Type of conversation I want to create
           example: "group_chat"
       required: 
-        - ChatType  # Ensure ChatType is required in the parent object
+        - ChatType 
       
 
     ConversationId:
@@ -765,7 +765,11 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Name"
+              type: object
+              description: "name of the user to add in the group"
+              properties:
+                name:
+                  $ref: "#/components/schemas/Name"
       responses:
         '204':
           description: "User(s) have been successfully added to the group"
