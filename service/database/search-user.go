@@ -26,6 +26,9 @@ func (db *appdbimpl) SearchUser(queryStr int) (int, error) {
 			}
 			users = append(users, u) //appende l'utente nella lista
 		}
+		if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error occurred during row iteration: %w", err)
+		}
 		// Restituisce lista utenti trovati e nessun errore
 		return users, nil
 	*/

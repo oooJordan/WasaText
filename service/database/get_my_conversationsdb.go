@@ -22,7 +22,7 @@ func (db *appdbimpl) GetUserConversations(author int) ([]Triplos, error) {
 	`
 	rows, err := db.c.Query(query, author)
 	if err != nil {
-		if err != sql.ErrNoRows {
+		if !errors.Is(err, sql.ErrNoRows) {
 			return nil, errors.New("the user has not started any conversation")
 		}
 	} else {
@@ -83,7 +83,7 @@ func (db *appdbimpl) GetUserConversations(author int) ([]Triplos, error) {
 
 		rowComm, err := db.c.Query(quer, conv.MessageId)
 		if err != nil {
-			if err != sql.ErrNoRows {
+			if !errors.Is(err, sql.ErrNoRows) {
 				return nil, errors.New("error executing query to fetch comment details")
 			}
 		} else {
@@ -96,6 +96,9 @@ func (db *appdbimpl) GetUserConversations(author int) ([]Triplos, error) {
 				}
 				comments = append(comments, commento)
 			}
+			if err := rows.Err(); err != nil {
+				return nil, fmt.Errorf("error occurred during conversations row iteration: %w", err)
+			}
 		}
 		// popolo i dati della tripla
 		c.Conversation = conv
@@ -104,6 +107,9 @@ func (db *appdbimpl) GetUserConversations(author int) ([]Triplos, error) {
 
 		conversations = append(conversations, c)
 
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error occurred during conversations row iteration: %w", err)
 	}
 
 	return conversations, nil

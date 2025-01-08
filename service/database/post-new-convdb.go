@@ -11,7 +11,12 @@ func (db *appdbimpl) CreateConversationDB(author int, req ConversationRequest) (
 	if err != nil {
 		return 0, err
 	}
-	defer trans.Rollback()
+
+	defer func() {
+		if err := trans.Rollback(); err != nil && err != sql.ErrTxDone {
+			fmt.Printf("Failed to rollback transaction: %v\n", err)
+		}
+	}()
 	// controllo utenti chat privata
 	if req.ChatType == "private_chat" {
 		if len(req.Usersname) != 1 {
@@ -33,7 +38,7 @@ func (db *appdbimpl) CreateConversationDB(author int, req ConversationRequest) (
 		id_utente_2, _ := db.GetUserIDByUsername(req.Usersname[0])
 		err = db.c.QueryRow(query, author, id_utente_2).Scan(&conversation_id)
 		if err != nil {
-			if err != sql.ErrNoRows {
+			if !errors.Is(err, sql.ErrNoRows) {
 				return 0, errors.New("error during creation chat")
 			}
 		} else {
