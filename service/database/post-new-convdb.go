@@ -14,7 +14,7 @@ func (db *appdbimpl) CreateConversationDB(author int, req ConversationRequest) (
 
 	defer func() {
 		if err := trans.Rollback(); err != nil && err != sql.ErrTxDone {
-			fmt.Printf("Failed to rollback transaction: %v\n", err)
+			errors.New("Failed to rollback transaction")
 		}
 	}()
 	// controllo utenti chat privata

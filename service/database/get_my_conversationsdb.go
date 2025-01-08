@@ -69,7 +69,7 @@ func (db *appdbimpl) GetUserConversations(author int) ([]Triplos, error) {
 					WHERE 
 							message_id = ?; `
 
-		err := db.c.QueryRow(query, conv.MessageId).Scan(&mex.UserID, &mex.Timestamp, &mex.MessageType, &mex.Testo, &mex.Image)
+		err := db.c.QueryRow(query, conv.MessageId).Scan(&mex.UserName, &mex.Timestamp, &mex.MessageType, &mex.Testo, &mex.Image)
 		if err != nil {
 			return nil, errors.New("error executing query to fetch message details")
 		}
@@ -91,13 +91,13 @@ func (db *appdbimpl) GetUserConversations(author int) ([]Triplos, error) {
 
 			for rowComm.Next() {
 				var commento CommentDb
-				if err := rowComm.Scan(&commento.CommentEmoji, &commento.UserID); err != nil {
+				if err := rowComm.Scan(&commento.CommentEmoji, &commento.UserName); err != nil {
 					return nil, errors.New("error scanning comments row")
 				}
 				comments = append(comments, commento)
 			}
 			if err := rows.Err(); err != nil {
-				return nil, fmt.Errorf("error occurred during conversations row iteration: %w", err)
+				return nil, errors.New("error occurred during conversations row iteration")
 			}
 		}
 		// popolo i dati della tripla
@@ -109,7 +109,7 @@ func (db *appdbimpl) GetUserConversations(author int) ([]Triplos, error) {
 
 	}
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("error occurred during conversations row iteration: %w", err)
+		return nil, errors.New("error occurred during conversations row iteration")
 	}
 
 	return conversations, nil

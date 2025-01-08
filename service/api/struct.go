@@ -98,7 +98,7 @@ func ConvertConversationFromDatabase(req database.Triplos) ConversationsApi {
 	var comments []CommentApi
 	for _, comment := range req.Commento {
 		comments = append(comments, CommentApi{
-			UserID:       comment.UserName,
+			UserName:     comment.UserName,
 			CommentEmoji: comment.CommentEmoji,
 		})
 	}
@@ -108,9 +108,9 @@ func ConvertConversationFromDatabase(req database.Triplos) ConversationsApi {
 		UserName:    req.Message.UserName,
 		Timestamp:   req.Message.Timestamp.Time.GoString(),
 		MessageType: req.Message.MessageType,
-		Content:     req.Message.Testo,
+		Testo:       req.Message.Testo,
 		Image:       req.Message.Image,
-		Comments:    comments,
+		Comment:     comments,
 	}
 	// converto la conversazione
 	return ConversationsApi{
