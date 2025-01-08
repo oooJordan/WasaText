@@ -15,11 +15,11 @@ import (
 // loadConfiguration and values from flags, environment variable or configuration file will be loaded.
 type WebAPIConfiguration struct {
 	Config struct {
-		Path string `conf:"default:/conf/config.yml"` //posizione del file YAML di configurazione
+		Path string `conf:"default:/conf/config.yml"` // posizione del file YAML di configurazione
 	}
 	Web struct { // configurazione webserver
-		APIHost   string `conf:"default:0.0.0.0:3000"` //porta in cui API è in ascolto
-		DebugHost string `conf:"default:0.0.0.0:4000"` //indirizzo e porta per l'host di debug
+		APIHost   string `conf:"default:0.0.0.0:3000"` // porta in cui API è in ascolto
+		DebugHost string `conf:"default:0.0.0.0:4000"` // indirizzo e porta per l'host di debug
 		// tempi di timeout per le operazioni di lettura, scrittura e spegnimento
 		ReadTimeout     time.Duration `conf:"default:5s"`
 		WriteTimeout    time.Duration `conf:"default:5s"`

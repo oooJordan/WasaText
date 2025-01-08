@@ -21,7 +21,7 @@ func (db *appdbimpl) CreateConversationDB(author int, req ConversationRequest) (
 
 	var result sql.Result
 	if req.ChatType == "private_chat" {
-		//controllo se esiste già una conversazione privata tra l'autore e l'utente
+		// controllo se esiste già una conversazione privata tra l'autore e l'utente
 		query := `
 			SELECT conv.conversation_id
 			FROM conversations conv

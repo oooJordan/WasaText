@@ -784,10 +784,10 @@ paths:
       security:
         - bearerAuth: [] 
 #ESCI DAL GRUPPO
-  /conversation/{conversation_id}/leave:
+  /conversation/{conversation_id}/membership:
     parameters:
       - $ref: "#/components/parameters/ConversationId"
-    post:
+    delete:
       tags: ["groups"]
       summary: Leave a group
       description: |-

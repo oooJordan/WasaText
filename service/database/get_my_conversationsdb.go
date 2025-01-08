@@ -30,7 +30,7 @@ func (db *appdbimpl) GetUserConversations(author int) ([]Triplos, error) {
 	}
 	defer rows.Close()
 	var conversations []Triplos
-	//itero sui risultati
+	// itero sui risultati
 	for rows.Next() {
 		var conv ConversationsDb
 		var mex MessageRicvDb
@@ -97,7 +97,7 @@ func (db *appdbimpl) GetUserConversations(author int) ([]Triplos, error) {
 				comments = append(comments, commento)
 			}
 		}
-		//popolo i dati della tripla
+		// popolo i dati della tripla
 		c.Conversation = conv
 		c.Message = mex
 		c.Commento = comments

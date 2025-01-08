@@ -64,7 +64,7 @@ type Router interface {
 }
 
 // New ritorna un nuovo oggetto di tipo Router (si occupa di instradare le richieste HTTP)
-func New(cfg Config) (Router, error) { //cfg è la configurazione necessaria per creare il router
+func New(cfg Config) (Router, error) { // cfg è la configurazione necessaria per creare il router
 	// Check if the configuration is correct (se c'è sia un logger che una connessione al database)
 	if cfg.Logger == nil {
 		return nil, errors.New("logger is required")
@@ -87,7 +87,7 @@ func New(cfg Config) (Router, error) { //cfg è la configurazione necessaria per
 }
 
 type _router struct {
-	router *httprouter.Router //indirizza le richieste
+	router *httprouter.Router // indirizza le richieste
 
 	// baseLogger is a logger for non-requests contexts, like goroutines or background tasks not started by a request.
 	// Use context logger if available (e.g., in requests) instead of this logger.
