@@ -43,11 +43,11 @@ type Triplos struct {
 
 type ConversationsDb struct {
 	ConversationId int
-	ChatType       string
-	ChatName       string
-	ChatImage      string
 	MessageId      int
-	MessageNotRead int
+	ChatImage      string
+	ChatName       string
+	ChatType       string
+	//MessageNotRead int
 }
 
 type MessageRicvDb struct {

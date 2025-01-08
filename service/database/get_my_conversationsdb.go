@@ -3,29 +3,29 @@ package database
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 )
 
 // Funzione per ottenere le conversazioni di un utente
 func (db *appdbimpl) GetUserConversations(author int) ([]Triplos, error) {
 	query := ` SELECT
-				conversations.conversation_id,
-				conversations.chatType,
-				conversations.groupName,
-				conversations.imageGroup,
-				conversations.message_id
-			FROM
-				conversation_participants
-			NATURAL JOIN 
-				conversations
-			WHERE
-				conversation_participants.user_id = ?;
-	`
+					conversations.conversation_id,
+					conversations.chatType,
+					conversations.groupName,
+					conversations.imageGroup,
+					conversations.message_id
+				FROM
+					conversation_participants
+				NATURAL JOIN 
+					conversations
+				WHERE
+					conversation_participants.user_id = ?;
+		`
 	rows, err := db.c.Query(query, author)
 	if err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
 			return nil, errors.New("the user has not started any conversation")
 		}
-	} else {
 		return nil, errors.New("error executing query to fetch user conversations")
 	}
 	defer rows.Close()
@@ -39,47 +39,47 @@ func (db *appdbimpl) GetUserConversations(author int) ([]Triplos, error) {
 		if err := rows.Scan(&conv.ConversationId, &conv.MessageId, &conv.ChatImage, &conv.ChatName, &conv.ChatType); err != nil {
 			return nil, errors.New("error scanning conversation row")
 		}
-
+		fmt.Println("Sono qui3")
 		if conv.ChatType == "private_chat" {
 			query := `  SELECT 
-								users.name,
-								users.profile_image
-						FROM
-								conversation_participants
-						INNER JOIN
-								users ON conversation_participants.user_id = users.user_id
-						WHERE 
-								conversation_id = ? AND user_id != ?;
-			`
+									users.name,
+									users.profile_image
+							FROM
+									conversation_participants
+							INNER JOIN
+									users ON conversation_participants.user_id = users.user_id
+							WHERE 
+									conversation_id = ? AND user_id != ?;
+				`
 			err := db.c.QueryRow(query, author).Scan(&conv.ChatName, &conv.ChatImage)
 			if err != nil {
 				return nil, errors.New("error executing query to fetch user details")
 			}
 		}
 		query := ` SELECT
-							users.name,
-							messages.timestamp,
-							messages.type,
-							messages.content,
-							messages.media
-					FROM 
-							messages 
-					INNER JOIN
-							users ON messages.user_id = users.user_id
-					WHERE 
-							message_id = ?; `
+								users.name,
+								messages.timestamp,
+								messages.type,
+								messages.content,
+								messages.media
+						FROM 
+								messages 
+						INNER JOIN
+								users ON messages.user_id = users.user_id
+						WHERE 
+								message_id = ?; `
 
 		err := db.c.QueryRow(query, conv.MessageId).Scan(&mex.UserName, &mex.Timestamp, &mex.MessageType, &mex.Testo, &mex.Image)
 		if err != nil {
 			return nil, errors.New("error executing query to fetch message details")
 		}
 		quer := ` SELECT
-						reaction,
-						user_id
-					FROM 
-						reactions 
-					WHERE 
-						message_id = ?;`
+							reaction,
+							user_id
+						FROM 
+							reactions 
+						WHERE 
+							message_id = ?;`
 
 		rowComm, err := db.c.Query(quer, conv.MessageId)
 		if err != nil {

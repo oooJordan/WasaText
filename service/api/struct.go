@@ -118,7 +118,7 @@ func ConvertConversationFromDatabase(req database.Triplos) ConversationsApi {
 		ChatType:       req.Conversation.ChatType,
 		ChatName:       req.Conversation.ChatName,
 		ChatImage:      req.Conversation.ChatImage,
-		MessageNotRead: req.Conversation.MessageNotRead,
-		Message:        message,
+		//MessageNotRead: req.Conversation.MessageNotRead,
+		Message: message,
 	}
 }
