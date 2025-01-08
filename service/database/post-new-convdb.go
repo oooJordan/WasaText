@@ -109,11 +109,11 @@ func (db *appdbimpl) CreateConversationDB(author int, req ConversationRequest) (
 		return 0, errors.New("failed to retrieve last insert ID: " + err.Error())
 	}
 
-	// Aggiorno la tabella conversations con il lastMessageId
-	updateQuery := "UPDATE conversations SET lastMessageId = ? WHERE conversation_id = ?"
+	// Aggiorno la tabella conversations con l'id del messaggio
+	updateQuery := "UPDATE conversations SET message_id = ? WHERE conversation_id = ?"
 	_, err = trans.Exec(updateQuery, messageID, conversationID)
 	if err != nil {
-		return 0, errors.New("failed to update lastMessageId in conversation: " + err.Error())
+		return 0, errors.New("failed to update message_id in conversation: " + err.Error())
 	}
 
 	// prima recupero id dell'utente partendo dal suo username (per ogni utente)
