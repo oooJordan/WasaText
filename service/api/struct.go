@@ -79,13 +79,13 @@ type ConversationsApi struct {
 }
 
 type MessageRicvApi struct {
-	UserID      int          `json:"user_id"`
+	UserName      string          `json:"username"`
 	Message_ID  int          `json:"message_id"`
 	Testo       string       `json:"content"`
 	MessageType string       `json:"media"`
 	Image       string       `json:"image"`
 	Timestamp   string       `json:"timestamp"`
-	Comment     []CommentApi `json:"comment"`
+	Comment     []CommentApi `json:"comments"`
 }
 
 type CommentApi struct {
@@ -105,7 +105,7 @@ func ConvertConversationFromDatabase(req database.Triplos) ConversationsApi {
 
 	// converto il messaggio
 	message := MessageRicvApi{
-		UserID:      req.Message.UserID,
+		UserName:      req.Message.UserName,
 		Timestamp:   req.Message.Timestamp.Time.GoString(),
 		MessageType: req.Message.MessageType,
 		Content:     req.Message.Testo,
