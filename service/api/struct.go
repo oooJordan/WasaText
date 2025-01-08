@@ -79,7 +79,7 @@ type ConversationsApi struct {
 }
 
 type MessageRicvApi struct {
-	UserName      string          `json:"username"`
+	UserName    string       `json:"username"`
 	Message_ID  int          `json:"message_id"`
 	Testo       string       `json:"content"`
 	MessageType string       `json:"media"`
@@ -105,13 +105,14 @@ func ConvertConversationFromDatabase(req database.Triplos) ConversationsApi {
 
 	// converto il messaggio
 	message := MessageRicvApi{
-		UserName:      req.Message.UserName,
+		UserName:    req.Message.UserName,
 		Timestamp:   req.Message.Timestamp.Time.GoString(),
 		MessageType: req.Message.MessageType,
 		Content:     req.Message.Testo,
 		Image:       req.Message.Image,
 		Comments:    comments,
 	}
+	// converto la conversazione
 	return ConversationsApi{
 		ConversationID: req.Conversation.ConversationId,
 		ChatType:       req.Conversation.ChatType,
@@ -121,40 +122,3 @@ func ConvertConversationFromDatabase(req database.Triplos) ConversationsApi {
 		Message:        message,
 	}
 }
-
-/*
-
-func convertCommentFromDatabase(req []database.CommentDb) []CommentApi {
-	comments := make([]CommentApi, len(req))
-	for i, comment := range req {
-		comments[i] = CommentApi{
-			UserName:     comment.UserName,
-			CommentEmoji: comment.CommentEmoji,
-		}
-	}
-	return comments
-}
-
-func convertMessageFromDatabase(req database.MessageRicvDb) MessageRicvApi {
-	return MessageRicvApi{
-		UserName:     req.UserName,
-		Message_ID:   req.Message_ID,
-		Text_message: req.Text_message,
-		Type_message: req.Type_message,
-		Image:        req.Image,
-		Timestamp:    req.Timestamp,
-		Comment:      convertCommentFromDatabase(req.Comment),
-	}
-
-}
-
-func convertConversationFromDatabase(req database.ConversationsDb) ConversationsApi {
-	return ConversationsApi{
-		ConversationId: req.ConversationId,
-		Message:        convertMessageFromDatabase(req.Message),
-		ProfileImage:   req.ProfileImage,
-		ChatName:       req.ChatName,
-		ChatType:       req.ChatType,
-	}
-}
-*/

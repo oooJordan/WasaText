@@ -51,7 +51,7 @@ type ConversationsDb struct {
 }
 
 type MessageRicvDb struct {
-	UserID      int
+	UserName    string
 	Timestamp   sql.NullTime
 	MessageType string
 	Testo       string
