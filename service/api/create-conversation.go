@@ -48,6 +48,9 @@ func (rt *_router) newConversation(w http.ResponseWriter, r *http.Request, ps ht
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
-
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		ctx.Logger.Error(err) // Logga l'errore lato server
+		http.Error(w, "Failed to encode response as JSON", http.StatusInternalServerError)
+		return
+	}
 }
