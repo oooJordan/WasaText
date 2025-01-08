@@ -94,19 +94,31 @@ type CommentApi struct {
 }
 
 func ConvertConversationFromDatabase(req database.Triplos) ConversationsApi {
+	// converto i commenti dal database alla struttura API
+	var comments []CommentApi
+	for _, comment := range req.Commento {
+		comments = append(comments, CommentApi{
+			UserID:       comment.UserName,
+			CommentEmoji: comment.CommentEmoji,
+		})
+	}
+
+	// converto il messaggio
+	message := MessageRicvApi{
+		UserID:      req.Message.UserID,
+		Timestamp:   req.Message.Timestamp.Time.GoString(),
+		MessageType: req.Message.MessageType,
+		Content:     req.Message.Testo,
+		Image:       req.Message.Image,
+		Comments:    comments,
+	}
 	return ConversationsApi{
 		ConversationID: req.Conversation.ConversationId,
 		ChatType:       req.Conversation.ChatType,
 		ChatName:       req.Conversation.ChatName,
 		ChatImage:      req.Conversation.ChatImage,
 		MessageNotRead: req.Conversation.MessageNotRead,
-		Message: MessageRicvApi{
-			UserID:      req.Message.UserID,
-			Timestamp:   req.Message.Timestamp.Time.GoString(),
-			MessageType: req.Message.MessageType,
-			Testo:       req.Message.Testo,
-			Image:       req.Message.Image,
-		},
+		Message:        message,
 	}
 }
 
