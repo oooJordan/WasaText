@@ -377,7 +377,7 @@ paths:
 
   #MODIFICA IMMAGINE DI PROFILO UTENTE
   /profile_image:
-    post: 
+    put: 
       tags: ["user"]
       summary: update user's profile image
       description: This endpoint allows the user to update a new profile image

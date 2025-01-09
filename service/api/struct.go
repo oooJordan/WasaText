@@ -16,6 +16,10 @@ type UpdateUsernameRequest struct {
 	NewUsername string `json:"newUsername"`
 }
 
+type UpdateProfileImageRequest struct {
+	Image string `json:"image"`
+}
+
 // User rappresenta la struttura degli utenti restituiti
 type UserList struct {
 	Name         string `json:"name"`
