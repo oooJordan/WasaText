@@ -44,10 +44,10 @@ type Triplos struct {
 type ConversationsDb struct {
 	ConversationId int
 	MessageId      int
-	ChatImage      string
-	ChatName       string
+	ChatImage      sql.NullString
+	ChatName       sql.NullString
 	ChatType       string
-	//MessageNotRead int
+	MessageNotRead int
 }
 
 type MessageRicvDb struct {
@@ -60,6 +60,5 @@ type MessageRicvDb struct {
 
 type CommentDb struct {
 	UserName     string
-	MessageId    int
 	CommentEmoji string
 }

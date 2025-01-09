@@ -110,15 +110,16 @@ func ConvertConversationFromDatabase(req database.Triplos) ConversationsApi {
 		MessageType: req.Message.MessageType,
 		Testo:       req.Message.Testo,
 		Image:       req.Message.Image,
+		Message_ID:  req.Conversation.MessageId,
 		Comment:     comments,
 	}
 	// converto la conversazione
 	return ConversationsApi{
 		ConversationID: req.Conversation.ConversationId,
+		Message:        message,
 		ChatType:       req.Conversation.ChatType,
-		ChatName:       req.Conversation.ChatName,
-		ChatImage:      req.Conversation.ChatImage,
-		//MessageNotRead: req.Conversation.MessageNotRead,
-		Message: message,
+		ChatName:       req.Conversation.ChatName.String,
+		ChatImage:      req.Conversation.ChatImage.String,
+		MessageNotRead: req.Conversation.MessageNotRead,
 	}
 }
