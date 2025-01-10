@@ -59,7 +59,7 @@ func (rt *_router) renameGroup(w http.ResponseWriter, r *http.Request, ps httpro
 		return
 	}
 
-	// Aggiorna il nome del gruppo
+	// aggiorno il nome del gruppo
 	err = rt.db.UpdateGroupName(conversationID, newName.NewUsername)
 	if err != nil {
 		ctx.Logger.WithError(err).Error("Failed to update group name")

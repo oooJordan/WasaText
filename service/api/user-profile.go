@@ -29,16 +29,15 @@ func (rt *_router) updateProfileImage(w http.ResponseWriter, r *http.Request, ps
 		return
 	}
 
-	// Controllo validità dell'immagine (es. URL non vuoto)
+	// controllo che l'url sia valido (URL non vuoto)
 	if NewImage.Image == "" {
 		http.Error(w, "Image URL cannot be empty", http.StatusBadRequest)
 		return
 	}
-	// Aggiorna l'immagine di profilo nel database
+	// aggiorno l'immagine di profilo nel database
 	err = rt.db.UpdateProfileImage(author, NewImage.Image)
 	if err != nil {
 		ctx.Logger.Error(err)
-		// Se si verifica un errore generico, restituisci 500
 		http.Error(w, "Failed to update profile image", http.StatusInternalServerError)
 		return
 	}
@@ -48,7 +47,7 @@ func (rt *_router) updateProfileImage(w http.ResponseWriter, r *http.Request, ps
 }
 
 func (rt *_router) getProfileImage(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
-	// Controllo se il token è valido
+	// controllo se il token è valido
 	isValid, author, err := rt.IsValidToken(r, w)
 	if err != nil {
 		return
@@ -58,7 +57,7 @@ func (rt *_router) getProfileImage(w http.ResponseWriter, r *http.Request, ps ht
 		return
 	}
 
-	// Recupera l'immagine dal database
+	// recupero l'immagine dal database
 	imageURL, err := rt.db.GetProfileImage(author)
 	if err != nil {
 		ctx.Logger.Error(err)
@@ -66,7 +65,7 @@ func (rt *_router) getProfileImage(w http.ResponseWriter, r *http.Request, ps ht
 		return
 	}
 
-	// Rispondi con l'immagine
+	// rispondo con l'immagine
 	response := map[string]string{
 		"actualImage": imageURL,
 	}
