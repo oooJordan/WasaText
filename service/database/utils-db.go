@@ -34,3 +34,36 @@ func (db *appdbimpl) GetUserIDByUsername(username string) (int, error) {
 	}
 	return userID, nil
 }
+
+func (db *appdbimpl) IsGroupConversation(conversationID int) (bool, error) {
+	var chatType string
+	err := db.c.QueryRow("SELECT chatType FROM conversations WHERE conversation_id = ?", conversationID).Scan(&chatType)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, nil // conversazione non trovata
+		}
+		return false, err
+	}
+	return chatType == "group_chat", nil
+}
+
+func (db *appdbimpl) IsGroupEmpty(conversationID int) (bool, error) {
+	var count int
+	err := db.c.QueryRow("SELECT COUNT(*) FROM conversation_participants WHERE conversation_id = ?", conversationID).Scan(&count)
+	if err != nil {
+		return false, err
+	}
+	return count == 0, nil
+}
+
+func (db *appdbimpl) IsUserInGroup(conversationID int, userID int) (bool, error) {
+	var count int
+	err := db.c.QueryRow(
+		"SELECT COUNT(*) FROM conversation_participants WHERE conversation_id = ? AND user_id = ?",
+		conversationID, userID,
+	).Scan(&count)
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}

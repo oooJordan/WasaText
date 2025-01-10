@@ -39,15 +39,24 @@ import (
 // in AppDatabase ci sono i metodi definiti in database.go
 type AppDatabase interface {
 	GetName() (string, error)
-	SetName(name string) error
-	GetIdUser(name string) (int, error)
-	GetListUsers(name string) ([]Users, error)
-	UpdateUsername(userid int, NewUsername string) error
-	CheckIDDatabase(userid int) (bool, string, error)
-	CreateConversationDB(author int, req ConversationRequest) (int, error)
-	GetUserConversations(user_id int) ([]Triplos, error)
-	UpdateProfileImage(userid int, newUsername string) error
-	GetProfileImage(userid int) (string, error)
+	SetName(string) error
+	GetIdUser(string) (int, error)
+	GetListUsers(string) ([]Users, error)
+	UpdateUsername(int, string) error
+	CheckIDDatabase(int) (bool, string, error)
+	CreateConversationDB(int, ConversationRequest) (int, error)
+	GetUserConversations(int) ([]Triplos, error)
+	UpdateProfileImage(int, string) error
+	GetProfileImage(int) (string, error)
+	GetUserIDByUsername(string) (int, error)
+	IsGroupConversation(int) (bool, error)
+	AddUserToGroup(int, int) error
+	IsGroupEmpty(int) (bool, error)
+	DeleteGroup(int) error
+	RemoveUserFromGroup(int, int) error
+	IsUserInGroup(int, int) (bool, error)
+	UpdateGroupName(int, string) error
+	UpdateGroupImage(int, string) error
 	// CheckUser(User) (User, error)
 
 	Ping() error
