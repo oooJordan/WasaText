@@ -36,3 +36,5 @@ row := db.QueryRow("SELECT id, username FROM users WHERE id = ?", 1)
 var id int
 var username string
 err := row.Scan(&id, &username)
+
+//FIX -> MODIFICARE NOMI FUNZIONE NEWPROFILEIMAGE

@@ -47,6 +47,7 @@ type AppDatabase interface {
 	CreateConversationDB(author int, req ConversationRequest) (int, error)
 	GetUserConversations(user_id int) ([]Triplos, error)
 	UpdateProfileImage(userid int, newUsername string) error
+	GetProfileImage(userid int) (string, error)
 	// CheckUser(User) (User, error)
 
 	Ping() error

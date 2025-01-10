@@ -15,6 +15,7 @@ func (rt *_router) Handler() http.Handler {
 	rt.router.POST("/conversations", rt.wrap(rt.newConversation))
 	rt.router.GET("/conversation", rt.wrap(rt.getMyConversations))
 	rt.router.PUT("/profile_image", rt.wrap(rt.updateProfileImage))
+	rt.router.GET("/profile_image", rt.wrap(rt.getProfileImage))
 
 	// Register routes
 	/*

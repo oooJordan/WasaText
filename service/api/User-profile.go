@@ -46,3 +46,30 @@ func (rt *_router) updateProfileImage(w http.ResponseWriter, r *http.Request, ps
 	// Successo
 	w.WriteHeader(http.StatusNoContent)
 }
+
+func (rt *_router) getProfileImage(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
+	// Controllo se il token è valido
+	isValid, author, err := rt.IsValidToken(r, w)
+	if err != nil {
+		return
+	}
+	if !isValid {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// Recupera l'immagine dal database
+	imageURL, err := rt.db.GetProfileImage(author)
+	if err != nil {
+		ctx.Logger.Error(err)
+		http.Error(w, "Failed to fetch profile image", http.StatusInternalServerError)
+		return
+	}
+
+	// Rispondi con l'immagine
+	response := map[string]string{
+		"actualImage": imageURL,
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
