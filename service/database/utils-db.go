@@ -67,3 +67,32 @@ func (db *appdbimpl) IsUserInGroup(conversationID int, userID int) (bool, error)
 	}
 	return count > 0, nil
 }
+
+func (db *appdbimpl) GetConversationType(conversationID int) (string, error) {
+	var chatType string
+	err := db.c.QueryRow(
+		"SELECT chatType FROM conversations WHERE conversation_id = ?",
+		conversationID,
+	).Scan(&chatType)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return "", nil // Conversazione non trovata
+		}
+		return "", err
+	}
+	return chatType, nil
+}
+
+func (db *appdbimpl) IsUserInPrivateChat(conversationID int, userID int) (bool, error) {
+	var count int
+	err := db.c.QueryRow(
+		`SELECT COUNT(*) 
+         FROM conversation_participants 
+         WHERE conversation_id = ? AND user_id = ?`,
+		conversationID, userID,
+	).Scan(&count)
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}

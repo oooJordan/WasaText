@@ -57,6 +57,9 @@ type AppDatabase interface {
 	IsUserInGroup(int, int) (bool, error)
 	UpdateGroupName(int, string) error
 	UpdateGroupImage(int, string) error
+	GetConversationType(int) (string, error)
+	IsUserInPrivateChat(int, int) (bool, error)
+	NewMessage(int, int, string, string, string) (int, error)
 	// CheckUser(User) (User, error)
 
 	Ping() error

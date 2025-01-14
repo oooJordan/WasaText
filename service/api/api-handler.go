@@ -19,6 +19,7 @@ func (rt *_router) Handler() http.Handler {
 	rt.router.DELETE("/conversation/:conversation_id/membership", rt.wrap(rt.leaveGroup))
 	rt.router.PUT("/conversation/:conversation_id/name", rt.wrap(rt.renameGroup))
 	rt.router.PUT("/conversation/:conversation_id/groupimage", rt.wrap(rt.updateGroupImage))
+	rt.router.POST("/conversation/:conversation_id", rt.wrap(rt.sendNewMessage))
 
 	// Register routes
 	/*
