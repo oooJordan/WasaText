@@ -40,7 +40,7 @@ func (rt *_router) sendNewMessage(w http.ResponseWriter, r *http.Request, ps htt
 		return
 	}
 
-	//tipo di conversazione
+	// tipo di conversazione
 	conversationType, err := rt.db.GetConversationType(conversationID)
 	if err != nil {
 		ctx.Logger.WithError(err).Error("Failed to get conversation type")
@@ -48,7 +48,7 @@ func (rt *_router) sendNewMessage(w http.ResponseWriter, r *http.Request, ps htt
 		return
 	}
 
-	//controllo se l'utente è nella conversazione
+	// controllo se l'utente è nella conversazione
 	if conversationType == "private_chat" {
 		isParticipant, err := rt.db.IsUserInPrivateChat(conversationID, author)
 		if err != nil {
@@ -76,7 +76,7 @@ func (rt *_router) sendNewMessage(w http.ResponseWriter, r *http.Request, ps htt
 		return
 	}
 
-	//aggiungo il messaggio
+	// aggiungo il messaggio
 	messageID, err := rt.db.NewMessage(conversationID, author, message.Type, message.Content, message.Media)
 	if err != nil {
 		ctx.Logger.WithError(err).Error("Failed to create message")
@@ -84,7 +84,7 @@ func (rt *_router) sendNewMessage(w http.ResponseWriter, r *http.Request, ps htt
 		return
 	}
 
-	//FIX -> AGGIORNARE LA TABELLA DI LETTURA DI UN MESSAGGIO
+	// FIX -> AGGIORNARE LA TABELLA DI LETTURA DI UN MESSAGGIO
 
 	response := map[string]int{
 		"messageId": messageID,
