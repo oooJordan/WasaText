@@ -30,10 +30,11 @@ func (rt *_router) updateProfileImage(w http.ResponseWriter, r *http.Request, ps
 	}
 
 	// controllo che l'url sia valido (URL non vuoto)
-	if NewImage.Image == "" {
-		http.Error(w, "Image URL cannot be empty", http.StatusBadRequest)
+	if NewImage.Image == "" || !validateLocalImageURL(NewImage.Image) {
+		http.Error(w, "Image URL cannot be empty and must be valid and point to an image", http.StatusBadRequest)
 		return
 	}
+
 	// aggiorno l'immagine di profilo nel database
 	err = rt.db.UpdateProfileImage(author, NewImage.Image)
 	if err != nil {

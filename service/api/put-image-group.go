@@ -38,9 +38,9 @@ func (rt *_router) updateGroupImage(w http.ResponseWriter, r *http.Request, ps h
 		return
 	}
 
-	// controllo che l'url sia valido (URL non vuoto)
-	if NewImage.Image == "" {
-		http.Error(w, "Image URL cannot be empty", http.StatusBadRequest)
+	// controllo che l'url sia valido
+	if NewImage.Image == "" || !validateLocalImageURL(NewImage.Image) {
+		http.Error(w, "Invalid image URL", http.StatusBadRequest)
 		return
 	}
 
