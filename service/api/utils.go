@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -82,7 +83,7 @@ func (rt *_router) uploadImage(w http.ResponseWriter, r *http.Request, ps httpro
 		http.Error(w, "Error parsing form data", http.StatusBadRequest)
 		return
 	}
-	// estraggo il file dalla richiesta http
+
 	file, fileHeader, err := r.FormFile("file")
 	if err != nil {
 		ctx.Logger.WithError(err).Error("uploadFile: error retrieving file from form")
@@ -91,18 +92,16 @@ func (rt *_router) uploadImage(w http.ResponseWriter, r *http.Request, ps httpro
 	}
 	defer file.Close()
 
-	// directory di destinazione
-	destDir := "/home/jordan/Documents/university/WASA/WasaText/images"
-	// se non esiste viene creata
+	destDir := "/home/jordan/Documents/university/WASA/WasaText/foto"
 	if err := os.MkdirAll(destDir, 0755); err != nil {
 		ctx.Logger.WithError(err).Error("uploadFile: error creating destination directory")
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
-	// uso il nome originale del file per creare il percorso finale
+
 	uniqueFileName := fileHeader.Filename
 	destPath := filepath.Join(destDir, uniqueFileName)
-	// creo file nella directory di destinazione
+
 	dst, err := os.Create(destPath)
 	if err != nil {
 		ctx.Logger.WithError(err).Error("uploadFile: error creating destination file")
@@ -110,21 +109,26 @@ func (rt *_router) uploadImage(w http.ResponseWriter, r *http.Request, ps httpro
 		return
 	}
 	defer dst.Close()
-	// copio il contenuto del file ricevuto nel file di destinazione
+
 	if _, err := io.Copy(dst, file); err != nil {
 		ctx.Logger.WithError(err).Error("uploadFile: error saving file")
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
-	// url pubblico
-	publicURL := "http://localhost:3000/foto/" + uniqueFileName
+
+	// URL
+	scheme := "http"
+	if r.TLS != nil {
+		scheme = "https"
+	}
+	publicURL := fmt.Sprintf("%s://%s/foto/%s", scheme, r.Host, uniqueFileName)
 
 	w.WriteHeader(http.StatusCreated)
 	w.Header().Set("Content-Type", "application/json")
-	// url pubblico in formato 	json
-	json.NewEncoder(w).Encode(map[string]string{
-		"imageUrl": publicURL,
-	})
+
+	if err := json.NewEncoder(w).Encode(map[string]string{"imageUrl": publicURL}); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+	}
 }
 
 // directory con foto
