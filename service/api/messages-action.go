@@ -29,13 +29,13 @@ func (rt *_router) sendNewMessage(w http.ResponseWriter, r *http.Request, ps htt
 
 	var message MessageSent
 	err = json.NewDecoder(r.Body).Decode(&message)
-	if err != nil || message.Type == "" {
+	if err != nil || message.Image == "" {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
 	// controllo se il formato del messaggio è corretto
-	if message.Type != "text" && message.Type != "image" && message.Type != "text_image" {
+	if message.Media != "text" && message.Media != "image" && message.Media != "text_image" {
 		http.Error(w, "Invalid message type", http.StatusBadRequest)
 		return
 	}
@@ -77,7 +77,7 @@ func (rt *_router) sendNewMessage(w http.ResponseWriter, r *http.Request, ps htt
 	}
 
 	// aggiungo il messaggio
-	messageID, err := rt.db.NewMessage(conversationID, author, message.Type, message.Content, message.Media)
+	messageID, err := rt.db.NewMessage(conversationID, author, message.Media, message.Content, message.Image)
 	if err != nil {
 		ctx.Logger.WithError(err).Error("Failed to create message")
 		http.Error(w, "Failed to send message", http.StatusInternalServerError)

@@ -73,7 +73,7 @@ func (db *appdbimpl) CreateConversationDB(author int, req ConversationRequest) (
 	}
 
 	// controllo il messaggio
-	switch req.StartMessage.Type {
+	switch req.StartMessage.Media {
 	case "text":
 		if req.StartMessage.Content == "" {
 			return 0, errors.New("content is required for type 'text'")
@@ -81,24 +81,24 @@ func (db *appdbimpl) CreateConversationDB(author int, req ConversationRequest) (
 		if req.StartMessage.Media != "" {
 			return 0, errors.New("media must be empty for type 'text'")
 		}
-	case "image":
+	case "gif":
 		if req.StartMessage.Media == "" {
 			return 0, errors.New("media is required for type 'image'")
 		}
 		if req.StartMessage.Content != "" {
 			return 0, errors.New("content must be empty for type 'image'")
 		}
-	case "text_image":
+	case "gif_with_text":
 		if req.StartMessage.Content == "" || req.StartMessage.Media == "" {
 			return 0, errors.New("both content and media are required for type 'text_image'")
 		}
 	default:
-		return 0, errors.New("invalid type: must be 'text', 'image', or 'text_image'")
+		return 0, errors.New("invalid type: must be 'text', 'gif', or 'gif_with_text'")
 	}
 
 	// Inserisco il messaggio dopo la validazione
 	query := "INSERT INTO messages (conversation_id, user_id, content, media, type) VALUES (?, ?, ?, ?, ?)"
-	result, err = trans.Exec(query, conversationID, author, req.StartMessage.Content, req.StartMessage.Media, req.StartMessage.Type)
+	result, err = trans.Exec(query, conversationID, author, req.StartMessage.Content, req.StartMessage.Image, req.StartMessage.Media)
 	if err != nil {
 		return 0, errors.New("failed to insert start message: " + err.Error())
 	}

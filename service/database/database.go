@@ -123,7 +123,7 @@ func New(db *sql.DB) (AppDatabase, error) { // inizializza il database
 						conversation_id INTEGER NOT NULL, 
 						user_id INTEGER NOT NULL, 
 						timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-						type TEXT CHECK(type IN ('text', 'image', 'text_image')) NOT NULL,
+						type TEXT CHECK(type IN ('text', 'gif', 'gif_with_text')) NOT NULL,
 						content TEXT, 
 						media TEXT,
 						FOREIGN KEY(conversation_id) REFERENCES conversations(conversation_id) ,

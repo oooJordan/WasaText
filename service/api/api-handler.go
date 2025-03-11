@@ -12,7 +12,7 @@ func (rt *_router) Handler() http.Handler {
 	rt.router.GET("/users", rt.wrap(rt.listUsers))
 	rt.router.PUT("/username", rt.wrap(rt.UpdateUsername))
 	rt.router.POST("/conversations", rt.wrap(rt.newConversation))
-	rt.router.GET("/conversation", rt.wrap(rt.getMyConversations))
+	rt.router.GET("/conversations", rt.wrap(rt.getMyConversations))
 	rt.router.PUT("/profile_image", rt.wrap(rt.updateProfileImage))
 	rt.router.GET("/profile_image", rt.wrap(rt.getProfileImage))
 	rt.router.PUT("/conversation/:conversation_id/names", rt.wrap(rt.addToGroup))

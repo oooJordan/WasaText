@@ -28,11 +28,15 @@ type UserList struct {
 }
 
 type ConversationRequest struct {
-	ChatType     string      `json:"chatType"`
+	ChatType     ResChatType `json:"chatType"`
 	ImageGroup   string      `json:"imageGroup,omitempty"`
 	GroupName    string      `json:"groupName,omitempty"`
 	Usersname    []string    `json:"usersname"`
 	StartMessage MessageSent `json:"startMessage"`
+}
+
+type ResChatType struct {
+	ChatType string `json:"ChatType"`
 }
 
 type CreateConversationResponse struct {
@@ -43,8 +47,8 @@ type CreateConversationResponse struct {
 
 type MessageSent struct {
 	Content string `json:"content,omitempty"`
-	Media   string `json:"media,omitempty"`
-	Type    string `json:"type"`
+	Media   string `json:"media"`
+	Image   string `json:"image"`
 }
 
 type Conversations []struct {
@@ -61,14 +65,14 @@ type Conversations []struct {
 
 func convertToDatabaseConversationRequest(req ConversationRequest) database.ConversationRequest {
 	return database.ConversationRequest{
-		ChatType:   req.ChatType,
+		ChatType:   req.ChatType.ChatType,
 		ImageGroup: req.ImageGroup,
 		GroupName:  req.GroupName,
 		Usersname:  req.Usersname,
 		StartMessage: database.MessageSent{
 			Content: req.StartMessage.Content,
 			Media:   req.StartMessage.Media,
-			Type:    req.StartMessage.Type,
+			Image:   req.StartMessage.Image,
 		},
 	}
 }

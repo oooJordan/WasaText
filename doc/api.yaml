@@ -825,7 +825,7 @@ paths:
               type: object
               description: "The request body for renaming a group, which contains the new name"
               properties:
-                newname:
+                newUsername:
                   $ref: "#/components/schemas/Name"
               required:
                 - newname
