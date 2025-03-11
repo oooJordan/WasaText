@@ -27,6 +27,7 @@ func (rt *_router) addToGroup(w http.ResponseWriter, r *http.Request, ps httprou
 		http.Error(w, "Invalid conversation ID", http.StatusBadRequest)
 		return
 	}
+	// recupero il nome dell'utente da aggiungere
 	var newUser LoginRequest
 	err = json.NewDecoder(r.Body).Decode(&newUser)
 	if err != nil || newUser.User == "" {

@@ -29,13 +29,13 @@ func (rt *_router) sendNewMessage(w http.ResponseWriter, r *http.Request, ps htt
 
 	var message MessageSent
 	err = json.NewDecoder(r.Body).Decode(&message)
-	if err != nil || message.Image == "" {
+	if err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
 	// controllo se il formato del messaggio è corretto
-	if message.Media != "text" && message.Media != "image" && message.Media != "text_image" {
+	if message.Media != "text" && message.Media != "gif" && message.Media != "gif_with_text" {
 		http.Error(w, "Invalid message type", http.StatusBadRequest)
 		return
 	}

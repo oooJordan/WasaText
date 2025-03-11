@@ -570,7 +570,6 @@ paths:
   /conversation/{conversation_id}:
       parameters:
       - $ref: "#/components/parameters/ConversationId"
-      - $ref: "#/components/parameters/UserName"
       get:
         tags: ["conversation"]
         summary: Viewing message history
@@ -861,7 +860,7 @@ paths:
               type: object
               description: "Schema for updating the group image in a conversation"
               properties:
-                imageUrl:
+                Image:
                   $ref: "#/components/schemas/Image"
       responses:
         '204':

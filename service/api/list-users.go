@@ -28,7 +28,7 @@ func (rt *_router) listUsers(w http.ResponseWriter, r *http.Request, ps httprout
 		w.WriteHeader(http.StatusInternalServerError) // 500
 		return
 	}
-
+	// controllo che sia stato trovato almeno un utente
 	if len(users) == 0 {
 		w.WriteHeader(http.StatusNotFound) // 404
 		return

@@ -19,20 +19,22 @@ func (rt *_router) newConversation(w http.ResponseWriter, r *http.Request, ps ht
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
-
+	// decodifico la richiesta
 	var req ConversationRequest
 	err = json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
-
+	// controllo la richiesta se è valida
 	if req.ChatType.ChatType == "" || req.StartMessage.Media == "" || len(req.Usersname) == 0 {
 		http.Error(w, "Missing required fields", http.StatusBadRequest)
 		return
 	}
+	// converto la richiesta in un formato compatibile con il database
 	dbReq := convertToDatabaseConversationRequest(req)
 
+	// crea una nuova conversazione nel database
 	conversationID, err := rt.db.CreateConversationDB(author, dbReq)
 	if err != nil {
 		ctx.Logger.Error(err)
@@ -40,7 +42,7 @@ func (rt *_router) newConversation(w http.ResponseWriter, r *http.Request, ps ht
 		return
 	}
 	lastMessage := req.StartMessage
-
+	// se successo, ritorna la risposta
 	response := CreateConversationResponse{
 		ConversationID: conversationID,
 		Message:        "Conversation created successfully",

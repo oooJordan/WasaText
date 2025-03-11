@@ -63,7 +63,7 @@ func (db *appdbimpl) GetConversationType(conversationID int) (string, error) {
 		conversationID,
 	).Scan(&chatType)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return "", nil // Conversazione non trovata
 		}
 		return "", err

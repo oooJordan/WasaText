@@ -38,12 +38,6 @@ func (rt *_router) updateGroupImage(w http.ResponseWriter, r *http.Request, ps h
 		return
 	}
 
-	// controllo che l'url sia valido
-	if NewImage.Image == "" || !validateLocalImageURL(NewImage.Image) {
-		http.Error(w, "Invalid image URL", http.StatusBadRequest)
-		return
-	}
-
 	// verifico che la conversazione esista ed è un gruppo
 	isGroup, err := rt.db.IsGroupConversation(conversationID)
 	if err != nil {

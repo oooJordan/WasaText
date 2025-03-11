@@ -1,9 +1,25 @@
 package database
 
-import "database/sql"
+import (
+	"database/sql"
+	"errors"
+)
 
 func (db *appdbimpl) AddUserToGroup(conversationID int, userID int) error {
-	_, err := db.c.Exec("INSERT INTO conversation_participants (conversation_id, user_id) VALUES (?, ?)", conversationID, userID)
+	// Controllo se l'utente è già nel gruppo
+	var count int
+	err := db.c.QueryRow("SELECT COUNT(*) FROM conversation_participants WHERE conversation_id = ? AND user_id = ?", conversationID, userID).Scan(&count)
+	if err != nil {
+		return err
+	}
+
+	// Se l'utente è già nel gruppo, ritorno un errore
+	if count > 0 {
+		return errors.New("user already in group")
+	}
+
+	// Se l'utente non è nel gruppo, lo inserisco
+	_, err = db.c.Exec("INSERT INTO conversation_participants (conversation_id, user_id) VALUES (?, ?)", conversationID, userID)
 	return err
 }
 

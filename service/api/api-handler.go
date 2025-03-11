@@ -21,7 +21,7 @@ func (rt *_router) Handler() http.Handler {
 	rt.router.PUT("/conversation/:conversation_id/groupimage", rt.wrap(rt.updateGroupImage))
 	rt.router.POST("/conversation/:conversation_id", rt.wrap(rt.sendNewMessage))
 	rt.router.POST("/upload", rt.wrap(rt.uploadImage))
-	rt.router.ServeFiles("/foto/*filepath", http.Dir("/home/jordan/Documents/university/WASA/WasaText/foto"))
+	rt.router.ServeFiles("/foto/*filepath", http.Dir("foto"))
 
 	// Register routes
 	/*

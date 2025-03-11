@@ -3,15 +3,15 @@ package api
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
-	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/oooJordan/WasaText/service/api/reqcontext"
@@ -76,91 +76,76 @@ func ExtractUserIdFromToken(token string) int {
 	return id
 }
 
-func (rt *_router) uploadImage(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
-	err := r.ParseMultipartForm(10 << 20) // Max 10MB
-	if err != nil {
-		ctx.Logger.WithError(err).Error("uploadFile: error parsing multipart form")
-		http.Error(w, "Error parsing form data", http.StatusBadRequest)
+func (rt *_router) uploadImage(
+	w http.ResponseWriter,
+	r *http.Request,
+	ps httprouter.Params,
+	ctx reqcontext.RequestContext,
+) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	file, fileHeader, err := r.FormFile("file")
+	err := r.ParseMultipartForm(10 * 1024 * 1024)
 	if err != nil {
-		ctx.Logger.WithError(err).Error("uploadFile: error retrieving file from form")
-		http.Error(w, "File not found in request", http.StatusBadRequest)
+		http.Error(w, "Failed to parse form. Ensure the file is below 10 MB.", http.StatusBadRequest)
+		return
+	}
+
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		http.Error(w, "Failed to retrieve file", http.StatusBadRequest)
 		return
 	}
 	defer file.Close()
 
-	destDir := "/home/jordan/Documents/university/WASA/WasaText/foto"
-	if err := os.MkdirAll(destDir, 0755); err != nil {
-		ctx.Logger.WithError(err).Error("uploadFile: error creating destination directory")
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	uniqueFileName := fileHeader.Filename
-	destPath := filepath.Join(destDir, uniqueFileName)
-
-	dst, err := os.Create(destPath)
+	fileBytes, err := io.ReadAll(file)
 	if err != nil {
-		ctx.Logger.WithError(err).Error("uploadFile: error creating destination file")
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
-		return
-	}
-	defer dst.Close()
-
-	if _, err := io.Copy(dst, file); err != nil {
-		ctx.Logger.WithError(err).Error("uploadFile: error saving file")
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		http.Error(w, "Failed to read file", http.StatusInternalServerError)
 		return
 	}
 
-	// URL
-	scheme := "http"
-	if r.TLS != nil {
-		scheme = "https"
+	if len(fileBytes) > 10*1024*1024 {
+		http.Error(w, "File too large. Maximum allowed size is 10 MB.", http.StatusRequestEntityTooLarge)
+		return
 	}
-	publicURL := fmt.Sprintf("%s://%s/foto/%s", scheme, r.Host, uniqueFileName)
 
-	w.WriteHeader(http.StatusCreated)
+	fileType := http.DetectContentType(fileBytes)
+	if fileType != "image/jpeg" && fileType != "image/png" {
+		http.Error(w, "Invalid file type. Only JPEG and PNG are supported.", http.StatusUnsupportedMediaType)
+		return
+	}
+
+	savedFilePath, err := saveFile(fileBytes, header)
+	if err != nil {
+		http.Error(w, "Failed to save file", http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]string{
+		"imageUrl": savedFilePath,
+	}
 	w.Header().Set("Content-Type", "application/json")
-
-	if err := json.NewEncoder(w).Encode(map[string]string{"imageUrl": publicURL}); err != nil {
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+	w.WriteHeader(http.StatusCreated)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		ctx.Logger.WithError(err).Error("Failed to encode response")
 	}
 }
 
-// directory con foto
-const BaseDirFoto = "/home/jordan/Documents/university/WASA/WasaText/foto"
-
-// fileExists verifica se il file esiste nel percorso specificato
-func fileExists(path string) bool {
-	_, err := os.Stat(path) // controlla lo stato del file
-	return err == nil       // true se il file esiste
-}
-
-// verifica se l'URL è valido, appartiene alla cartella "/foto/" e se il file esiste localmente
-func validateLocalImageURL(imageURL string) bool {
-	u, err := url.Parse(imageURL) // analizza la stringa per ottenere url
-	// controlla se l'url è valido
-	if err != nil || u.Scheme == "" || u.Host == "" {
-		return false
+func saveFile(fileBytes []byte, header *multipart.FileHeader) (string, error) {
+	dir := "foto"
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		os.Mkdir(dir, os.ModePerm)
 	}
 
-	// controllo se il percorso inizi con "/foto/"
-	if !strings.HasPrefix(u.Path, "/foto/") {
-		return false
+	fileName := time.Now().Format("20060102150405") + "-" + header.Filename
+	filePath := filepath.Join(dir, fileName)
+
+	err := os.WriteFile(filePath, fileBytes, 0644)
+	if err != nil {
+		return "", err
 	}
 
-	// estrae il nome del file rimuovendo "/foto/"
-	fileName := strings.TrimPrefix(u.Path, "/foto/")
-	if fileName == "" {
-		return false
-	}
-
-	// costruisce il percorso locale del file
-	localPath := filepath.Join(BaseDirFoto, fileName)
-	// verifica se il file esiste
-	return fileExists(localPath)
+	return "/" + filePath, nil
 }
