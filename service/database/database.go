@@ -62,6 +62,8 @@ type AppDatabase interface {
 	NewMessage(int, int, string, string, string) (int, error)
 	UpdateMessageDelivered(int) error
 	UpdateMessageRead(int, int) error
+	GetConversationUsers(int) ([]Users, error)
+	GetConversationMessages(int) ([]MessageFullDB, error)
 	// CheckUser(User) (User, error)
 
 	Ping() error

@@ -20,6 +20,7 @@ func (rt *_router) Handler() http.Handler {
 	rt.router.PUT("/conversation/:conversation_id/name", rt.wrap(rt.renameGroup))
 	rt.router.PUT("/conversation/:conversation_id/groupimage", rt.wrap(rt.updateGroupImage))
 	rt.router.POST("/conversation/:conversation_id", rt.wrap(rt.sendNewMessage))
+	rt.router.GET("/conversation/:conversation_id", rt.wrap(rt.messageHistory))
 	rt.router.POST("/upload", rt.wrap(rt.uploadImage))
 	rt.router.ServeFiles("/foto/*filepath", http.Dir("foto"))
 

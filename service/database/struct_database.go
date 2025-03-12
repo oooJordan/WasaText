@@ -47,7 +47,7 @@ type ConversationsDb struct {
 	ChatImage      sql.NullString
 	ChatName       sql.NullString
 	ChatType       string
-	MessageNotRead int
+	MessageNotRead bool
 }
 
 type MessageRicvDb struct {
@@ -61,4 +61,14 @@ type MessageRicvDb struct {
 type CommentDb struct {
 	UserName     string
 	CommentEmoji string
+}
+
+type MessageFullDB struct {
+	MessageID   int
+	UserName    string
+	Testo       string
+	MessageType string
+	Image       string
+	Timestamp   string
+	Comment     []CommentDb
 }
