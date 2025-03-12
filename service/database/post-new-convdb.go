@@ -78,18 +78,18 @@ func (db *appdbimpl) CreateConversationDB(author int, req ConversationRequest) (
 		if req.StartMessage.Content == "" {
 			return 0, errors.New("content is required for type 'text'")
 		}
-		if req.StartMessage.Media != "" {
-			return 0, errors.New("media must be empty for type 'text'")
+		if req.StartMessage.Image != "" {
+			return 0, errors.New("image must be empty for type 'text'")
 		}
 	case "gif":
-		if req.StartMessage.Media == "" {
-			return 0, errors.New("media is required for type 'image'")
+		if req.StartMessage.Image == "" {
+			return 0, errors.New("image is required for type 'image'")
 		}
 		if req.StartMessage.Content != "" {
 			return 0, errors.New("content must be empty for type 'image'")
 		}
 	case "gif_with_text":
-		if req.StartMessage.Content == "" || req.StartMessage.Media == "" {
+		if req.StartMessage.Content == "" || req.StartMessage.Image == "" {
 			return 0, errors.New("both content and media are required for type 'text_image'")
 		}
 	default:

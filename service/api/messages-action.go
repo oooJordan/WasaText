@@ -19,7 +19,7 @@ func (rt *_router) sendNewMessage(w http.ResponseWriter, r *http.Request, ps htt
 		return
 	}
 
-	// recupero il conversation_id dai parametri
+	// recupero il conversation_id dai parametri della richiesta
 	conversationIDStr := ps.ByName("conversation_id")
 	conversationID, err := strconv.Atoi(conversationIDStr)
 	if err != nil {
@@ -27,6 +27,7 @@ func (rt *_router) sendNewMessage(w http.ResponseWriter, r *http.Request, ps htt
 		return
 	}
 
+	// decodifico il corpo della richiesta per ottenere il messaggio
 	var message MessageSent
 	err = json.NewDecoder(r.Body).Decode(&message)
 	if err != nil {
@@ -40,7 +41,7 @@ func (rt *_router) sendNewMessage(w http.ResponseWriter, r *http.Request, ps htt
 		return
 	}
 
-	// tipo di conversazione
+	// recupero il tipo di conversazione dal database
 	conversationType, err := rt.db.GetConversationType(conversationID)
 	if err != nil {
 		ctx.Logger.WithError(err).Error("Failed to get conversation type")
@@ -76,7 +77,7 @@ func (rt *_router) sendNewMessage(w http.ResponseWriter, r *http.Request, ps htt
 		return
 	}
 
-	// aggiungo il messaggio
+	// aggiungo il messaggio nel database
 	messageID, err := rt.db.NewMessage(conversationID, author, message.Media, message.Content, message.Image)
 	if err != nil {
 		ctx.Logger.WithError(err).Error("Failed to create message")
@@ -84,8 +85,7 @@ func (rt *_router) sendNewMessage(w http.ResponseWriter, r *http.Request, ps htt
 		return
 	}
 
-	// FIX -> AGGIORNARE LA TABELLA DI LETTURA DI UN MESSAGGIO
-
+	// rispondo con il nuovo messageId generato
 	response := map[string]int{
 		"messageId": messageID,
 	}

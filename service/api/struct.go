@@ -1,6 +1,10 @@
 package api
 
-import "github.com/oooJordan/WasaText/service/database"
+import (
+	"time"
+
+	"github.com/oooJordan/WasaText/service/database"
+)
 
 // Struttura del login
 type LoginRequest struct {
@@ -114,7 +118,7 @@ func ConvertConversationFromDatabase(req database.Triplos) ConversationsApi {
 	// converto il messaggio
 	message := MessageRicvApi{
 		UserName:    req.Message.UserName,
-		Timestamp:   req.Message.Timestamp.Time.GoString(),
+		Timestamp:   req.Message.Timestamp.Time.Format(time.RFC3339),
 		MessageType: req.Message.MessageType,
 		Testo:       req.Message.Testo,
 		Image:       req.Message.Image,

@@ -31,7 +31,7 @@ type ConversationRequest struct {
 type MessageSent struct {
 	Content string `json:"content,omitempty"`
 	Media   string `json:"media"`
-	Image   string `json:"image"`
+	Image   string `json:"image,omitempty"`
 }
 
 // GET CONVERSATIONS

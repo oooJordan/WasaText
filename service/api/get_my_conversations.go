@@ -19,16 +19,25 @@ func (rt *_router) getMyConversations(w http.ResponseWriter, r *http.Request, ps
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
-
+	var convs []ConversationsApi
 	my_conversations, err := rt.db.GetUserConversations(user_id)
 	if err != nil {
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
+	for i := 0; i < len(my_conversations); i++ {
+		convs = append(convs, ConvertConversationFromDatabase(my_conversations[i]))
+	}
+
+	rispo_conv := struct {
+		Conversations []ConversationsApi `json:"conversation"`
+	}{
+		Conversations: convs,
+	}
 	// Conversione in JSON e invio della risposta
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(my_conversations); err != nil {
+	if err := json.NewEncoder(w).Encode(rispo_conv); err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 
