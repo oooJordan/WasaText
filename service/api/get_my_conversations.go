@@ -19,6 +19,7 @@ func (rt *_router) getMyConversations(w http.ResponseWriter, r *http.Request, ps
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
+	// recupero le conversazioni dell'utente dal database
 	var convs []ConversationsApi
 	my_conversations, err := rt.db.GetUserConversations(user_id)
 	if err != nil {
@@ -26,10 +27,11 @@ func (rt *_router) getMyConversations(w http.ResponseWriter, r *http.Request, ps
 		return
 	}
 
+	// converto le conversazioni nel formato API
 	for i := 0; i < len(my_conversations); i++ {
 		convs = append(convs, ConvertConversationFromDatabase(my_conversations[i]))
 	}
-
+	// struct che racchiude l'array in un object conversation
 	rispo_conv := struct {
 		Conversations []ConversationsApi `json:"conversation"`
 	}{
