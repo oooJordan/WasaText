@@ -136,7 +136,9 @@ func (rt *_router) uploadImage(
 func saveFile(fileBytes []byte, header *multipart.FileHeader) (string, error) {
 	dir := "foto"
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		os.Mkdir(dir, os.ModePerm)
+		if err := os.Mkdir(dir, os.ModePerm); err != nil {
+			return "", err
+		}
 	}
 
 	fileName := time.Now().Format("20060102150405") + "-" + header.Filename
@@ -147,5 +149,5 @@ func saveFile(fileBytes []byte, header *multipart.FileHeader) (string, error) {
 		return "", err
 	}
 
-	return "/" + filePath, nil
+	return "/foto/" + fileName, nil
 }
