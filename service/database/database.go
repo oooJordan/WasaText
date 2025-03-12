@@ -60,6 +60,8 @@ type AppDatabase interface {
 	GetConversationType(int) (string, error)
 	IsUserInPrivateChat(int, int) (bool, error)
 	NewMessage(int, int, string, string, string) (int, error)
+	UpdateMessageDelivered(int) error
+	UpdateMessageRead(int, int) error
 	// CheckUser(User) (User, error)
 
 	Ping() error

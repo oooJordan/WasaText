@@ -19,6 +19,13 @@ func (rt *_router) getMyConversations(w http.ResponseWriter, r *http.Request, ps
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
+
+	err = rt.db.UpdateMessageDelivered(user_id)
+	if err != nil {
+		http.Error(w, "Failed to update message delivery", http.StatusInternalServerError)
+		return
+	}
+
 	// recupero le conversazioni dell'utente dal database
 	var convs []ConversationsApi
 	my_conversations, err := rt.db.GetUserConversations(user_id)
