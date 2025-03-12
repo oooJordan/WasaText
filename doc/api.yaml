@@ -162,7 +162,10 @@ components:
         timestamp:
             $ref: "#/components/schemas/Timestamp" #timestamp
         comment:
-          $ref: "#/components/schemas/CommentEmoji"
+          type: array
+          description: "array of comment emojis"
+          items:
+            $ref: "#/components/schemas/CommentEmoji"
       required:
         - media
         - timestamp
