@@ -76,12 +76,7 @@ func ExtractUserIdFromToken(token string) int {
 	return id
 }
 
-func (rt *_router) uploadImage(
-	w http.ResponseWriter,
-	r *http.Request,
-	ps httprouter.Params,
-	ctx reqcontext.RequestContext,
-) {
+func (rt *_router) uploadImage(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		return
