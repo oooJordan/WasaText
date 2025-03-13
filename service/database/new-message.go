@@ -1,5 +1,10 @@
 package database
 
+import (
+	"database/sql"
+	"errors"
+)
+
 func (db *appdbimpl) NewMessage(conversationID int, senderID int, messageType string, content string, media string) (int, error) {
 	var messageID int
 
@@ -178,4 +183,44 @@ func (db *appdbimpl) GetConversationMessages(conversationID int) ([]MessageFullD
 	}
 	// Ritorno i messaggi e i commenti trovati nella query (results)
 	return results, nil
+}
+
+func (db *appdbimpl) ForwardMessage(destinationConversationID int, originalMessageID int, forwardingUserID int) (int64, error) {
+	// Recupero il tipo, il contenuto e il media del messaggio originale
+	var msgType, content, media string
+	query := "SELECT type, content, media FROM messages WHERE message_id = ?"
+	err := db.c.QueryRow(query, originalMessageID).Scan(&msgType, &content, &media)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, errors.New("original message not found")
+		}
+		return 0, err
+	}
+
+	// Verifico che la conversazione di destinazione esista
+	var convexist int
+	err = db.c.QueryRow("SELECT conversation_id FROM conversations WHERE conversation_id = ?", destinationConversationID).Scan(&convexist)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, errors.New("destination conversation not found")
+		}
+		return 0, err
+	}
+
+	// Inserisco il messaggio inoltrato nella tabella messages
+	insertQuery := `
+		INSERT INTO messages (conversation_id, user_id, type, content, media)
+		VALUES (?, ?, ?, ?, ?)
+	`
+	result, err := db.c.Exec(insertQuery, destinationConversationID, forwardingUserID, msgType, content, media)
+	if err != nil {
+		return 0, err
+	}
+
+	// Restituisco l'ID del messaggio appena inserito nella tabella messages
+	newMessageID, err := result.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+	return newMessageID, nil
 }
