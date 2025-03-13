@@ -22,6 +22,7 @@ func (rt *_router) Handler() http.Handler {
 	rt.router.POST("/conversation/:conversation_id", rt.wrap(rt.sendNewMessage))
 	rt.router.GET("/conversation/:conversation_id", rt.wrap(rt.messageHistory))
 	rt.router.POST("/conversation/:conversation_id/messages/:message_id", rt.wrap(rt.forwardMessage))
+	rt.router.DELETE("/conversation/:conversation_id/messages/:message_id", rt.wrap(rt.deleteMessage))
 	rt.router.POST("/upload", rt.wrap(rt.uploadImage))
 	rt.router.ServeFiles("/foto/*filepath", http.Dir("foto"))
 

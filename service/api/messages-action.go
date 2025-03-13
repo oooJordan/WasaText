@@ -11,6 +11,7 @@ import (
 	"github.com/oooJordan/WasaText/service/api/reqcontext"
 )
 
+// #INVIO DI UN NUOVO MESSAGGIO#
 func (rt *_router) sendNewMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	isValid, author, err := rt.IsValidToken(r, w)
 	if err != nil {
@@ -98,6 +99,7 @@ func (rt *_router) sendNewMessage(w http.ResponseWriter, r *http.Request, ps htt
 	}
 }
 
+// #INOLTRO DEL MESSAGGIO#
 func (rt *_router) forwardMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	// Verifico se l'utente è autorizzato
 	isValid, author, err := rt.IsValidToken(r, w)
@@ -147,4 +149,89 @@ func (rt *_router) forwardMessage(w http.ResponseWriter, r *http.Request, ps htt
 		http.Error(w, "Failed to send response", http.StatusInternalServerError)
 		return
 	}
+}
+
+func (rt *_router) deleteMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
+	// 1) Controllo che l'utente sia loggato
+	isValid, userID, err := rt.IsValidToken(r, w)
+	if err != nil {
+		return
+	}
+	if !isValid {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// 2) Recupero gli ID della conversazione e del messaggio
+	conversationIDStr := ps.ByName("conversation_id")
+	conversationID, err := strconv.Atoi(conversationIDStr)
+	if err != nil {
+		http.Error(w, "Invalid conversation ID", http.StatusBadRequest)
+		return
+	}
+
+	messageIDStr := ps.ByName("message_id")
+	messageID, err := strconv.Atoi(messageIDStr)
+	if err != nil {
+		http.Error(w, "Invalid message ID", http.StatusBadRequest)
+		return
+	}
+
+	// 3) Verifico se la conversazione esiste
+	chatType, err := rt.db.GetConversationType(conversationID)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	if chatType == "" {
+		http.Error(w, "Conversation Not Found", http.StatusNotFound)
+		return
+	}
+
+	// 4) Verifico se l'utente fa parte della conversazione
+	var isMember bool
+	if chatType == "group_chat" {
+		isMember, err = rt.db.IsUserInGroup(conversationID, userID)
+	} else {
+		isMember, err = rt.db.IsUserInPrivateChat(conversationID, userID)
+	}
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	if !isMember {
+		http.Error(w, "Conversation not found", http.StatusNotFound)
+		return
+	}
+
+	// 5) Controllo che il messaggio esista e sia stato inviato dall'utente
+	senderID, err := rt.db.GetMessageSender(messageID, conversationID)
+	if err != nil {
+		if err.Error() == "message not found" {
+			http.Error(w, "Message Not Found", http.StatusNotFound)
+			return
+		}
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	if senderID != userID {
+		http.Error(w, "Forbidden: You can only delete your own messages", http.StatusForbidden)
+		return
+	}
+
+	// 6) Elimino prima lo stato del messaggio nella tabella messages_read_status
+	err = rt.db.DeleteMessageStatus(messageID)
+	if err != nil {
+		http.Error(w, "Failed to delete message status", http.StatusInternalServerError)
+		return
+	}
+
+	// 7) Elimino il messaggio dalla tabella messages
+	err = rt.db.DeleteMessage(messageID)
+	if err != nil {
+		http.Error(w, "Failed to delete message", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }

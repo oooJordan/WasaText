@@ -298,3 +298,28 @@ func (db *appdbimpl) ForwardMessage(destinationConversationID int, originalMessa
 
 	return newMessageID, nil
 }
+
+// Ottieni l'ID del mittente di un messaggio
+func (db *appdbimpl) GetMessageSender(messageID int, conversationID int) (int, error) {
+	var senderID int
+	err := db.c.QueryRow(`SELECT user_id FROM messages WHERE message_id = ? AND conversation_id = ?`, messageID, conversationID).Scan(&senderID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, errors.New("message not found")
+		}
+		return 0, err
+	}
+	return senderID, nil
+}
+
+// Elimina un messaggio dalla tabella messages
+func (db *appdbimpl) DeleteMessage(messageID int) error {
+	_, err := db.c.Exec(`DELETE FROM messages WHERE message_id = ?`, messageID)
+	return err
+}
+
+// Elimina lo stato di lettura del messaggio dalla tabella messages_read_status
+func (db *appdbimpl) DeleteMessageStatus(messageID int) error {
+	_, err := db.c.Exec(`DELETE FROM messages_read_status WHERE message_id = ?`, messageID)
+	return err
+}
