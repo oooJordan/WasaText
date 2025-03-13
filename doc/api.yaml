@@ -830,7 +830,7 @@ paths:
                 newUsername:
                   $ref: "#/components/schemas/Name"
               required:
-                - newname
+                - newUsername
       responses:
         '204':
           description: "Successfully renamed the group"         
