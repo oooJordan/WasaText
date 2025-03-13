@@ -186,10 +186,29 @@ func (db *appdbimpl) GetConversationMessages(conversationID int) ([]MessageFullD
 }
 
 func (db *appdbimpl) ForwardMessage(destinationConversationID int, originalMessageID int, forwardingUserID int) (int64, error) {
+	// Verifica se l'utente ha scaricato e letto il messaggio originale
+	var isDelivered, isRead bool
+	query := `
+		SELECT is_delivered, is_read 
+		FROM messages_read_status 
+		WHERE message_id = ? AND user_id = ?`
+	err := db.c.QueryRow(query, originalMessageID, forwardingUserID).Scan(&isDelivered, &isRead)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, errors.New("user has no read status for this message")
+		}
+		return 0, err
+	}
+
+	// Se l'utente non ha letto o scaricato il messaggio, non può inoltrarlo
+	if !isDelivered || !isRead {
+		return 0, errors.New("user must have downloaded and read the message before forwarding")
+	}
+
 	// Recupero il tipo, il contenuto e il media del messaggio originale
 	var msgType, content, media string
-	query := "SELECT type, content, media FROM messages WHERE message_id = ?"
-	err := db.c.QueryRow(query, originalMessageID).Scan(&msgType, &content, &media)
+	query = "SELECT type, content, media FROM messages WHERE message_id = ?"
+	err = db.c.QueryRow(query, originalMessageID).Scan(&msgType, &content, &media)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, errors.New("original message not found")
@@ -207,20 +226,75 @@ func (db *appdbimpl) ForwardMessage(destinationConversationID int, originalMessa
 		return 0, err
 	}
 
+	// Inizio una transazione per garantire la coerenza dei dati
+	trans, err := db.c.Begin()
+	if err != nil {
+		return 0, err
+	}
+	defer func() {
+		if err := trans.Rollback(); err != nil && err != sql.ErrTxDone {
+			return
+		}
+	}()
+
 	// Inserisco il messaggio inoltrato nella tabella messages
 	insertQuery := `
 		INSERT INTO messages (conversation_id, user_id, type, content, media)
 		VALUES (?, ?, ?, ?, ?)
 	`
-	result, err := db.c.Exec(insertQuery, destinationConversationID, forwardingUserID, msgType, content, media)
+	result, err := trans.Exec(insertQuery, destinationConversationID, forwardingUserID, msgType, content, media)
 	if err != nil {
 		return 0, err
 	}
 
-	// Restituisco l'ID del messaggio appena inserito nella tabella messages
+	// Ottengo l'ID del messaggio appena inserito
 	newMessageID, err := result.LastInsertId()
 	if err != nil {
 		return 0, err
 	}
+
+	// Aggiorno la tabella `messages_read_status`
+	// Ottengo tutti gli utenti della conversazione (escludendo chi ha inoltrato il messaggio)
+	rows, err := trans.Query(`SELECT user_id FROM conversation_participants WHERE conversation_id = ? AND user_id != ?`, destinationConversationID, forwardingUserID)
+	if err != nil {
+		trans.Rollback()
+		return 0, err
+	}
+	defer rows.Close()
+
+	// Inserisco gli utenti nella tabella messages_read_status
+	for rows.Next() {
+		var userID int
+		if err := rows.Scan(&userID); err != nil {
+			trans.Rollback()
+			return 0, err
+		}
+		// Imposto is_delivered = 0 e is_read = 0 per tutti gli utenti della conversazione (tranne chi inoltra il messaggio)
+		_, err = trans.Exec(
+			`INSERT INTO messages_read_status (message_id, user_id, is_delivered, is_read)
+             VALUES (?, ?, 0, 0)`,
+			newMessageID, userID)
+		if err != nil {
+			trans.Rollback()
+			return 0, err
+		}
+	}
+
+	// Il mittente dell'inoltro ha sempre is_delivered = 1 e is_read = 1
+	_, err = trans.Exec(
+		`INSERT INTO messages_read_status (message_id, user_id, is_delivered, is_read)
+         VALUES (?, ?, 1, 1)`,
+		newMessageID, forwardingUserID)
+	if err != nil {
+		trans.Rollback()
+		return 0, err
+	}
+
+	// Commit della transazione
+	err = trans.Commit()
+	if err != nil {
+		return 0, err
+	}
+
 	return newMessageID, nil
 }
