@@ -10,7 +10,7 @@ import (
 	"github.com/oooJordan/WasaText/service/database"
 )
 
-// #LOGIN UTENTE#
+// ------------------------------ #LOGIN UTENTE# ------------------------------
 func (rt *_router) loginUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	var req LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -51,7 +51,7 @@ func (rt *_router) loginUser(w http.ResponseWriter, r *http.Request, ps httprout
 	}
 }
 
-// #AGGIORNO IMMAGINE DEL PROFILO UTENTE#
+// ------------------------- #AGGIORNO IMMAGINE DEL PROFILO UTENTE# --------------------------
 func (rt *_router) updateProfileImage(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	// Controllo se il token è valido
 	isValid, author, err := rt.IsValidToken(r, w)
@@ -85,7 +85,7 @@ func (rt *_router) updateProfileImage(w http.ResponseWriter, r *http.Request, ps
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// #AGGIORNO L'IMMAGINE DEL PROFILO DELL'UTENTE#
+// ------------------------ #OTTENGO L'IMMAGINE DEL PROFILO DELL'UTENTE# --------------------
 func (rt *_router) getProfileImage(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	// controllo se il token è valido
 	isValid, author, err := rt.IsValidToken(r, w)
@@ -115,7 +115,7 @@ func (rt *_router) getProfileImage(w http.ResponseWriter, r *http.Request, ps ht
 	}
 }
 
-// #OTTENGO LA LISTA DEGLI UTENTI#
+// ------------------------ #OTTENGO LA LISTA DEGLI UTENTI# ---------------------------
 func (rt *_router) listUsers(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	username := r.URL.Query().Get("name")
 
@@ -150,7 +150,7 @@ func (rt *_router) listUsers(w http.ResponseWriter, r *http.Request, ps httprout
 	}
 }
 
-// #AGGIORNO USERNAME UTENTE#
+// ----------------------- #AGGIORNO USERNAME UTENTE# -----------------------------
 func (rt *_router) UpdateUsername(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	// Controllo se il token è valido
 	isValid, author, err := rt.IsValidToken(r, w)

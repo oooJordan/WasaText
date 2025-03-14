@@ -11,7 +11,7 @@ import (
 	"github.com/oooJordan/WasaText/service/api/reqcontext"
 )
 
-// #INVIO DI UN NUOVO MESSAGGIO#
+// ------------------------------ #INVIO DI UN NUOVO MESSAGGIO# --------------------------------
 func (rt *_router) sendNewMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	isValid, author, err := rt.IsValidToken(r, w)
 	if err != nil {
@@ -99,7 +99,7 @@ func (rt *_router) sendNewMessage(w http.ResponseWriter, r *http.Request, ps htt
 	}
 }
 
-// #INOLTRO DEL MESSAGGIO#
+// -------------------------------- #INOLTRO DEL MESSAGGIO# -------------------------------
 func (rt *_router) forwardMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	// Verifico se l'utente è autorizzato
 	isValid, author, err := rt.IsValidToken(r, w)
@@ -151,7 +151,7 @@ func (rt *_router) forwardMessage(w http.ResponseWriter, r *http.Request, ps htt
 	}
 }
 
-// #ELIMINARE IL MESSAGGIO#
+// ------------------------------- #ELIMINARE IL MESSAGGIO# --------------------------
 func (rt *_router) deleteMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	// 1) Controllo che l'utente sia loggato
 	isValid, userID, err := rt.IsValidToken(r, w)

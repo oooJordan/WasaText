@@ -9,7 +9,7 @@ import (
 	"github.com/oooJordan/WasaText/service/api/reqcontext"
 )
 
-// #CREAZIONE DI UNA NUOVA CONVERSAZIONE#
+// ------------------ #CREAZIONE DI UNA NUOVA CONVERSAZIONE# ---------------------------
 func (rt *_router) newConversation(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	isValid, author, err := rt.IsValidToken(r, w)
 	if err != nil {
@@ -59,7 +59,7 @@ func (rt *_router) newConversation(w http.ResponseWriter, r *http.Request, ps ht
 	}
 }
 
-// #OTTENGO LA LISTA DELLE MIE CONVERSAZIONI#
+// ------------------------ #OTTENGO LA LISTA DELLE MIE CONVERSAZIONI# ------------------------------
 func (rt *_router) getMyConversations(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	isValid, user_id, err := rt.IsValidToken(r, w)
 	if err != nil {
@@ -104,7 +104,7 @@ func (rt *_router) getMyConversations(w http.ResponseWriter, r *http.Request, ps
 
 }
 
-// #OTTENGO LA CRONOLOGIA DEI MESSAGGI#
+// ----------------------- #OTTENGO LA CRONOLOGIA DEI MESSAGGI# --------------------------
 func (rt *_router) messageHistory(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	// 1) Controllo se il token è valido
 	isValid, userID, err := rt.IsValidToken(r, w)

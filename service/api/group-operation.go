@@ -11,7 +11,7 @@ import (
 	"github.com/oooJordan/WasaText/service/api/reqcontext"
 )
 
-// #LASCIA IL GRUPPO#
+// ------------------------------ #LASCIA IL GRUPPO# ------------------------
 func (rt *_router) leaveGroup(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	// controllo se il token è valido
 	isValid, author, err := rt.IsValidToken(r, w)
@@ -77,7 +77,7 @@ func (rt *_router) leaveGroup(w http.ResponseWriter, r *http.Request, ps httprou
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// #AGGIORNO L'USERNAME DEL GRUPPO#
+// ------------------------- #AGGIORNO L'USERNAME DEL GRUPPO# -----------------------
 func (rt *_router) renameGroup(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	// controllo se il token è valido
 	isValid, author, err := rt.IsValidToken(r, w)
@@ -140,7 +140,7 @@ func (rt *_router) renameGroup(w http.ResponseWriter, r *http.Request, ps httpro
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// #AGGIORNA IMMAGINE DEL GRUPPO#
+// ------------------------- #AGGIORNO IMMAGINE DEL GRUPPO# ---------------------------
 func (rt *_router) updateGroupImage(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	// Controllo se il token è valido
 	isValid, author, err := rt.IsValidToken(r, w)
@@ -205,7 +205,7 @@ func (rt *_router) updateGroupImage(w http.ResponseWriter, r *http.Request, ps h
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// #AGGIUNGI MEMBRI A UN GRUPPO#
+// ---------------------- #AGGIUNGO MEMBRI A UN GRUPPO# ----------------------------------
 func (rt *_router) addToGroup(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	// controllo se il token è valido
 	isValid, _, err := rt.IsValidToken(r, w)
