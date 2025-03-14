@@ -9,6 +9,101 @@ import (
 	"github.com/oooJordan/WasaText/service/api/reqcontext"
 )
 
+// #CREAZIONE DI UNA NUOVA CONVERSAZIONE#
+func (rt *_router) newConversation(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
+	isValid, author, err := rt.IsValidToken(r, w)
+	if err != nil {
+		// La risposta HTTP è già gestita all'interno di IsValidToken
+		return
+	}
+	if !isValid {
+		// Token non valido
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	// decodifico la richiesta
+	var req ConversationRequest
+	err = json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	// controllo la richiesta se è valida
+	if req.ChatType.ChatType == "" || req.StartMessage.Media == "" || len(req.Usersname) == 0 {
+		http.Error(w, "Missing required fields", http.StatusBadRequest)
+		return
+	}
+	// converto la richiesta in un formato compatibile con il database
+	dbReq := convertToDatabaseConversationRequest(req)
+
+	// crea una nuova conversazione nel database
+	conversationID, err := rt.db.CreateConversationDB(author, dbReq)
+	if err != nil {
+		ctx.Logger.Error(err)
+		http.Error(w, "Error creating conversation", http.StatusInternalServerError)
+		return
+	}
+	lastMessage := req.StartMessage
+	// se successo, ritorna la risposta
+	response := CreateConversationResponse{
+		ConversationID: conversationID,
+		Message:        "Conversation created successfully",
+		LastMessage:    lastMessage,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		ctx.Logger.Error(err) // Logga l'errore lato server
+		http.Error(w, "Failed to encode response as JSON", http.StatusInternalServerError)
+		return
+	}
+}
+
+// #OTTENGO LA LISTA DELLE MIE CONVERSAZIONI#
+func (rt *_router) getMyConversations(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
+	isValid, user_id, err := rt.IsValidToken(r, w)
+	if err != nil {
+		// La risposta HTTP è già gestita all'interno di IsValidToken
+		return
+	}
+	if !isValid {
+		// Token non valido
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	err = rt.db.UpdateMessageDelivered(user_id)
+	if err != nil {
+		http.Error(w, "Failed to update message delivery", http.StatusInternalServerError)
+		return
+	}
+
+	// recupero le conversazioni dell'utente dal database
+	var convs []ConversationsApi
+	my_conversations, err := rt.db.GetUserConversations(user_id)
+	if err != nil {
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	// converto le conversazioni nel formato API
+	for i := 0; i < len(my_conversations); i++ {
+		convs = append(convs, ConvertConversationFromDatabase(my_conversations[i]))
+	}
+	// struct che racchiude l'array in un object conversation
+	rispo_conv := struct {
+		Conversations []ConversationsApi `json:"conversation"`
+	}{
+		Conversations: convs,
+	}
+	// Conversione in JSON e invio della risposta
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(rispo_conv); err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
+
+}
+
 // #OTTENGO LA CRONOLOGIA DEI MESSAGGI#
 func (rt *_router) messageHistory(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	// 1) Controllo se il token è valido

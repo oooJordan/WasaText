@@ -1,10 +1,10 @@
-//TODO ->  LISTA UTENTI
+// TODO ->  LISTA UTENTI
 curl -X GET -H "Authorization: Bearer USERID" "http://localhost:3000/users?name=NOMEDACERCARE"
-//TODO -> CAMBIO USERNAME
+// TODO -> CAMBIO USERNAME
 curl -X PATCH -H "Authorization: Bearer USERID" -H "Content-Type: application/json" -d '{"newUsername":"NOMENUOVO"}' http://localhost:3000/username
 
 
-//TODO -> CREAZIONE private_chat
+// TODO -> CREAZIONE private_chat
 curl -X POST -H "Authorization: Bearer USERID" -H "Content-Type: application/json" -d '{
       "chatType": "private_chat",
       "usersname": ["NOMEUTENTE"],
@@ -14,7 +14,7 @@ curl -X POST -H "Authorization: Bearer USERID" -H "Content-Type: application/jso
         "type": "TIPO DI MESSAGGIO"
       }
 }' http://localhost:3000/conversations
-//TODO -> CREAZIONE group_chat
+// TODO -> CREAZIONE group_chat
 curl -X POST -H "Authorization: Bearer USERID" -H "Content-Type: application/json" -d '{
       "chatType": "group_chat",
       "groupName": "NOME GRUPPO",
@@ -29,12 +29,12 @@ curl -X POST -H "Authorization: Bearer USERID" -H "Content-Type: application/jso
 
 
 
-//TODO ->  SCAN
+// TODO ->  SCAN
 prende i dati dalla query e le inserisce in delle variabili
-//OPTIMIZE esempio -> qui vengono compiati i risultati presi dalla tabella nelle variabili id e username grazie a Scan
+// OPTIMIZE esempio -> qui vengono compiati i risultati presi dalla tabella nelle variabili id e username grazie a Scan
 row := db.QueryRow("SELECT id, username FROM users WHERE id = ?", 1)
 var id int
 var username string
 err := row.Scan(&id, &username)
 
-//FIX -> MODIFICARE NOMI FUNZIONE NEWPROFILEIMAGE
+// FIX -> MODIFICARE NOMI FUNZIONE NEWPROFILEIMAGE
