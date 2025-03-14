@@ -10,6 +10,7 @@ import (
 	"github.com/oooJordan/WasaText/service/api/reqcontext"
 )
 
+// #LASCIA IL GRUPPO#
 func (rt *_router) leaveGroup(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	// controllo se il token è valido
 	isValid, author, err := rt.IsValidToken(r, w)

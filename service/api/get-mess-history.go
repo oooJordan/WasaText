@@ -9,6 +9,7 @@ import (
 	"github.com/oooJordan/WasaText/service/api/reqcontext"
 )
 
+// #OTTENGO LA CRONOLOGIA DEI MESSAGGI#
 func (rt *_router) messageHistory(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	// 1) Controllo se il token è valido
 	isValid, userID, err := rt.IsValidToken(r, w)

@@ -5,6 +5,8 @@ import (
 	"errors"
 )
 
+// #CREAZIONE DI UNA NUOVA CONVERSAZIONE#
+// CreateConversationDB crea una nuova conversazione
 func (db *appdbimpl) CreateConversationDB(author int, req ConversationRequest) (int, error) {
 	DefaultImage := "https://cdn.raceroster.com/assets/images/team-placeholder.png"
 	trans, err := db.c.Begin()

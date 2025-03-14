@@ -10,6 +10,7 @@ import (
 	"github.com/oooJordan/WasaText/service/database"
 )
 
+// #AGGIORNO USERNAME UTENTE#
 func (rt *_router) UpdateUsername(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	// Controllo se il token è valido
 	isValid, author, err := rt.IsValidToken(r, w)

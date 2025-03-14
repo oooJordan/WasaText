@@ -9,6 +9,7 @@ import (
 	"github.com/oooJordan/WasaText/service/api/reqcontext"
 )
 
+// #AGGIORNA IMMAGINE DEL GRUPPO#
 func (rt *_router) updateGroupImage(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	// Controllo se il token è valido
 	isValid, author, err := rt.IsValidToken(r, w)

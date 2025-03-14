@@ -8,6 +8,7 @@ import (
 	"github.com/oooJordan/WasaText/service/api/reqcontext"
 )
 
+// #AGGIORNO IMMAGINE GRUPPO#
 func (rt *_router) updateProfileImage(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	// Controllo se il token è valido
 	isValid, author, err := rt.IsValidToken(r, w)
@@ -41,6 +42,7 @@ func (rt *_router) updateProfileImage(w http.ResponseWriter, r *http.Request, ps
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// #AGGIORNO L'IMMAGINE DEL GRUPPO#
 func (rt *_router) getProfileImage(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	// controllo se il token è valido
 	isValid, author, err := rt.IsValidToken(r, w)

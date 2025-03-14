@@ -9,6 +9,7 @@ import (
 	"github.com/oooJordan/WasaText/service/api/reqcontext"
 )
 
+// #AGGIUNGI MEMBRI A UN GRUPPO#
 func (rt *_router) addToGroup(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	// controllo se il token è valido
 	isValid, _, err := rt.IsValidToken(r, w)

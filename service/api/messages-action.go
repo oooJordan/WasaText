@@ -151,6 +151,7 @@ func (rt *_router) forwardMessage(w http.ResponseWriter, r *http.Request, ps htt
 	}
 }
 
+// #ELIMINARE IL MESSAGGIO#
 func (rt *_router) deleteMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	// 1) Controllo che l'utente sia loggato
 	isValid, userID, err := rt.IsValidToken(r, w)

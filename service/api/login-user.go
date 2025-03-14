@@ -8,7 +8,7 @@ import (
 	"github.com/oooJordan/WasaText/service/api/reqcontext"
 )
 
-// Gestione del login e creazione dell'utente
+// #LOGIN UTENTE#
 func (rt *_router) loginUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	var req LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {

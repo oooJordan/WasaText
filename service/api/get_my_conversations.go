@@ -8,6 +8,7 @@ import (
 	"github.com/oooJordan/WasaText/service/api/reqcontext"
 )
 
+// #OTTENGO LA LISTA DELLE MIE CONVERSAZIONI#
 func (rt *_router) getMyConversations(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	isValid, user_id, err := rt.IsValidToken(r, w)
 	if err != nil {

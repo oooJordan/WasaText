@@ -9,6 +9,7 @@ import (
 	"github.com/oooJordan/WasaText/service/api/reqcontext"
 )
 
+// #AGGIORNO L'USERNAME DEL GRUPPO#
 func (rt *_router) renameGroup(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	// controllo se il token è valido
 	isValid, author, err := rt.IsValidToken(r, w)

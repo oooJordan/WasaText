@@ -5,6 +5,9 @@ import (
 	"errors"
 )
 
+// #INVIO DI UN NUOVO MESSAGGIO#
+// NewMessage crea un nuovo messaggio nella tabella messages e aggiorna la tabella messages_read_status
+// per tutti gli utenti della conversazione
 func (db *appdbimpl) NewMessage(conversationID int, senderID int, messageType string, content string, media string) (int, error) {
 	var messageID int
 
@@ -71,7 +74,8 @@ func (db *appdbimpl) NewMessage(conversationID int, senderID int, messageType st
 	return messageID, nil
 }
 
-// Aggiorna lo stato di un messaggio a consegnato
+// #AGGIORNAMENTO STATO MESSAGGIO CONSEGNATO#
+// UpdateMessageDelivered aggiorna lo stato di tutti i messaggi non consegnati dell'utente
 func (db *appdbimpl) UpdateMessageDelivered(userID int) error {
 	// Aggiorna lo stato di tutti i messaggi non consegnati dell'utente
 	_, err := db.c.Exec(
@@ -83,7 +87,8 @@ func (db *appdbimpl) UpdateMessageDelivered(userID int) error {
 	return err
 }
 
-// Aggiorna lo stato di un messaggio a letto
+// #AGGIORNAMENTO STATO MESSAGGIO LETTO#
+// UpdateMessageRead aggiorna lo stato di tutti i messaggi non letti dell'utente
 func (db *appdbimpl) UpdateMessageRead(userID int, conversationID int) error {
 	// Aggiorna lo stato di tutti i messaggi non letti dell'utente
 	_, err := db.c.Exec(
@@ -95,7 +100,8 @@ func (db *appdbimpl) UpdateMessageRead(userID int, conversationID int) error {
 	return err
 }
 
-// recupera tutti i messaggi di una conversazione
+// #RECUPERO MESSAGGI DI UNA CONVERSAZIONE#
+// GetConversationMessages recupera tutti i messaggi di una conversazione
 func (db *appdbimpl) GetConversationMessages(conversationID int) ([]MessageFullDB, error) {
 	// Query per recuperare tutti i messaggi di una conversazione
 	rows, err := db.c.Query(`
@@ -185,6 +191,9 @@ func (db *appdbimpl) GetConversationMessages(conversationID int) ([]MessageFullD
 	return results, nil
 }
 
+// #INOLTRO DI UN MESSAGGIO#
+// ForwardMessage inoltra un messaggio a una conversazione e aggiorna la tabella messages_read_status
+// per tutti gli utenti della conversazione
 func (db *appdbimpl) ForwardMessage(destinationConversationID int, originalMessageID int, forwardingUserID int) (int64, error) {
 	// Verifica se l'utente ha scaricato e letto il messaggio originale
 	var isDelivered, isRead bool
@@ -299,7 +308,8 @@ func (db *appdbimpl) ForwardMessage(destinationConversationID int, originalMessa
 	return newMessageID, nil
 }
 
-// Ottieni l'ID del mittente di un messaggio
+// #RECUPERO MITTENTE MESSAGGIO#
+// GetMessageSender recupera l'ID del mittente di un messaggio
 func (db *appdbimpl) GetMessageSender(messageID int, conversationID int) (int, error) {
 	var senderID int
 	err := db.c.QueryRow(`SELECT user_id FROM messages WHERE message_id = ? AND conversation_id = ?`, messageID, conversationID).Scan(&senderID)
@@ -312,13 +322,15 @@ func (db *appdbimpl) GetMessageSender(messageID int, conversationID int) (int, e
 	return senderID, nil
 }
 
-// Elimina un messaggio dalla tabella messages
+// #ELIMINAZIONE MESSAGGIO IN MESSAGES#
+// DeleteMessage elimina il messaggio dalla tabella messages
 func (db *appdbimpl) DeleteMessage(messageID int) error {
 	_, err := db.c.Exec(`DELETE FROM messages WHERE message_id = ?`, messageID)
 	return err
 }
 
-// Elimina lo stato di lettura del messaggio dalla tabella messages_read_status
+// #ELIMINAZIONE MESSAGGIO IN MESSAGES_READ_STATUS#
+// DeleteMessageStatus elimina il messaggio dalla tabella messages_read_status
 func (db *appdbimpl) DeleteMessageStatus(messageID int) error {
 	_, err := db.c.Exec(`DELETE FROM messages_read_status WHERE message_id = ?`, messageID)
 	return err
