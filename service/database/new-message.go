@@ -5,7 +5,7 @@ import (
 	"errors"
 )
 
-// #INVIO DI UN NUOVO MESSAGGIO#
+// ------------------------------- #INVIO DI UN NUOVO MESSAGGIO# --------------------------
 // NewMessage crea un nuovo messaggio nella tabella messages e aggiorna la tabella messages_read_status
 // per tutti gli utenti della conversazione
 func (db *appdbimpl) NewMessage(conversationID int, senderID int, messageType string, content string, media string) (int, error) {
@@ -74,7 +74,7 @@ func (db *appdbimpl) NewMessage(conversationID int, senderID int, messageType st
 	return messageID, nil
 }
 
-// #AGGIORNAMENTO STATO MESSAGGIO CONSEGNATO#
+// ----------------------- #AGGIORNAMENTO STATO CONSEGNA MESSAGGIO# --------------------------
 // UpdateMessageDelivered aggiorna lo stato di tutti i messaggi non consegnati dell'utente
 func (db *appdbimpl) UpdateMessageDelivered(userID int) error {
 	// Aggiorna lo stato di tutti i messaggi non consegnati dell'utente
@@ -87,7 +87,7 @@ func (db *appdbimpl) UpdateMessageDelivered(userID int) error {
 	return err
 }
 
-// #AGGIORNAMENTO STATO MESSAGGIO LETTO#
+// ------------------ #AGGIORNAMENTO STATO LETTURA MESSAGGIO# --------------------------
 // UpdateMessageRead aggiorna lo stato di tutti i messaggi non letti dell'utente
 func (db *appdbimpl) UpdateMessageRead(userID int, conversationID int) error {
 	// Aggiorna lo stato di tutti i messaggi non letti dell'utente
@@ -100,7 +100,7 @@ func (db *appdbimpl) UpdateMessageRead(userID int, conversationID int) error {
 	return err
 }
 
-// #RECUPERO MESSAGGI DI UNA CONVERSAZIONE#
+// --------------------- #CRONOLOGIA MESSAGGI CONVERSAZIONE# --------------------------
 // GetConversationMessages recupera tutti i messaggi di una conversazione
 func (db *appdbimpl) GetConversationMessages(conversationID int) ([]MessageFullDB, error) {
 	// Query per recuperare tutti i messaggi di una conversazione
@@ -191,7 +191,7 @@ func (db *appdbimpl) GetConversationMessages(conversationID int) ([]MessageFullD
 	return results, nil
 }
 
-// #INOLTRO DI UN MESSAGGIO#
+// ------------------------------- #INOLTRO DI UN MESSAGGIO# --------------------------
 // ForwardMessage inoltra un messaggio a una conversazione e aggiorna la tabella messages_read_status
 // per tutti gli utenti della conversazione
 func (db *appdbimpl) ForwardMessage(destinationConversationID int, originalMessageID int, forwardingUserID int) (int64, error) {
@@ -308,7 +308,7 @@ func (db *appdbimpl) ForwardMessage(destinationConversationID int, originalMessa
 	return newMessageID, nil
 }
 
-// #RECUPERO MITTENTE MESSAGGIO#
+// ------------------------- #MITTENTE DEL MESSAGGIO# --------------------------
 // GetMessageSender recupera l'ID del mittente di un messaggio
 func (db *appdbimpl) GetMessageSender(messageID int, conversationID int) (int, error) {
 	var senderID int
@@ -322,16 +322,47 @@ func (db *appdbimpl) GetMessageSender(messageID int, conversationID int) (int, e
 	return senderID, nil
 }
 
-// #ELIMINAZIONE MESSAGGIO IN MESSAGES#
+// ---------------- #ELIMINAZIONE DEL MESSAGGIO IN MESSAGES# --------------------------
 // DeleteMessage elimina il messaggio dalla tabella messages
 func (db *appdbimpl) DeleteMessage(messageID int) error {
 	_, err := db.c.Exec(`DELETE FROM messages WHERE message_id = ?`, messageID)
 	return err
 }
 
-// #ELIMINAZIONE MESSAGGIO IN MESSAGES_READ_STATUS#
+// --------------- #RIMUOVERE IL MESSAGGIO IN MESSAGES_READ_STATUS# ---------------------
 // DeleteMessageStatus elimina il messaggio dalla tabella messages_read_status
 func (db *appdbimpl) DeleteMessageStatus(messageID int) error {
 	_, err := db.c.Exec(`DELETE FROM messages_read_status WHERE message_id = ?`, messageID)
+	return err
+}
+
+// ------------------- #AGGIUNGE UNA REAZIONE AD UN MESSAGGIO# --------------------------
+func (db *appdbimpl) AddCommentToMessage(messageID int, userID int, reaction string) error {
+	// controllo se l'utente ha già commentato il messaggio
+	var existReaction string
+	err := db.c.QueryRow(
+		`SELECT reaction FROM message_reactions WHERE message_id = ? AND user_id = ?`, messageID, userID).Scan(&existReaction)
+
+	if errors.Is(err, sql.ErrNoRows) {
+		// se non esiste, inserisco il commento
+		_, err = db.c.Exec(
+			`INSERT INTO message_reactions (message_id, user_id, reaction) VALUES (?, ?, ?)`,
+			messageID, userID, reaction)
+	} else if err == nil {
+		// se esiste, aggiorno il commento
+		_, err = db.c.Exec(
+			`UPDATE message_reactions SET reaction = ? WHERE message_id = ? AND user_id = ?`,
+			reaction, messageID, userID)
+	}
+
+	return err
+}
+
+// -------------------- #RIMUOVERE UNA REACTION DA UN MESSAGGIO# --------------------------
+func (db *appdbimpl) RemoveReaction(userID int, messageID int) error {
+	_, err := db.c.Exec(`
+        DELETE FROM message_reactions 
+        WHERE message_id = ? AND user_id = ?`,
+		messageID, userID)
 	return err
 }

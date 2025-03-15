@@ -68,6 +68,10 @@ type AppDatabase interface {
 	GetMessageSender(int, int) (int, error)
 	DeleteMessage(int) error
 	DeleteMessageStatus(int) error
+	DoesMessageExist(int, int) (bool, error)
+	AddCommentToMessage(int, int, string) error
+	RemoveReaction(int, int) error
+	HasUserReactedToMessage(int, int) (bool, error)
 	// CheckUser(User) (User, error)
 
 	Ping() error

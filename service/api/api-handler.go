@@ -23,24 +23,13 @@ func (rt *_router) Handler() http.Handler {
 	rt.router.GET("/conversation/:conversation_id", rt.wrap(rt.messageHistory))
 	rt.router.POST("/conversation/:conversation_id/messages/:message_id", rt.wrap(rt.forwardMessage))
 	rt.router.DELETE("/conversation/:conversation_id/messages/:message_id", rt.wrap(rt.deleteMessage))
+	rt.router.PUT("/conversation/:conversation_id/messages/:message_id/comment", rt.wrap(rt.commentMessage))
+	rt.router.DELETE("/conversation/:conversation_id/messages/:message_id/comment", rt.wrap(rt.removeReaction))
 	rt.router.POST("/upload", rt.wrap(rt.uploadImage))
 	rt.router.ServeFiles("/foto/*filepath", http.Dir("foto"))
 
 	// Register routes
-	/*
 
-
-		rt.router.GET("/conversation", rt.wrap(rt.conversationsList))
-
-		rt.router.GET("/conversation/:conversation_id", rt.wrap(rt.messageHistory))
-		rt.router.POST("/conversation/:conversation_id", rt.wrap(rt.sendNewMessage))
-
-		rt.router.POST("/conversation/:conversation_id/messages/:message_id", rt.wrap(rt.forwardMessage))
-		rt.router.DELETE("/conversation/:conversation_id/messages/:message_id", rt.wrap(rt.deleteMessage))
-		rt.router.PATCH("/conversation/:conversation_id/messages/:message_id/comment", rt.wrap(rt.commentMessage))
-		rt.router.DELETE("/conversation/:conversation_id/messages/:message_id/comment/:comment_id", rt.wrap(rt.removeReaction))
-
-	*/
 	// Special routes
 	rt.router.GET("/liveness", rt.liveness)
 

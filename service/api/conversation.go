@@ -173,9 +173,7 @@ func (rt *_router) messageHistory(w http.ResponseWriter, r *http.Request, ps htt
 		Utenti struct {
 			Users []UserList `json:"users"`
 		} `json:"utenti"`
-		Messages []struct {
-			Message MessageRicvApi `json:"message"`
-		} `json:"messages"`
+		Messages []MessageRicvApi `json:"messages"`
 	}{}
 
 	// 9) Popolo con gli utenti che fanno parte della conversazione
@@ -212,11 +210,8 @@ func (rt *_router) messageHistory(w http.ResponseWriter, r *http.Request, ps htt
 			Comment:     commentArray,
 		}
 		// Aggiungo il messaggio alla risposta
-		response.Messages = append(response.Messages, struct {
-			Message MessageRicvApi `json:"message"`
-		}{
-			Message: messageAPI,
-		})
+		response.Messages = append(response.Messages, messageAPI)
+
 	}
 
 	// 11) Invio la risposta JSON

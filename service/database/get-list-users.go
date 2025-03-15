@@ -1,5 +1,6 @@
 package database
 
+// ------------ #OTTENGO LA LISTA DEGLI UTENTI CON USERNAME CERCATO# --------------
 func (db *appdbimpl) GetListUsers(name string) ([]Users, error) {
 
 	stringName := "%" + name + "%"
@@ -37,6 +38,7 @@ func (db *appdbimpl) GetListUsers(name string) ([]Users, error) {
 	return users, nil
 }
 
+// ------------ #OTTENGO LA LISTA DEGLI UTENTI DI UNA CONVERSAZIONE# --------------
 func (db *appdbimpl) GetConversationUsers(conversationID int) ([]Users, error) {
 	rows, err := db.c.Query(
 		`SELECT u.user_id, u.name, u.profile_image 

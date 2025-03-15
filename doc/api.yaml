@@ -222,18 +222,14 @@ components:
         - utenti
       properties:
         utenti:
-           $ref: "#/components/schemas/UsersList"
+          $ref: "#/components/schemas/UsersList"
         messages:
           type: array
           minItems: 1
           maxItems: 200
           description: "An array of messages in the conversation. Each message contains details about the sender, content, and status"
           items:
-            type: object
-            description: "specific to the message"
-            properties:
-              message:
-                $ref: "#/components/schemas/MessageRicv"
+            $ref: "#/components/schemas/MessageRicv"
 
   responses:
     Error400:
@@ -692,8 +688,8 @@ paths:
   #AGGIUNGE UNA REACTION
   /conversation/{conversation_id}/messages/{message_id}/comment:
     parameters:
-        - $ref: "#/components/parameters/ConversationId"
-        - $ref: "#/components/parameters/MessageId"
+      - $ref: "#/components/parameters/ConversationId"
+      - $ref: "#/components/parameters/MessageId"
     put:
       tags: ["messages"]
       summary: Add comment (emoji reaction) to a message
@@ -709,11 +705,15 @@ paths:
           application/json:
             schema:
               type: object
-              description: "add an emoji on a message"
+              description: "Add an emoji reaction to a message"
               properties: 
-                emoji:
-                  $ref: '#/components/schemas/CommentEmoji'
-
+                emojiCode:
+                  type: string
+                  description: "Unicode code for the emoji reaction"
+                  example: "U+276"
+                  minLength: 1
+                  maxLength: 20
+                  pattern: "^[A-Za-z0-9+]+$"
       responses:
         '204':
           description: "Reaction added successfully"
@@ -721,12 +721,14 @@ paths:
           $ref: "#/components/responses/Error400"
         '401':
           $ref: "#/components/responses/Error401"
+        '403':
+          $ref: "#/components/responses/Error403"
         '404':
           $ref: "#/components/responses/Error404"
         '500':
           $ref: "#/components/responses/Error500"
       security:
-        - bearerAuth: [] 
+        - bearerAuth: []
 
   #ELIMINA UNA RECTION DA UN MESSAGGIO SPECIFICO
     delete:

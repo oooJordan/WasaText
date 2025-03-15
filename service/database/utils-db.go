@@ -5,6 +5,7 @@ import (
 	"errors"
 )
 
+// ----------------- #CONTROLLO SE UTENTE ESISTE NEL DB# ------------------------
 func (db *appdbimpl) CheckIDDatabase(userid int) (bool, string, error) {
 	var name string
 
@@ -22,7 +23,7 @@ func (db *appdbimpl) CheckIDDatabase(userid int) (bool, string, error) {
 	return true, name, nil
 }
 
-// ritorna l'userID partendo dall'username di un utente
+// ------------------ #RITORNA ID UTENTE DA USERNAME# --------------------------
 func (db *appdbimpl) GetUserIDByUsername(username string) (int, error) {
 	var userID int
 	err := db.c.QueryRow("SELECT user_id FROM users WHERE name = ?", username).Scan(&userID)
@@ -35,6 +36,7 @@ func (db *appdbimpl) GetUserIDByUsername(username string) (int, error) {
 	return userID, nil
 }
 
+// ------------------ #CONTROLLA SE È UN GRUPPO# --------------------------
 func (db *appdbimpl) IsGroupConversation(conversationID int) (bool, error) {
 	var chatType string
 	err := db.c.QueryRow("SELECT chatType FROM conversations WHERE conversation_id = ?", conversationID).Scan(&chatType)
@@ -47,6 +49,7 @@ func (db *appdbimpl) IsGroupConversation(conversationID int) (bool, error) {
 	return chatType == "group_chat", nil
 }
 
+// ------------------ #CONTROLLA SE IL GRUPPO È VUOTO# --------------------------
 func (db *appdbimpl) IsGroupEmpty(conversationID int) (bool, error) {
 	var count int
 	err := db.c.QueryRow("SELECT COUNT(*) FROM conversation_participants WHERE conversation_id = ?", conversationID).Scan(&count)
@@ -56,6 +59,7 @@ func (db *appdbimpl) IsGroupEmpty(conversationID int) (bool, error) {
 	return count == 0, nil
 }
 
+// ------------------ #TIPO DI CONVERSAZIONE# --------------------------
 func (db *appdbimpl) GetConversationType(conversationID int) (string, error) {
 	var chatType string
 	err := db.c.QueryRow(
@@ -71,6 +75,7 @@ func (db *appdbimpl) GetConversationType(conversationID int) (string, error) {
 	return chatType, nil
 }
 
+// ------------------ #CONTOLLA SE UTENTE È NEL GRUPPO# --------------------------
 func (db *appdbimpl) IsUserInGroup(conversationID int, userID int) (bool, error) {
 	var count int
 	err := db.c.QueryRow(
@@ -83,6 +88,7 @@ func (db *appdbimpl) IsUserInGroup(conversationID int, userID int) (bool, error)
 	return count > 0, nil
 }
 
+// ------------------ #CONTROLLA SE UTENTE È NELLA CHAT PRIVATA# --------------------------
 func (db *appdbimpl) IsUserInPrivateChat(conversationID int, userID int) (bool, error) {
 	var count int
 	err := db.c.QueryRow(
@@ -91,6 +97,32 @@ func (db *appdbimpl) IsUserInPrivateChat(conversationID int, userID int) (bool, 
          WHERE conversation_id = ? AND user_id = ?`,
 		conversationID, userID,
 	).Scan(&count)
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+// ----------- #CONTROLLA SE IL MESSAGGIO ESISTE NELLA CONVERSAZIONE# ----------------
+func (db *appdbimpl) DoesMessageExist(conversationID int, messageID int) (bool, error) {
+	var count int
+	err := db.c.QueryRow(`
+        SELECT COUNT(*) FROM messages 
+        WHERE conversation_id = ? AND message_id = ?`,
+		conversationID, messageID).Scan(&count)
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+// ------------ #CONTROLLA SE L'UTENTE HA REAGITO AD MESSAGGIO# -----------------
+func (db *appdbimpl) HasUserReactedToMessage(userID int, messageID int) (bool, error) {
+	var count int
+	err := db.c.QueryRow(`
+        SELECT COUNT(*) FROM message_reactions 
+        WHERE message_id = ? AND user_id = ?`,
+		messageID, userID).Scan(&count)
 	if err != nil {
 		return false, err
 	}

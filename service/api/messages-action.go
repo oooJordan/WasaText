@@ -236,3 +236,179 @@ func (rt *_router) deleteMessage(w http.ResponseWriter, r *http.Request, ps http
 
 	w.WriteHeader(http.StatusNoContent)
 }
+
+// ------------------------------- #COMMENTARE IL MESSAGGIO# --------------------------
+func (rt *_router) commentMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
+	// 1) Controllo che l'utente sia loggato
+	isValid, userID, err := rt.IsValidToken(r, w)
+	if err != nil {
+		return
+	}
+	if !isValid {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// 2) Recupero gli ID della conversazione e del messaggio
+	conversationIDStr := ps.ByName("conversation_id")
+	conversationID, err := strconv.Atoi(conversationIDStr)
+	if err != nil {
+		http.Error(w, "Invalid conversation ID", http.StatusBadRequest)
+		return
+	}
+
+	messageIDStr := ps.ByName("message_id")
+	messageID, err := strconv.Atoi(messageIDStr)
+	if err != nil {
+		http.Error(w, "Invalid message ID", http.StatusBadRequest)
+		return
+	}
+
+	// 3) Verifico se il messaggio esiste
+	messageExist, err := rt.db.DoesMessageExist(conversationID, messageID)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	if !messageExist {
+		http.Error(w, "Message Not Found", http.StatusNotFound)
+		return
+	}
+
+	// 3) Verifico se la conversazione esiste
+	chatType, err := rt.db.GetConversationType(conversationID)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	if chatType == "" {
+		http.Error(w, "Conversation Not Found", http.StatusNotFound)
+		return
+	}
+
+	// 4) Verifico se l'utente fa parte della conversazione
+	var isMember bool
+	if chatType == "group_chat" {
+		isMember, err = rt.db.IsUserInGroup(conversationID, userID)
+	} else {
+		isMember, err = rt.db.IsUserInPrivateChat(conversationID, userID)
+	}
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	if !isMember {
+		http.Error(w, "Conversation not found", http.StatusNotFound)
+		return
+	}
+
+	// 5) Recupero il corpo della richiesta
+	var reaction CommentApi
+	err = json.NewDecoder(r.Body).Decode(&reaction)
+	if err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// 6) controllo se il commento è valido
+	if len(reaction.CommentEmoji) < 1 || len(reaction.CommentEmoji) > 20 {
+		http.Error(w, "Invalid emoji code", http.StatusBadRequest)
+		return
+	}
+
+	// 7) Aggiungo il commento al messaggio
+	err = rt.db.AddCommentToMessage(messageID, userID, reaction.CommentEmoji)
+	if err != nil {
+		http.Error(w, "Failed to add comment", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+
+}
+
+// ------------------------------- #RIMUOVERE UNA REAZIONE# --------------------------
+func (rt *_router) removeReaction(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
+	// 1) Controllo che l'utente sia loggato
+	isValid, userID, err := rt.IsValidToken(r, w)
+	if err != nil {
+		return
+	}
+	if !isValid {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// 2) Recupero gli ID della conversazione e del messaggio
+	conversationIDStr := ps.ByName("conversation_id")
+	conversationID, err := strconv.Atoi(conversationIDStr)
+	if err != nil {
+		http.Error(w, "Invalid conversation ID", http.StatusBadRequest)
+		return
+	}
+
+	messageIDStr := ps.ByName("message_id")
+	messageID, err := strconv.Atoi(messageIDStr)
+	if err != nil {
+		http.Error(w, "Invalid message ID", http.StatusBadRequest)
+		return
+	}
+
+	// 3) Verifico se il messaggio esiste
+	messageExist, err := rt.db.DoesMessageExist(conversationID, messageID)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	if !messageExist {
+		http.Error(w, "Message Not Found", http.StatusNotFound)
+		return
+	}
+
+	// 4) Verifico se la conversazione esiste
+	chatType, err := rt.db.GetConversationType(conversationID)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	if chatType == "" {
+		http.Error(w, "Conversation Not Found", http.StatusNotFound)
+		return
+	}
+
+	// 5) Verifico se l'utente fa parte della conversazione
+	var isMember bool
+	if chatType == "group_chat" {
+		isMember, err = rt.db.IsUserInGroup(conversationID, userID)
+	} else {
+		isMember, err = rt.db.IsUserInPrivateChat(conversationID, userID)
+	}
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	if !isMember {
+		http.Error(w, "Conversation not found", http.StatusNotFound)
+		return
+	}
+
+	// 6) Verifico se l'utente ha reagito al messaggio
+	hasReacted, err := rt.db.HasUserReactedToMessage(userID, messageID)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	if !hasReacted {
+		http.Error(w, "Reaction not found", http.StatusNotFound)
+		return
+	}
+
+	// 7) Rimuovo la reazione
+	err = rt.db.RemoveReaction(userID, messageID)
+	if err != nil {
+		http.Error(w, "Failed to remove reaction", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
