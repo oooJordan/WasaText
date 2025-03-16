@@ -180,15 +180,19 @@ func (db *appdbimpl) GetUserConversations(author int) ([]Triplos, error) {
 					conversations.message_id,
 					conversations.imageGroup,
 					conversations.groupName,
-					conversations.chatType	 
+					conversations.chatType,
+					COALESCE(messages_read_status.is_read, FALSE)
 				FROM
 					conversations
 				INNER JOIN 
 					conversation_participants ON conversations.conversation_id = conversation_participants.conversation_id
+				LEFT JOIN
+					messages_read_status ON conversations.message_id = messages_read_status.message_id
+					AND messages_read_status.user_id = ?
 				WHERE
 					conversation_participants.user_id = ?;
 		`
-	rows, err := db.c.Query(query, author)
+	rows, err := db.c.Query(query, author, author)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errors.New("the user has not started any conversation")
@@ -205,7 +209,7 @@ func (db *appdbimpl) GetUserConversations(author int) ([]Triplos, error) {
 		var mex MessageRicvDb
 		var comments []CommentDb
 		var c Triplos
-		if err := rows.Scan(&conv.ConversationId, &conv.MessageId, &conv.ChatImage, &conv.ChatName, &conv.ChatType); err != nil {
+		if err := rows.Scan(&conv.ConversationId, &conv.MessageId, &conv.ChatImage, &conv.ChatName, &conv.ChatType, &conv.MessageNotRead); err != nil {
 			return nil, errors.New("error scanning conversation row")
 		}
 		if conv.ChatType == "private_chat" {
