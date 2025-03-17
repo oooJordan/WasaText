@@ -220,14 +220,20 @@ func (rt *_router) deleteMessage(w http.ResponseWriter, r *http.Request, ps http
 		return
 	}
 
-	// 6) Elimino prima lo stato del messaggio nella tabella messages_read_status
+	// 6) Elimino le reazioni al messaggio dalla tabella message_reactions
+	err = rt.db.RemoveAllReaction(messageID)
+	if err != nil {
+		http.Error(w, "Failed to delete message reactions", http.StatusInternalServerError)
+		return
+	}
+	// 7) Elimino prima lo stato del messaggio nella tabella messages_read_status
 	err = rt.db.DeleteMessageStatus(messageID)
 	if err != nil {
 		http.Error(w, "Failed to delete message status", http.StatusInternalServerError)
 		return
 	}
 
-	// 7) Elimino il messaggio dalla tabella messages
+	// 8) Elimino il messaggio dalla tabella messages
 	err = rt.db.DeleteMessage(messageID)
 	if err != nil {
 		http.Error(w, "Failed to delete message", http.StatusInternalServerError)
@@ -404,7 +410,7 @@ func (rt *_router) removeReaction(w http.ResponseWriter, r *http.Request, ps htt
 	}
 
 	// 7) Rimuovo la reazione
-	err = rt.db.RemoveReaction(userID, messageID)
+	err = rt.db.RemoveReactionByUser(userID, messageID)
 	if err != nil {
 		http.Error(w, "Failed to remove reaction", http.StatusInternalServerError)
 		return

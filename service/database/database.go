@@ -70,7 +70,8 @@ type AppDatabase interface {
 	DeleteMessageStatus(int) error
 	DoesMessageExist(int, int) (bool, error)
 	AddCommentToMessage(int, int, string) error
-	RemoveReaction(int, int) error
+	RemoveReactionByUser(int, int) error
+	RemoveAllReaction(int) error
 	HasUserReactedToMessage(int, int) (bool, error)
 	// CheckUser(User) (User, error)
 

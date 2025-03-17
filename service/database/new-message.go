@@ -359,10 +359,18 @@ func (db *appdbimpl) AddCommentToMessage(messageID int, userID int, reaction str
 }
 
 // -------------------- #RIMUOVERE UNA REACTION DA UN MESSAGGIO# --------------------------
-func (db *appdbimpl) RemoveReaction(userID int, messageID int) error {
+func (db *appdbimpl) RemoveReactionByUser(userID int, messageID int) error {
 	_, err := db.c.Exec(`
         DELETE FROM message_reactions 
         WHERE message_id = ? AND user_id = ?`,
 		messageID, userID)
+	return err
+}
+
+func (db *appdbimpl) RemoveAllReaction(messageID int) error {
+	_, err := db.c.Exec(`
+        DELETE FROM message_reactions 
+        WHERE message_id = ?`,
+		messageID)
 	return err
 }
