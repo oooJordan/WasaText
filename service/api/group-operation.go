@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"strconv"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/oooJordan/WasaText/service/api/reqcontext"
@@ -24,10 +23,8 @@ func (rt *_router) leaveGroup(w http.ResponseWriter, r *http.Request, ps httprou
 	}
 
 	// recupero l'id della conversazione dai parametri
-	conversationIDStr := ps.ByName("conversation_id")
-	conversationID, err := strconv.Atoi(conversationIDStr)
-	if err != nil {
-		http.Error(w, "Invalid conversation ID", http.StatusBadRequest)
+	conversationID, ok := getIntParam(w, ps, "conversation_id")
+	if !ok {
 		return
 	}
 
@@ -90,10 +87,8 @@ func (rt *_router) renameGroup(w http.ResponseWriter, r *http.Request, ps httpro
 	}
 
 	// recupero l'id della conversazione dai parametri
-	conversationIDStr := ps.ByName("conversation_id")
-	conversationID, err := strconv.Atoi(conversationIDStr)
-	if err != nil {
-		http.Error(w, "Invalid conversation ID", http.StatusBadRequest)
+	conversationID, ok := getIntParam(w, ps, "conversation_id")
+	if !ok {
 		return
 	}
 
@@ -155,10 +150,8 @@ func (rt *_router) updateGroupImage(w http.ResponseWriter, r *http.Request, ps h
 	}
 
 	// recupero l'id della conversazione dai parametri
-	conversationIDStr := ps.ByName("conversation_id")
-	conversationID, err := strconv.Atoi(conversationIDStr)
-	if err != nil {
-		http.Error(w, "Invalid conversation ID", http.StatusBadRequest)
+	conversationID, ok := getIntParam(w, ps, "conversation_id")
+	if !ok {
 		return
 	}
 
@@ -218,10 +211,8 @@ func (rt *_router) addToGroup(w http.ResponseWriter, r *http.Request, ps httprou
 	}
 
 	// recupero il conversation_id dai parametri
-	conversationIDStr := ps.ByName("conversation_id")
-	conversationID, err := strconv.Atoi(conversationIDStr)
-	if err != nil {
-		http.Error(w, "Invalid conversation ID", http.StatusBadRequest)
+	conversationID, ok := getIntParam(w, ps, "conversation_id")
+	if !ok {
 		return
 	}
 	// recupero il nome dell'utente da aggiungere

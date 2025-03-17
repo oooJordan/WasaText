@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"strconv"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/oooJordan/WasaText/service/api/reqcontext"
@@ -23,10 +22,8 @@ func (rt *_router) sendNewMessage(w http.ResponseWriter, r *http.Request, ps htt
 	}
 
 	// recupero il conversation_id dai parametri della richiesta
-	conversationIDStr := ps.ByName("conversation_id")
-	conversationID, err := strconv.Atoi(conversationIDStr)
-	if err != nil {
-		http.Error(w, "Invalid conversation ID", http.StatusBadRequest)
+	conversationID, ok := getIntParam(w, ps, "conversation_id")
+	if !ok {
 		return
 	}
 
@@ -53,30 +50,17 @@ func (rt *_router) sendNewMessage(w http.ResponseWriter, r *http.Request, ps htt
 	}
 
 	// controllo se l'utente è nella conversazione
-	if conversationType == "private_chat" {
-		isParticipant, err := rt.db.IsUserInPrivateChat(conversationID, author)
-		if err != nil {
-			ctx.Logger.WithError(err).Error("Failed to check private chat membership")
-			http.Error(w, "Internal server error", http.StatusInternalServerError)
+	isMember, err := rt.isUserInConversation(conversationID, author, conversationType)
+	if err != nil {
+		if err.Error() == "Invalid conversation type" {
+			http.Error(w, "Invalid conversation type", http.StatusBadRequest)
 			return
 		}
-		if !isParticipant {
-			http.Error(w, "User is not a participant of this private chat", http.StatusNotFound)
-			return
-		}
-	} else if conversationType == "group_chat" {
-		isParticipant, err := rt.db.IsUserInGroup(conversationID, author)
-		if err != nil {
-			ctx.Logger.WithError(err).Error("Failed to check private chat membership")
-			http.Error(w, "Internal server error", http.StatusInternalServerError)
-			return
-		}
-		if !isParticipant {
-			http.Error(w, "User is not a participant of this private chat", http.StatusNotFound)
-			return
-		}
-	} else {
-		http.Error(w, "Invalid conversation type", http.StatusBadRequest)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	if !isMember {
+		http.Error(w, "User is not a participant of this conversation", http.StatusNotFound)
 		return
 	}
 
@@ -111,22 +95,19 @@ func (rt *_router) forwardMessage(w http.ResponseWriter, r *http.Request, ps htt
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
+
 	// Recupero i parametri della richiesta (conversation_id e message_id)
-	destConvIDStr := ps.ByName("conversation_id")
-	origMsgIDStr := ps.ByName("message_id")
-
 	// Converto i parametri in interi per poterli utilizzare nelle query
-	destinationConversationID, err := strconv.Atoi(destConvIDStr)
-	if err != nil {
-		http.Error(w, "Invalid conversation ID", http.StatusBadRequest)
+	destinationConversationID, ok := getIntParam(w, ps, "conversation_id")
+	if !ok {
 		return
 	}
 
-	originalMessageID, err := strconv.Atoi(origMsgIDStr)
-	if err != nil {
-		http.Error(w, "Invalid message ID", http.StatusBadRequest)
+	originalMessageID, ok := getIntParam(w, ps, "message_id")
+	if !ok {
 		return
 	}
+
 	// Inoltro il messaggio e recupero l'ID del messaggio inoltrato dal database
 	forwardedMessageID, err := rt.db.ForwardMessage(destinationConversationID, originalMessageID, author)
 	if err != nil {
@@ -164,17 +145,13 @@ func (rt *_router) deleteMessage(w http.ResponseWriter, r *http.Request, ps http
 	}
 
 	// 2) Recupero gli ID della conversazione e del messaggio
-	conversationIDStr := ps.ByName("conversation_id")
-	conversationID, err := strconv.Atoi(conversationIDStr)
-	if err != nil {
-		http.Error(w, "Invalid conversation ID", http.StatusBadRequest)
+	conversationID, ok := getIntParam(w, ps, "conversation_id")
+	if !ok {
 		return
 	}
 
-	messageIDStr := ps.ByName("message_id")
-	messageID, err := strconv.Atoi(messageIDStr)
-	if err != nil {
-		http.Error(w, "Invalid message ID", http.StatusBadRequest)
+	messageID, ok := getIntParam(w, ps, "message_id")
+	if !ok {
 		return
 	}
 
@@ -190,18 +167,17 @@ func (rt *_router) deleteMessage(w http.ResponseWriter, r *http.Request, ps http
 	}
 
 	// 4) Verifico se l'utente fa parte della conversazione
-	var isMember bool
-	if chatType == "group_chat" {
-		isMember, err = rt.db.IsUserInGroup(conversationID, userID)
-	} else {
-		isMember, err = rt.db.IsUserInPrivateChat(conversationID, userID)
-	}
+	isMember, err := rt.isUserInConversation(conversationID, userID, chatType)
 	if err != nil {
+		if err.Error() == "Invalid conversation type" {
+			http.Error(w, "Invalid conversation type", http.StatusBadRequest)
+			return
+		}
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 	if !isMember {
-		http.Error(w, "Conversation not found", http.StatusNotFound)
+		http.Error(w, "User is not a participant of this conversation", http.StatusNotFound)
 		return
 	}
 
@@ -256,17 +232,13 @@ func (rt *_router) commentMessage(w http.ResponseWriter, r *http.Request, ps htt
 	}
 
 	// 2) Recupero gli ID della conversazione e del messaggio
-	conversationIDStr := ps.ByName("conversation_id")
-	conversationID, err := strconv.Atoi(conversationIDStr)
-	if err != nil {
-		http.Error(w, "Invalid conversation ID", http.StatusBadRequest)
+	conversationID, ok := getIntParam(w, ps, "conversation_id")
+	if !ok {
 		return
 	}
 
-	messageIDStr := ps.ByName("message_id")
-	messageID, err := strconv.Atoi(messageIDStr)
-	if err != nil {
-		http.Error(w, "Invalid message ID", http.StatusBadRequest)
+	messageID, ok := getIntParam(w, ps, "message_id")
+	if !ok {
 		return
 	}
 
@@ -293,18 +265,17 @@ func (rt *_router) commentMessage(w http.ResponseWriter, r *http.Request, ps htt
 	}
 
 	// 4) Verifico se l'utente fa parte della conversazione
-	var isMember bool
-	if chatType == "group_chat" {
-		isMember, err = rt.db.IsUserInGroup(conversationID, userID)
-	} else {
-		isMember, err = rt.db.IsUserInPrivateChat(conversationID, userID)
-	}
+	isMember, err := rt.isUserInConversation(conversationID, userID, chatType)
 	if err != nil {
+		if err.Error() == "Invalid conversation type" {
+			http.Error(w, "Invalid conversation type", http.StatusBadRequest)
+			return
+		}
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 	if !isMember {
-		http.Error(w, "Conversation not found", http.StatusNotFound)
+		http.Error(w, "User is not a participant of this conversation", http.StatusNotFound)
 		return
 	}
 
@@ -346,17 +317,13 @@ func (rt *_router) removeReaction(w http.ResponseWriter, r *http.Request, ps htt
 	}
 
 	// 2) Recupero gli ID della conversazione e del messaggio
-	conversationIDStr := ps.ByName("conversation_id")
-	conversationID, err := strconv.Atoi(conversationIDStr)
-	if err != nil {
-		http.Error(w, "Invalid conversation ID", http.StatusBadRequest)
+	conversationID, ok := getIntParam(w, ps, "conversation_id")
+	if !ok {
 		return
 	}
 
-	messageIDStr := ps.ByName("message_id")
-	messageID, err := strconv.Atoi(messageIDStr)
-	if err != nil {
-		http.Error(w, "Invalid message ID", http.StatusBadRequest)
+	messageID, ok := getIntParam(w, ps, "message_id")
+	if !ok {
 		return
 	}
 
@@ -383,18 +350,17 @@ func (rt *_router) removeReaction(w http.ResponseWriter, r *http.Request, ps htt
 	}
 
 	// 5) Verifico se l'utente fa parte della conversazione
-	var isMember bool
-	if chatType == "group_chat" {
-		isMember, err = rt.db.IsUserInGroup(conversationID, userID)
-	} else {
-		isMember, err = rt.db.IsUserInPrivateChat(conversationID, userID)
-	}
+	isMember, err := rt.isUserInConversation(conversationID, userID, chatType)
 	if err != nil {
+		if err.Error() == "Invalid conversation type" {
+			http.Error(w, "Invalid conversation type", http.StatusBadRequest)
+			return
+		}
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 	if !isMember {
-		http.Error(w, "Conversation not found", http.StatusNotFound)
+		http.Error(w, "User is not a participant of this conversation", http.StatusNotFound)
 		return
 	}
 

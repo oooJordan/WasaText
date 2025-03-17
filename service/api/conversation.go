@@ -132,18 +132,17 @@ func (rt *_router) messageHistory(w http.ResponseWriter, r *http.Request, ps htt
 	}
 
 	// 4) Verifico se l'utente fa parte della conversazione
-	var isMember bool
-	if chatType == "group_chat" {
-		isMember, err = rt.db.IsUserInGroup(conversationID, userID)
-	} else {
-		isMember, err = rt.db.IsUserInPrivateChat(conversationID, userID)
-	}
+	isMember, err := rt.isUserInConversation(conversationID, userID, chatType)
 	if err != nil {
+		if err.Error() == "Invalid conversation type" {
+			http.Error(w, "Invalid conversation type", http.StatusBadRequest)
+			return
+		}
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 	if !isMember {
-		http.Error(w, "Conversation not found", http.StatusNotFound)
+		http.Error(w, "User is not a participant of this conversation", http.StatusNotFound)
 		return
 	}
 

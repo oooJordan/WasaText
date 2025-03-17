@@ -146,3 +146,25 @@ func saveFile(fileBytes []byte, header *multipart.FileHeader) (string, error) {
 
 	return "/foto/" + fileName, nil
 }
+
+// ------------#CONTROLLO SE L'UTENTE È NELLA CONVERSAZIONE#----------------
+func (rt *_router) isUserInConversation(conversationID int, userID int, chatType string) (bool, error) {
+	switch chatType {
+	case "group_chat":
+		return rt.db.IsUserInGroup(conversationID, userID)
+	case "private_chat":
+		return rt.db.IsUserInPrivateChat(conversationID, userID)
+	default:
+		return false, errors.New("invalid conversation type")
+	}
+}
+
+func getIntParam(w http.ResponseWriter, ps httprouter.Params, paramName string) (int, bool) {
+	paramStr := ps.ByName(paramName)
+	param, err := strconv.Atoi(paramStr)
+	if err != nil {
+		http.Error(w, "Invalid "+paramName, http.StatusBadRequest)
+		return 0, false
+	}
+	return param, true
+}
