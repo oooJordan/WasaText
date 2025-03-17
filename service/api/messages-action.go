@@ -210,7 +210,7 @@ func (rt *_router) deleteMessage(w http.ResponseWriter, r *http.Request, ps http
 	}
 
 	// 8) Elimino il messaggio dalla tabella messages
-	err = rt.db.DeleteMessage(messageID)
+	err = rt.db.DeleteMessage(messageID, conversationID)
 	if err != nil {
 		http.Error(w, "Failed to delete message", http.StatusInternalServerError)
 		return

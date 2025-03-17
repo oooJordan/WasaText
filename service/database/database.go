@@ -66,7 +66,7 @@ type AppDatabase interface {
 	GetConversationMessages(int) ([]MessageFullDB, error)
 	ForwardMessage(int, int, int) (int64, error)
 	GetMessageSender(int, int) (int, error)
-	DeleteMessage(int) error
+	DeleteMessage(int, int) error
 	DeleteMessageStatus(int) error
 	DoesMessageExist(int, int) (bool, error)
 	AddCommentToMessage(int, int, string) error

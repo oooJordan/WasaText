@@ -331,9 +331,41 @@ func (db *appdbimpl) GetMessageSender(messageID int, conversationID int) (int, e
 
 // ---------------- #ELIMINAZIONE DEL MESSAGGIO IN MESSAGES# --------------------------
 // DeleteMessage elimina il messaggio dalla tabella messages
-func (db *appdbimpl) DeleteMessage(messageID int) error {
-	_, err := db.c.Exec(`DELETE FROM messages WHERE message_id = ?`, messageID)
-	return err
+func (db *appdbimpl) DeleteMessage(messageID int, conversationID int) error {
+	tx, err := db.c.Begin()
+	if err != nil {
+		return err
+	}
+
+	// Elimino il messaggio dalla tabella messages
+	_, err = tx.Exec(`DELETE FROM messages WHERE message_id = ?`, messageID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Trovo il messaggio più recente ancora presente nella conversazione
+	var newLastMessageID sql.NullInt64
+	err = tx.QueryRow(`SELECT MAX(message_id) FROM messages WHERE conversation_id = ?`, conversationID).Scan(&newLastMessageID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Aggiorno message_id in conversations
+	_, err = tx.Exec(`UPDATE conversations SET message_id = ? WHERE conversation_id = ?`, newLastMessageID, conversationID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Commit della transazione
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // --------------- #RIMUOVERE IL MESSAGGIO IN MESSAGES_READ_STATUS# ---------------------
