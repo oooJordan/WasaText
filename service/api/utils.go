@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -59,75 +58,96 @@ func ExtractUserIdFromToken(token string) int {
 	return id
 }
 
+// ------------#CARICAMENTO IMMAGINE E CREAZIONE URL#----------------
+const uploadDir = "/home/jordan/Documents/university/WASA/WasaText/foto"
+
 func (rt *_router) uploadImage(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+	isValid, userID, err := rt.IsValidToken(r, w)
+	if err != nil || !isValid {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	err := r.ParseMultipartForm(10 * 1024 * 1024)
+	err = r.ParseMultipartForm(10 << 20) // 10MB di limite
 	if err != nil {
-		http.Error(w, "Failed to parse form. Ensure the file is below 10 MB.", http.StatusBadRequest)
+		http.Error(w, "File too large", http.StatusRequestEntityTooLarge)
 		return
 	}
 
-	file, header, err := r.FormFile("file")
+	file, handler, err := r.FormFile("file")
 	if err != nil {
-		http.Error(w, "Failed to retrieve file", http.StatusBadRequest)
+		http.Error(w, "Invalid file upload", http.StatusBadRequest)
 		return
 	}
 	defer file.Close()
 
-	fileBytes, err := io.ReadAll(file)
+	// Controllo il formato dell'immagine (PNG, JPEG, JPG)
+	allowedFormats := map[string]bool{"image/png": true, "image/jpeg": true, "image/jpg": true}
+	fileHeader := make([]byte, 512)
+	_, err = file.Read(fileHeader)
 	if err != nil {
-		http.Error(w, "Failed to read file", http.StatusInternalServerError)
+		http.Error(w, "Error reading file", http.StatusInternalServerError)
 		return
 	}
 
-	if len(fileBytes) > 10*1024*1024 {
-		http.Error(w, "File too large. Maximum allowed size is 10 MB.", http.StatusRequestEntityTooLarge)
+	contentType := http.DetectContentType(fileHeader)
+	if !allowedFormats[contentType] {
+		http.Error(w, "Unsupported file format", http.StatusUnsupportedMediaType)
 		return
 	}
 
-	fileType := http.DetectContentType(fileBytes)
-	if fileType != "image/jpeg" && fileType != "image/png" {
-		http.Error(w, "Invalid file type. Only JPEG and PNG are supported.", http.StatusUnsupportedMediaType)
+	// Resetto il puntatore del file per poterlo leggere di nuovo
+	file.Seek(0, io.SeekStart)
+
+	// Genero un nome univoco per il file
+	fileExt := filepath.Ext(handler.Filename)
+	if fileExt == "" {
+		fileExt = ".png" // Default a PNG se l'estensione non è riconosciuta
+	}
+	timestamp := time.Now().Format("20060102150405")
+	fileName := strconv.Itoa(userID) + "_" + timestamp + fileExt
+
+	// Creazione della directory dell'utente (se non esiste)
+	userDir := filepath.Join(uploadDir, strconv.Itoa(userID))
+	err = os.MkdirAll(userDir, os.ModePerm)
+	if err != nil {
+		http.Error(w, "Failed to create directory", http.StatusInternalServerError)
 		return
 	}
 
-	savedFilePath, err := saveFile(fileBytes, header)
+	// Salvo l'immagine
+	filePath := filepath.Join(userDir, fileName)
+	outFile, err := os.Create(filePath)
 	if err != nil {
 		http.Error(w, "Failed to save file", http.StatusInternalServerError)
 		return
 	}
+	defer outFile.Close()
 
-	response := map[string]string{
-		"imageUrl": savedFilePath,
+	_, err = io.Copy(outFile, file)
+	if err != nil {
+		http.Error(w, "Failed to write file", http.StatusInternalServerError)
+		return
 	}
+
+	// Genero l'URL per visualizzare l'immagine
+	host := r.Host
+	scheme := "https" // Default -> HTTPS
+
+	if r.TLS == nil { // Se non è HTTPS -> HTTP
+		scheme = "http"
+	}
+	// URL dell'immagine -> /foto/{userID}/{fileName}
+	imageURL := scheme + "://" + host + "/foto/" + strconv.Itoa(userID) + "/" + fileName
+
+	// Risposta JSON con l'URL dell'immagine
+	response := map[string]string{
+		"imageUrl": imageURL,
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		ctx.Logger.WithError(err).Error("Failed to encode response")
-	}
-}
-
-func saveFile(fileBytes []byte, header *multipart.FileHeader) (string, error) {
-	dir := "foto"
-	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		if err := os.Mkdir(dir, os.ModePerm); err != nil {
-			return "", err
-		}
-	}
-
-	fileName := time.Now().Format("20060102150405") + "-" + header.Filename
-	filePath := filepath.Join(dir, fileName)
-
-	err := os.WriteFile(filePath, fileBytes, 0644)
-	if err != nil {
-		return "", err
-	}
-
-	return "/foto/" + fileName, nil
+	json.NewEncoder(w).Encode(response)
 }
 
 // ------------#CONTROLLO SE L'UTENTE È NELLA CONVERSAZIONE#----------------
