@@ -19,8 +19,6 @@ import (
 
 var validNickname = regexp.MustCompile("^[a-zA-Z0-9_]+$")
 
-// var emojiCodeRegex = regexp.MustCompile(`^[A-Za-z0-9+]+$`)
-
 func IsValidNickname(nick string) bool {
 	if len(nick) < 3 || len(nick) > 16 {
 		return false
@@ -29,21 +27,6 @@ func IsValidNickname(nick string) bool {
 	return validNickname.MatchString(nick)
 }
 
-/*
-	func isValidMessage(mex string) bool {
-		if len(mex) < 1 || len(mex) > 200 {
-			return false
-		}
-		return true
-	}
-
-	func isValidEmoji(emojicode string) bool {
-		if len(emojicode) < 1 || len(emojicode) > 20 {
-			return false
-		}
-		return emojiCodeRegex.MatchString(emojicode)
-	}
-*/
 func (rt *_router) IsValidToken(r *http.Request, w http.ResponseWriter) (bool, int, error) {
 	// valore dell'intestazione Authorization della richiesta HTTP
 	authHeader := r.Header.Get("Authorization")

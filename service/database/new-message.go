@@ -29,6 +29,13 @@ func (db *appdbimpl) NewMessage(conversationID int, senderID int, messageType st
 		return 0, err
 	}
 
+	// Aggiorno il campo message_id nella tabella conversations
+	_, err = tx.Exec(`UPDATE conversations SET message_id = ? WHERE conversation_id = ?`, messageID, conversationID)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
 	// Ottengo tutti gli utenti della conversazione (tranne il mittente)
 	rows, err := tx.Query(`SELECT user_id FROM conversation_participants WHERE conversation_id = ? AND user_id != ?`, conversationID, senderID)
 	if err != nil {
