@@ -170,16 +170,16 @@ func (rt *_router) messageHistory(w http.ResponseWriter, r *http.Request, ps htt
 	// 8) Creo la struttura per contenere la risposta
 	response := struct {
 		Utenti struct {
-			Users []UserList `json:"users"`
+			Users []User `json:"users"`
 		} `json:"utenti"`
 		Messages []MessageRicvApi `json:"messages"`
 	}{}
 
 	// 9) Popolo con gli utenti che fanno parte della conversazione
 	for _, dbUser := range dbUsers {
-		userAPI := UserList{
+		userAPI := User{
 			UserID:       dbUser.UserID,
-			Name:         dbUser.Name,
+			Nickname:     dbUser.Name,
 			ProfileImage: dbUser.ProfileImage,
 		}
 		// Aggiungo l'utente alla risposta

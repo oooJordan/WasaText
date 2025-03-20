@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"errors"
+	"log"
 )
 
 // ------------------ #CREAZIONE DI UNA CONVERSAZIONE# --------------------------
@@ -14,7 +15,7 @@ func (db *appdbimpl) CreateConversationDB(author int, req ConversationRequest) (
 	}
 
 	defer func() {
-		if err := trans.Rollback(); err != nil && err != sql.ErrTxDone {
+		if err := trans.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
 			return
 		}
 	}()
@@ -131,7 +132,9 @@ func (db *appdbimpl) CreateConversationDB(author int, req ConversationRequest) (
 	// Ottengo tutti gli utenti della conversazione (tranne il mittente)
 	rows, err := trans.Query(`SELECT user_id FROM conversation_participants WHERE conversation_id = ? AND user_id != ?`, conversationID, author)
 	if err != nil {
-		trans.Rollback()
+		if rollbackErr := trans.Rollback(); rollbackErr != nil {
+			log.Printf("trans.Rollback() failed: %v", rollbackErr)
+		}
 		return 0, err
 	}
 	defer rows.Close()
@@ -140,18 +143,24 @@ func (db *appdbimpl) CreateConversationDB(author int, req ConversationRequest) (
 	for rows.Next() {
 		var userID int
 		if err := rows.Scan(&userID); err != nil {
-			trans.Rollback()
+			if rollbackErr := trans.Rollback(); rollbackErr != nil {
+				log.Printf("trans.Rollback() failed: %v", rollbackErr)
+			}
 			return 0, err
 		}
+
 		// Inserisco lo stato di non consegnato e non letto per tutti gli utenti della conversazione
 		_, err = trans.Exec(
 			`INSERT INTO messages_read_status (message_id, user_id, is_delivered, is_read)
              VALUES (?, ?, 0, 0)`,
 			messageID, userID)
 		if err != nil {
-			trans.Rollback()
+			if rollbackErr := trans.Rollback(); rollbackErr != nil {
+				log.Printf("trans.Rollback() failed: %v", rollbackErr)
+			}
 			return 0, err
 		}
+
 	}
 
 	// Il mittente ha sempre is_delivered = 1 e is_read = 1
@@ -160,7 +169,9 @@ func (db *appdbimpl) CreateConversationDB(author int, req ConversationRequest) (
          VALUES (?, ?, 1, 1)`,
 		messageID, author)
 	if err != nil {
-		trans.Rollback()
+		if rollbackErr := trans.Rollback(); rollbackErr != nil {
+			log.Printf("trans.Rollback() failed: %v", rollbackErr)
+		}
 		return 0, err
 	}
 
@@ -268,9 +279,10 @@ func (db *appdbimpl) GetUserConversations(author int) ([]Triplos, error) {
 				}
 				comments = append(comments, commento)
 			}
-			if err := rows.Err(); err != nil {
+			if err := rowComm.Err(); err != nil {
 				return nil, errors.New("error occurred during conversations row iteration")
 			}
+
 		}
 		// popolo i dati della tripla
 		c.Conversation = conv

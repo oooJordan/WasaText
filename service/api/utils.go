@@ -1,19 +1,13 @@
 package api
 
 import (
-	"encoding/json"
 	"errors"
-	"io"
 	"net/http"
-	"os"
-	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/oooJordan/WasaText/service/api/reqcontext"
 )
 
 var validNickname = regexp.MustCompile("^[a-zA-Z0-9_]+$")
@@ -56,98 +50,6 @@ func (rt *_router) IsValidToken(r *http.Request, w http.ResponseWriter) (bool, i
 func ExtractUserIdFromToken(token string) int {
 	id, _ := strconv.Atoi(token)
 	return id
-}
-
-// ------------#CARICAMENTO IMMAGINE E CREAZIONE URL#----------------
-const uploadDir = "/home/jordan/Documents/university/WASA/WasaText/foto"
-
-func (rt *_router) uploadImage(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
-	isValid, userID, err := rt.IsValidToken(r, w)
-	if err != nil || !isValid {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	err = r.ParseMultipartForm(10 << 20) // 10MB di limite
-	if err != nil {
-		http.Error(w, "File too large", http.StatusRequestEntityTooLarge)
-		return
-	}
-
-	file, handler, err := r.FormFile("file")
-	if err != nil {
-		http.Error(w, "Invalid file upload", http.StatusBadRequest)
-		return
-	}
-	defer file.Close()
-
-	// Controllo il formato dell'immagine (PNG, JPEG, JPG)
-	allowedFormats := map[string]bool{"image/png": true, "image/jpeg": true, "image/jpg": true}
-	fileHeader := make([]byte, 512)
-	_, err = file.Read(fileHeader)
-	if err != nil {
-		http.Error(w, "Error reading file", http.StatusInternalServerError)
-		return
-	}
-
-	contentType := http.DetectContentType(fileHeader)
-	if !allowedFormats[contentType] {
-		http.Error(w, "Unsupported file format", http.StatusUnsupportedMediaType)
-		return
-	}
-
-	// Resetto il puntatore del file per poterlo leggere di nuovo
-	file.Seek(0, io.SeekStart)
-
-	// Genero un nome univoco per il file
-	fileExt := filepath.Ext(handler.Filename)
-	if fileExt == "" {
-		fileExt = ".png" // Default a PNG se l'estensione non è riconosciuta
-	}
-	timestamp := time.Now().Format("20060102150405")
-	fileName := strconv.Itoa(userID) + "_" + timestamp + fileExt
-
-	// Creazione della directory dell'utente (se non esiste)
-	userDir := filepath.Join(uploadDir, strconv.Itoa(userID))
-	err = os.MkdirAll(userDir, os.ModePerm)
-	if err != nil {
-		http.Error(w, "Failed to create directory", http.StatusInternalServerError)
-		return
-	}
-
-	// Salvo l'immagine
-	filePath := filepath.Join(userDir, fileName)
-	outFile, err := os.Create(filePath)
-	if err != nil {
-		http.Error(w, "Failed to save file", http.StatusInternalServerError)
-		return
-	}
-	defer outFile.Close()
-
-	_, err = io.Copy(outFile, file)
-	if err != nil {
-		http.Error(w, "Failed to write file", http.StatusInternalServerError)
-		return
-	}
-
-	// Genero l'URL per visualizzare l'immagine
-	host := r.Host
-	scheme := "https" // Default -> HTTPS
-
-	if r.TLS == nil { // Se non è HTTPS -> HTTP
-		scheme = "http"
-	}
-	// URL dell'immagine -> /foto/{userID}/{fileName}
-	imageURL := scheme + "://" + host + "/foto/" + strconv.Itoa(userID) + "/" + fileName
-
-	// Risposta JSON con l'URL dell'immagine
-	response := map[string]string{
-		"imageUrl": imageURL,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(response)
 }
 
 // ------------#CONTROLLO SE L'UTENTE È NELLA CONVERSAZIONE#----------------

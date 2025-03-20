@@ -10,6 +10,8 @@ import (
 	"github.com/oooJordan/WasaText/service/api/reqcontext"
 )
 
+const ErrInvalidConversationType = "Invalid conversation type"
+
 // ------------------------------ #INVIO DI UN NUOVO MESSAGGIO# --------------------------------
 func (rt *_router) sendNewMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	isValid, author, err := rt.IsValidToken(r, w)
@@ -52,8 +54,8 @@ func (rt *_router) sendNewMessage(w http.ResponseWriter, r *http.Request, ps htt
 	// controllo se l'utente è nella conversazione
 	isMember, err := rt.isUserInConversation(conversationID, author, conversationType)
 	if err != nil {
-		if err.Error() == "Invalid conversation type" {
-			http.Error(w, "Invalid conversation type", http.StatusBadRequest)
+		if err.Error() == ErrInvalidConversationType {
+			http.Error(w, ErrInvalidConversationType, http.StatusBadRequest)
 			return
 		}
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -169,8 +171,8 @@ func (rt *_router) deleteMessage(w http.ResponseWriter, r *http.Request, ps http
 	// 4) Verifico se l'utente fa parte della conversazione
 	isMember, err := rt.isUserInConversation(conversationID, userID, chatType)
 	if err != nil {
-		if err.Error() == "Invalid conversation type" {
-			http.Error(w, "Invalid conversation type", http.StatusBadRequest)
+		if err.Error() == ErrInvalidConversationType {
+			http.Error(w, ErrInvalidConversationType, http.StatusBadRequest)
 			return
 		}
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -267,8 +269,8 @@ func (rt *_router) commentMessage(w http.ResponseWriter, r *http.Request, ps htt
 	// 4) Verifico se l'utente fa parte della conversazione
 	isMember, err := rt.isUserInConversation(conversationID, userID, chatType)
 	if err != nil {
-		if err.Error() == "Invalid conversation type" {
-			http.Error(w, "Invalid conversation type", http.StatusBadRequest)
+		if err.Error() == ErrInvalidConversationType {
+			http.Error(w, ErrInvalidConversationType, http.StatusBadRequest)
 			return
 		}
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -352,8 +354,8 @@ func (rt *_router) removeReaction(w http.ResponseWriter, r *http.Request, ps htt
 	// 5) Verifico se l'utente fa parte della conversazione
 	isMember, err := rt.isUserInConversation(conversationID, userID, chatType)
 	if err != nil {
-		if err.Error() == "Invalid conversation type" {
-			http.Error(w, "Invalid conversation type", http.StatusBadRequest)
+		if err.Error() == ErrInvalidConversationType {
+			http.Error(w, ErrInvalidConversationType, http.StatusBadRequest)
 			return
 		}
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)

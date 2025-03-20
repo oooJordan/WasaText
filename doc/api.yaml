@@ -164,6 +164,8 @@ components:
         comment:
           type: array
           description: "array of comment emojis"
+          minItems: 0
+          maxItems: 10
           items:
             $ref: "#/components/schemas/CommentEmoji"
       required:

@@ -15,3 +15,8 @@ docker-compose.log
 .vscode/*
 !.vscode/extensions.json
 cmd/webapi/webapi
+node_modules
+package.json
+package-lock.json
+.spectral.js
+open-node.sh

@@ -24,11 +24,16 @@ type UpdateProfileImageRequest struct {
 	Image string `json:"image"`
 }
 
-// User rappresenta la struttura degli utenti restituiti
-type UserList struct {
-	Name         string `json:"name"`
+// User rappresenta un singolo utente con ID, nome e immagine del profilo
+type User struct {
 	UserID       int    `json:"user_id"`
+	Nickname     string `json:"nickname"`
 	ProfileImage string `json:"profile_image"`
+}
+
+// UsersList rappresenta una lista di utenti
+type UsersList struct {
+	Users []User `json:"users"`
 }
 
 type ConversationRequest struct {

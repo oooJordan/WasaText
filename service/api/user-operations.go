@@ -136,15 +136,23 @@ func (rt *_router) listUsers(w http.ResponseWriter, r *http.Request, ps httprout
 		w.WriteHeader(http.StatusInternalServerError) // 500
 		return
 	}
-	// controllo che sia stato trovato almeno un utente
-	if len(users) == 0 {
-		w.WriteHeader(http.StatusNotFound) // 404
-		return
+	var convertedUsers []User
+	for _, dbUser := range users { // Itero sugli utenti presi dal DB
+		convertedUsers = append(convertedUsers, User{
+			Nickname:     dbUser.Name,
+			UserID:       dbUser.UserID,
+			ProfileImage: dbUser.ProfileImage,
+		})
+	}
+	response := struct {
+		Users []User `json:"users"`
+	}{
+		Users: convertedUsers,
 	}
 
 	// codifico la lista degli utenti in JSON
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(users); err != nil {
+	if err := json.NewEncoder(w).Encode(response); err != nil {
 		ctx.Logger.WithError(err).Error("Error encoding response")
 		w.WriteHeader(http.StatusInternalServerError) // 500
 	}
