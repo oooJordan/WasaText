@@ -192,7 +192,8 @@ func (db *appdbimpl) GetUserConversations(author int) ([]Triplos, error) {
 					conversations.imageGroup,
 					conversations.groupName,
 					conversations.chatType,
-					COALESCE(messages_read_status.is_read, FALSE)
+					COALESCE(messages_read_status.is_read, FALSE) as is_read,
+					COALESCE(messages_read_status.is_delivered, FALSE) AS is_delivered
 				FROM
 					conversations
 				INNER JOIN 
@@ -207,39 +208,45 @@ func (db *appdbimpl) GetUserConversations(author int) ([]Triplos, error) {
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, errors.New("the user has not started any conversation")
-		} else {
-			return nil, errors.New("error executing query to fetch user conversations")
 		}
+		return nil, errors.New("error executing query to fetch user conversations")
 	}
-
 	defer rows.Close()
+
 	var conversations []Triplos
-	// itero sui risultati
+
 	for rows.Next() {
 		var conv ConversationsDb
-		var mex MessageRicvDb
-		var comments []CommentDb
-		var c Triplos
-		if err := rows.Scan(&conv.ConversationId, &conv.MessageId, &conv.ChatImage, &conv.ChatName, &conv.ChatType, &conv.MessageNotRead); err != nil {
+		var isRead bool
+		var isDelivered bool
+		if err := rows.Scan(&conv.ConversationId, &conv.MessageId, &conv.ChatImage, &conv.ChatName, &conv.ChatType, &isRead, &isDelivered); err != nil {
 			return nil, errors.New("error scanning conversation row")
 		}
+		// Imposto i flag nella struct
+		conv.MessageNotRead = isRead
+		conv.MessageDelivered = isDelivered
+
+		// Se si tratta di una chat privata, sovrascrivo chat name e chat image con i dati dell'altro partecipante
 		if conv.ChatType == "private_chat" {
-			query := `  SELECT 
-									users.name,
-									users.profile_image
-							FROM
-									users
-							INNER JOIN
-									conversation_participants ON conversation_participants.user_id = users.user_id
-							WHERE 
-									conversation_participants.conversation_id = ? AND users.user_id != ?;
+			q := ` SELECT 
+							users.name,
+							users.profile_image
+					FROM
+							users
+					INNER JOIN
+							conversation_participants ON conversation_participants.user_id = users.user_id
+					WHERE 
+							conversation_participants.conversation_id = ? AND users.user_id != ?;
 				`
-			err := db.c.QueryRow(query, conv.ConversationId, author).Scan(&conv.ChatName, &conv.ChatImage)
+			err := db.c.QueryRow(q, conv.ConversationId, author).Scan(&conv.ChatName, &conv.ChatImage)
 			if err != nil {
 				return nil, errors.New("error executing query to fetch user details")
 			}
 		}
-		query := ` SELECT
+
+		// Recupero i dettagli dell'ultimo messaggio
+		var mex MessageRicvDb
+		qMex := ` SELECT
 								users.name,
 								messages.timestamp,
 								messages.type,
@@ -251,27 +258,25 @@ func (db *appdbimpl) GetUserConversations(author int) ([]Triplos, error) {
 								users ON messages.user_id = users.user_id
 						WHERE 
 								message_id = ?; `
-
-		err := db.c.QueryRow(query, conv.MessageId).Scan(&mex.UserName, &mex.Timestamp, &mex.MessageType, &mex.Testo, &mex.Image)
+		err := db.c.QueryRow(qMex, conv.MessageId).Scan(&mex.UserName, &mex.Timestamp, &mex.MessageType, &mex.Testo, &mex.Image)
 		if err != nil {
 			return nil, errors.New("error executing query to fetch message details")
 		}
-		quer := ` SELECT
-							reaction,
-							user_id
+
+		// Recupero i commenti (reazioni) relativi all'ultimo messaggio
+		var comments []CommentDb
+		qComm := ` SELECT
+								reaction,
+								user_id
 						FROM 
-							message_reactions 
+								message_reactions 
 						WHERE 
-							message_reactions.message_id = ?;`
-
-		rowComm, err := db.c.Query(quer, conv.MessageId)
-		if err != nil {
-			if !errors.Is(err, sql.ErrNoRows) {
-				return nil, errors.New("error executing query to fetch comment details")
-			}
-		} else {
+								message_reactions.message_id = ?;`
+		rowComm, err := db.c.Query(qComm, conv.MessageId)
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return nil, errors.New("error executing query to fetch comment details")
+		} else if rowComm != nil {
 			defer rowComm.Close()
-
 			for rowComm.Next() {
 				var commento CommentDb
 				if err := rowComm.Scan(&commento.CommentEmoji, &commento.UserName); err != nil {
@@ -280,21 +285,27 @@ func (db *appdbimpl) GetUserConversations(author int) ([]Triplos, error) {
 				comments = append(comments, commento)
 			}
 			if err := rowComm.Err(); err != nil {
-				return nil, errors.New("error occurred during conversations row iteration")
+				return nil, errors.New("error occurred during comments row iteration")
 			}
-
 		}
-		// popolo i dati della tripla
-		c.Conversation = conv
-		c.Message = mex
-		c.Commento = comments
 
-		conversations = append(conversations, c)
+		// Popolo la struttura Triplos con le informazioni recuperate
+		var t Triplos
+		t.Conversation = conv
+		t.Message = mex
+		t.Commento = comments
+		t.ReadStatus = []ReadStatusDb{
+			{
+				UserID:      author,
+				IsRead:      isRead,
+				IsDelivered: isDelivered,
+			},
+		}
 
+		conversations = append(conversations, t)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, errors.New("error occurred during conversations row iteration")
 	}
-
 	return conversations, nil
 }

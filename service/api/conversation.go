@@ -182,19 +182,38 @@ func (rt *_router) messageHistory(w http.ResponseWriter, r *http.Request, ps htt
 			Nickname:     dbUser.Name,
 			ProfileImage: dbUser.ProfileImage,
 		}
-		// Aggiungo l'utente alla risposta
 		response.Utenti.Users = append(response.Utenti.Users, userAPI)
 	}
 
-	// 10) Popolo con i messaggi e i commenti
+	// 10) Popolo con i messaggi, i commenti e il read_status
 	for _, msg := range dbMessages {
 		// Converto i commenti dal DB all'API
 		var commentArray []CommentApi
 		for _, c := range msg.Comment {
-			// Aggiungo i commenti all'array
 			commentArray = append(commentArray, CommentApi{
 				UserName:     c.UserName,
 				CommentEmoji: c.CommentEmoji,
+			})
+		}
+
+		// Converto il read_status dal DB all'API
+		var readStatusArray []ReadStatusApi
+		for _, rs := range msg.ReadStatus {
+			var isReadInt, isDeliveredInt int
+			if rs.IsRead {
+				isReadInt = 1
+			} else {
+				isReadInt = 0
+			}
+			if rs.IsDelivered {
+				isDeliveredInt = 1
+			} else {
+				isDeliveredInt = 0
+			}
+			readStatusArray = append(readStatusArray, ReadStatusApi{
+				UserID:      rs.UserID,
+				IsRead:      isReadInt,
+				IsDelivered: isDeliveredInt,
 			})
 		}
 
@@ -207,10 +226,9 @@ func (rt *_router) messageHistory(w http.ResponseWriter, r *http.Request, ps htt
 			Image:       msg.Image,
 			Timestamp:   msg.Timestamp,
 			Comment:     commentArray,
+			ReadStatus:  readStatusArray,
 		}
-		// Aggiungo il messaggio alla risposta
 		response.Messages = append(response.Messages, messageAPI)
-
 	}
 
 	// 11) Invio la risposta JSON

@@ -39,15 +39,17 @@ type Triplos struct {
 	Conversation ConversationsDb
 	Message      MessageRicvDb
 	Commento     []CommentDb
+	ReadStatus   []ReadStatusDb
 }
 
 type ConversationsDb struct {
-	ConversationId int
-	MessageId      int
-	ChatImage      sql.NullString
-	ChatName       sql.NullString
-	ChatType       string
-	MessageNotRead bool
+	ConversationId   int
+	MessageId        int
+	ChatImage        sql.NullString
+	ChatName         sql.NullString
+	ChatType         string
+	MessageNotRead   bool
+	MessageDelivered bool
 }
 
 type MessageRicvDb struct {
@@ -63,6 +65,12 @@ type CommentDb struct {
 	CommentEmoji string
 }
 
+type ReadStatusDb struct {
+	UserID      int
+	IsRead      bool
+	IsDelivered bool
+}
+
 type MessageFullDB struct {
 	MessageID   int
 	UserName    string
@@ -71,4 +79,5 @@ type MessageFullDB struct {
 	Image       string
 	Timestamp   string
 	Comment     []CommentDb
+	ReadStatus  []ReadStatusDb
 }

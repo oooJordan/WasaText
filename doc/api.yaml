@@ -139,7 +139,7 @@ components:
         content:
           $ref: "#/components/schemas/Stringa" #text
         media:
-          $ref: "#/components/schemas/ContentType" #enum
+          $ref: "#/components/schemas/ContentType" #enum tra text, gif, gif_with_text
         image:
             $ref: "#/components/schemas/Image" #immagine
       required:
@@ -161,6 +161,25 @@ components:
             $ref: "#/components/schemas/Image" #immagine
         timestamp:
             $ref: "#/components/schemas/Timestamp" #timestamp
+        read_status:
+          type: array
+          description: "Elenco dello stato di lettura per ogni utente"
+          items:
+            type: object
+            properties:
+              user_id:
+                $ref: "#/components/schemas/UserIdentifier"
+              is_read:
+                type: integer
+                description: "0 se non letto, 1 se letto"
+                minimum: 0
+                maximum: 1
+              is_delivered:
+                type: integer
+                description: "0 se non consegnato, 1 se consegnato"
+                minimum: 0
+                maximum: 1
+
         comment:
           type: array
           description: "array of comment emojis"
@@ -497,11 +516,6 @@ paths:
                           $ref: "#/components/schemas/Name"
                         chatType:
                           $ref: "#/components/schemas/ResChatType"
-                        statusMessageRead:
-                          type: integer
-                          description: "number of messages to read"
-                          minimum: 0
-                          maximum: 2500
 
         '204':
           description: "The request has been made but there aren't conversations to view"

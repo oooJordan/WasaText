@@ -95,14 +95,21 @@ type ConversationsApi struct {
 	MessageNotRead bool           `json:"statusMessageRead"`
 }
 
+type ReadStatusApi struct {
+	UserID      int `json:"user_id"`
+	IsRead      int `json:"is_read"`
+	IsDelivered int `json:"is_delivered"`
+}
+
 type MessageRicvApi struct {
-	UserName    string       `json:"username"`
-	Message_ID  int          `json:"message_id"`
-	Testo       string       `json:"content"`
-	MessageType string       `json:"media"`
-	Image       string       `json:"image"`
-	Timestamp   string       `json:"timestamp"`
-	Comment     []CommentApi `json:"comments"`
+	UserName    string          `json:"username"`
+	Message_ID  int             `json:"message_id"`
+	Testo       string          `json:"content"`
+	MessageType string          `json:"media"`
+	Image       string          `json:"image"`
+	Timestamp   string          `json:"timestamp"`
+	Comment     []CommentApi    `json:"comments"`
+	ReadStatus  []ReadStatusApi `json:"read_status"`
 }
 
 type CommentApi struct {
@@ -111,7 +118,7 @@ type CommentApi struct {
 }
 
 func ConvertConversationFromDatabase(req database.Triplos) ConversationsApi {
-	// converto i commenti dal database alla struttura API
+	// Converto i commenti dal database alla struttura API
 	var comments []CommentApi
 	for _, comment := range req.Commento {
 		comments = append(comments, CommentApi{
@@ -120,7 +127,25 @@ func ConvertConversationFromDatabase(req database.Triplos) ConversationsApi {
 		})
 	}
 
-	// converto il messaggio
+	// Converto il read_status dal database alla struttura API
+	var ReadStatusArray []ReadStatusApi
+	for _, rs := range req.ReadStatus {
+		var isReadInt, isDeliveredInt int
+		if rs.IsRead {
+			isReadInt = 1
+		}
+		if rs.IsDelivered {
+			isDeliveredInt = 1
+		}
+
+		ReadStatusArray = append(ReadStatusArray, ReadStatusApi{
+			UserID:      rs.UserID,
+			IsRead:      isReadInt,
+			IsDelivered: isDeliveredInt,
+		})
+	}
+
+	// Converto il messaggio
 	message := MessageRicvApi{
 		UserName:    req.Message.UserName,
 		Timestamp:   req.Message.Timestamp.Time.Format(time.RFC3339),
@@ -129,14 +154,14 @@ func ConvertConversationFromDatabase(req database.Triplos) ConversationsApi {
 		Image:       req.Message.Image,
 		Message_ID:  req.Conversation.MessageId,
 		Comment:     comments,
+		ReadStatus:  ReadStatusArray,
 	}
-	// converto la conversazione
+	// Converto la conversazione
 	return ConversationsApi{
 		ConversationID: req.Conversation.ConversationId,
 		Message:        message,
 		ChatType:       req.Conversation.ChatType,
 		ChatName:       req.Conversation.ChatName.String,
 		ChatImage:      req.Conversation.ChatImage.String,
-		MessageNotRead: req.Conversation.MessageNotRead,
 	}
 }
