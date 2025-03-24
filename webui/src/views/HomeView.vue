@@ -3,42 +3,38 @@
     <!-- Sidebar con le chat -->
     <div class="sidebar">
       <!-- Parte alta della sidebar -->
-
-        <div class="sidebar-header">
-          <h2>Chats</h2>
-          <button @click="logout" class="logout-button">Logout</button>
+      <div class="sidebar-header">
+        <h2>Chats</h2>
+        <button @click="logout" class="logout-button">Logout</button>
+      </div>
+      <div class="search-bar">
+        <div class="search-input-wrapper">
+          <span class="search-icon">🔍</span>
+          <input
+            v-model="searchquery"
+            type="text"
+            placeholder="Search user..."
+            class="search-input"
+          />
         </div>
-
-        <div class="search-bar">
-          <div class="search-input-wrapper">
-            <span class="search-icon">🔍</span>
-            <input
-              v-model="searchquery"
-              type="text"
-              placeholder="Search user..."
-              class="search-input"
-            />
-          </div>
-        </div>
-
-        <ul class="chat-list" v-if="chats && chats.length > 0">
-          <li
-            v-for="chat in chats"
-            :key="chat.conversationId"
-            @click="selectChat(chat)"
-            :class="{ active: chat.conversationId === currentChat?.conversationId }"
-          >
-            <div class="chat-item">
-              <div class="chat-avatar">💬</div>
-              <div class="chat-info">
-                <strong>{{ chat.nameChat }}</strong>
-                <p v-if="chat.lastMessage">{{ truncatedMessage(chat.lastMessage.content) }}</p>
-              </div>
+      </div>
+      <ul class="chat-list" v-if="chats && chats.length > 0">
+        <li
+          v-for="chat in chats"
+          :key="chat.conversationId"
+          @click="selectChat(chat)"
+          :class="{ active: chat.conversationId === currentChat?.conversationId }"
+        >
+          <div class="chat-item">
+            <div class="chat-avatar">💬</div>
+            <div class="chat-info">
+              <strong>{{ chat.nameChat }}</strong>
+              <p v-if="chat.lastMessage">{{ truncatedMessage(chat.lastMessage.content) }}</p>
             </div>
-          </li>
-        </ul>
-        <p v-else class="no-chats">You have no conversations yet. Start one now!</p>
-
+          </div>
+        </li>
+      </ul>
+      <p v-else class="no-chats">You have no conversations yet. Start one now!</p>
       <!-- New Chat in basso -->
       <div class="new-chat-wrapper">
         <button @click="startNewChat" class="new-chat-button">✚ New Chat</button>
@@ -51,18 +47,35 @@
         <h2>{{ currentChat.nameChat }}</h2>
       </header>
       <div class="messages">
-        <div v-for="(message, index_in_array) in currentChat.messages" :key="message.message_id" :class="['message', message.username === currentUser ? 'sent' : 'received']" :ref="index_in_array === currentChat.messages.length - 1 ? 'lastMessage' : null">
-          <div class="message-text">
-            <!-- Mostra il nome solo se è un gruppo e il messaggio non è mio -->
-            <p v-if="currentChat.chatType === 'group_chat' && message.username !== currentUser" class="sender-name">
-              <strong>{{ getNickname(message.username) }}</strong>
-            </p>
-            <!-- Contenuto del messaggio -->
-            <p class="message-content">{{ message.content }}</p>
+        <div
+          v-for="(message, index_in_array) in currentChat.messages"
+          :key="message.message_id"
+          :class="['message', message.username === currentUser ? 'sent' : 'received']"
+          :ref="index_in_array === currentChat.messages.length - 1 ? 'lastMessage' : null"
+          @mouseleave="hoveredMessage = null"
+        >
+          <div class="message-header">
+            <div class="message-text">
+              <p
+                v-if="currentChat.chatType === 'group_chat' && message.username !== currentUser"
+                class="sender-name"
+              >
+                <strong>{{ getNickname(message.username) }}</strong>
+              </p>
+              <p class="message-content">{{ message.content }}</p>
+            </div>
+            <!-- Menu tre puntini: dropdown spostato fuori dal div cliccabile -->
+            <div class="message-options-wrapper">
+              <div class="message-options" @click="toggleOptionsMenu(message.message_id)">
+                ⋮
+              </div>
+              <div v-if="selectedMessageOptions === message.message_id" class="dropdown-menu">
+                <p @click="forwardMessage(message)">📤 Inoltra</p>
+                <p v-if="message.username === currentUser" @click="deleteMessage(message)">🗑️ Elimina</p>
+              </div>
+            </div>
           </div>
-          <!-- Timestamp del messaggio -->
           <span class="message-time">{{ formatTime(message.timestamp) }}</span>
-          <!-- Status messaggio -->
           <span class="status-message" v-if="message.username === currentUser">
             <i v-if="!message.is_read && message.is_delivered" class="fas fa-check is_delivered"></i>
             <i v-else-if="!message.is_read" class="fas fa-check"></i>
@@ -104,6 +117,7 @@
   </div>
 </template>
 
+
 <script>
 export default {
   data() {
@@ -118,6 +132,8 @@ export default {
       errorMessage: "",
       searchquery: "",
       messageArray: [],
+      selectedMessageOptions: null,
+      hoveredMessage: null,
     };
   },
   created() {
@@ -190,6 +206,9 @@ export default {
             Authorization: `Bearer ${token}`,
           },
         });
+        if(!response.ok){
+          throw new Error("Errore HTTP: " + response.status);
+        }
         const data = await response.json();
         this.chats = data.conversation;
       } catch (error) {
@@ -344,6 +363,36 @@ export default {
         this.errorMessage = "Errore durante la creazione della chat: " + error.message;
       }
     },
+    async deleteMessage(message){
+      try{
+        const token = localStorage.getItem("token");
+        if (!token) {
+          throw new Error("Non sei autorizzato");
+        }
+
+        const response = await fetch(`${__API_URL__}/conversation/${this.currentChat.conversationId}/messages/${message.message_id}`, {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error("Errore HTTP: " + response.status);
+        }
+
+        this.currentChat.messages = this.currentChat.messages.filter(m => m.message_id !== message.message_id);
+        const chat = this.chats.find(c => c.conversationId === this.currentChat.conversationId);
+        if (chat && chat.lastMessage?.content === message.content) {
+          const lastM = this.currentChat.messages[this.currentChat.messages.length - 1];
+          chat.lastMessage = lastM ? { content: lastM.content, timestamp: lastM.timestamp } : null;
+        }
+
+        this.selectedMessageOptions = null;
+      } catch (error) {
+        console.error("Errore durante l'eliminazione del messaggio:", error);
+      }
+    },
     cancelSelection() {
       this.showUserSelection = false;
       this.selectedUsers = [];
@@ -392,10 +441,15 @@ export default {
       if (lastMessage && lastMessage.length > 0) {
         lastMessage[lastMessage.length - 1].scrollIntoView({ behavior: 'smooth' });
       }
-
-    }
-
-
+    },
+    toggleOptionsMenu(id){
+      this.selectedMessageOptions = this.selectedMessageOptions === id ? null : id;
+    },
+    forwardMessage(message) {
+    // Apri modale o selezione destinazione
+    console.log("Inoltro", message);
+    this.selectedMessageOptions = null;
+    },
   },
 
   mounted() {
@@ -577,6 +631,8 @@ export default {
   flex-direction: column;
   background: white;
   border-left: 1px solid #ddd;
+  position: relative;
+  z-index: 10;
 }
 
 .chat-header {
@@ -632,6 +688,68 @@ export default {
   flex-direction: column;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
+
+.message-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  position: relative;
+}
+
+.message-options-wrapper {
+  position: relative;
+  z-index: 2000;
+}
+
+.message.sent .dropdown-menu {
+  right: 100%;
+  left: auto;
+  top: 0;
+  margin-right: 150%;
+}
+
+.message.received .dropdown-menu {
+  left: 100%;
+  right: auto;
+  top: 0;
+  margin-left: 60%;
+}
+
+
+
+.message-options {
+  cursor: pointer;
+  font-weight: bold;
+  padding: 0 5px;
+}
+
+.dropdown-menu {
+  position: absolute;
+  right: 0;
+  top: 25px;
+  background: white;
+  border: 1px solid #ccc;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  z-index: 999;
+  border-radius: 20%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.dropdown-menu p {
+  margin: 0;
+  padding: 2px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+
+
+.dropdown-menu p:hover {
+  background: #eee;
+}
+
 
 .message.sent {
   align-self: flex-end;

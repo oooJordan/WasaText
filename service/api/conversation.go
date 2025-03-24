@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -82,6 +83,7 @@ func (rt *_router) getMyConversations(w http.ResponseWriter, r *http.Request, ps
 	var convs []ConversationsApi
 	my_conversations, err := rt.db.GetUserConversations(user_id)
 	if err != nil {
+		log.Println("Errore in GetUserConversations:", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -219,8 +221,14 @@ func (rt *_router) messageHistory(w http.ResponseWriter, r *http.Request, ps htt
 
 		// Formattazione del messaggio per la risposta
 		messageAPI := MessageRicvApi{
-			UserName:    msg.UserName,
-			Message_ID:  msg.MessageID,
+			UserName: msg.UserName,
+			Message_ID: func() *int {
+				if msg.MessageID.Valid {
+					id := int(msg.MessageID.Int64)
+					return &id
+				}
+				return nil
+			}(),
 			Testo:       msg.Testo,
 			MessageType: msg.MessageType,
 			Image:       msg.Image,
@@ -228,6 +236,7 @@ func (rt *_router) messageHistory(w http.ResponseWriter, r *http.Request, ps htt
 			Comment:     commentArray,
 			ReadStatus:  readStatusArray,
 		}
+
 		response.Messages = append(response.Messages, messageAPI)
 	}
 

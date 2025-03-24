@@ -203,7 +203,7 @@ func (db *appdbimpl) GetUserConversations(author int) ([]Triplos, error) {
 					AND messages_read_status.user_id = ?
 				WHERE
 					conversation_participants.user_id = ?;
-		`
+	`
 	rows, err := db.c.Query(query, author, author)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -222,74 +222,85 @@ func (db *appdbimpl) GetUserConversations(author int) ([]Triplos, error) {
 		if err := rows.Scan(&conv.ConversationId, &conv.MessageId, &conv.ChatImage, &conv.ChatName, &conv.ChatType, &isRead, &isDelivered); err != nil {
 			return nil, errors.New("error scanning conversation row")
 		}
-		// Imposto i flag nella struct
+
 		conv.MessageNotRead = isRead
 		conv.MessageDelivered = isDelivered
 
-		// Se si tratta di una chat privata, sovrascrivo chat name e chat image con i dati dell'altro partecipante
+		// Se è una chat privata, prendo i dati dell'altro utente
 		if conv.ChatType == "private_chat" {
 			q := ` SELECT 
-							users.name,
-							users.profile_image
+						users.name,
+						users.profile_image
 					FROM
-							users
+						users
 					INNER JOIN
-							conversation_participants ON conversation_participants.user_id = users.user_id
+						conversation_participants ON conversation_participants.user_id = users.user_id
 					WHERE 
-							conversation_participants.conversation_id = ? AND users.user_id != ?;
-				`
+						conversation_participants.conversation_id = ? AND users.user_id != ?;
+			`
 			err := db.c.QueryRow(q, conv.ConversationId, author).Scan(&conv.ChatName, &conv.ChatImage)
 			if err != nil {
 				return nil, errors.New("error executing query to fetch user details")
 			}
 		}
 
-		// Recupero i dettagli dell'ultimo messaggio
+		// Recupero l'ultimo messaggio solo se MessageId è valido (non NULL)
 		var mex MessageRicvDb
-		qMex := ` SELECT
-								users.name,
-								messages.timestamp,
-								messages.type,
-								messages.content,
-								messages.media
+		if conv.MessageId.Valid {
+			qMex := ` SELECT
+							users.name,
+							messages.timestamp,
+							messages.type,
+							messages.content,
+							messages.media
 						FROM 
-								messages 
+							messages 
 						INNER JOIN
-								users ON messages.user_id = users.user_id
+							users ON messages.user_id = users.user_id
 						WHERE 
-								message_id = ?; `
-		err := db.c.QueryRow(qMex, conv.MessageId).Scan(&mex.UserName, &mex.Timestamp, &mex.MessageType, &mex.Testo, &mex.Image)
-		if err != nil {
-			return nil, errors.New("error executing query to fetch message details")
-		}
-
-		// Recupero i commenti (reazioni) relativi all'ultimo messaggio
-		var comments []CommentDb
-		qComm := ` SELECT
-								reaction,
-								user_id
-						FROM 
-								message_reactions 
-						WHERE 
-								message_reactions.message_id = ?;`
-		rowComm, err := db.c.Query(qComm, conv.MessageId)
-		if err != nil && !errors.Is(err, sql.ErrNoRows) {
-			return nil, errors.New("error executing query to fetch comment details")
-		} else if rowComm != nil {
-			defer rowComm.Close()
-			for rowComm.Next() {
-				var commento CommentDb
-				if err := rowComm.Scan(&commento.CommentEmoji, &commento.UserName); err != nil {
-					return nil, errors.New("error scanning comments row")
+							message_id = ?;`
+			err := db.c.QueryRow(qMex, conv.MessageId.Int64).Scan(&mex.UserName, &mex.Timestamp, &mex.MessageType, &mex.Testo, &mex.Image)
+			if err != nil {
+				if errors.Is(err, sql.ErrNoRows) {
+					mex = MessageRicvDb{} // Messaggio non più esistente
+				} else {
+					return nil, errors.New("error executing query to fetch message details")
 				}
-				comments = append(comments, commento)
 			}
-			if err := rowComm.Err(); err != nil {
-				return nil, errors.New("error occurred during comments row iteration")
+		} else {
+			mex = MessageRicvDb{} // Nessun messaggio associato
+		}
+
+		// Recupero le reazioni (se ce ne sono)
+		var comments []CommentDb
+		if conv.MessageId.Valid {
+			qComm := ` SELECT
+							reaction,
+							user_id
+						FROM 
+							message_reactions 
+						WHERE 
+							message_reactions.message_id = ?;`
+			rowComm, err := db.c.Query(qComm, conv.MessageId.Int64)
+			if err != nil && !errors.Is(err, sql.ErrNoRows) {
+				return nil, errors.New("error executing query to fetch comment details")
+			}
+			if rowComm != nil {
+				defer rowComm.Close()
+				for rowComm.Next() {
+					var commento CommentDb
+					if err := rowComm.Scan(&commento.CommentEmoji, &commento.UserName); err != nil {
+						return nil, errors.New("error scanning comments row")
+					}
+					comments = append(comments, commento)
+				}
+				if err := rowComm.Err(); err != nil {
+					return nil, errors.New("error occurred during comments row iteration")
+				}
 			}
 		}
 
-		// Popolo la struttura Triplos con le informazioni recuperate
+		// Assembla il risultato
 		var t Triplos
 		t.Conversation = conv
 		t.Message = mex
@@ -301,11 +312,12 @@ func (db *appdbimpl) GetUserConversations(author int) ([]Triplos, error) {
 				IsDelivered: isDelivered,
 			},
 		}
-
 		conversations = append(conversations, t)
 	}
+
 	if err := rows.Err(); err != nil {
 		return nil, errors.New("error occurred during conversations row iteration")
 	}
+
 	return conversations, nil
 }

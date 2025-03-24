@@ -137,20 +137,18 @@ func (db *appdbimpl) GetConversationMessages(conversationID int) ([]MessageFullD
         WHERE m.conversation_id = ?
         ORDER BY m.timestamp ASC
     `
-	// Eseguiamo la query con un solo parametro: conversationID
 	rows, err := db.c.Query(query, conversationID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	// Prepareremo un array di MessageFullDB e una mappa di supporto
 	results := []MessageFullDB{}
-	msgIndexMap := make(map[int]int)
+	msgIndexMap := make(map[int64]int)
 
 	for rows.Next() {
 		var (
-			messageID       int
+			messageID       sql.NullInt64
 			userName        string
 			content         string
 			media           string
@@ -180,8 +178,12 @@ func (db *appdbimpl) GetConversationMessages(conversationID int) ([]MessageFullD
 			return nil, err
 		}
 
-		// Se il messaggio non esiste ancora in results, lo creo
-		idx, found := msgIndexMap[messageID]
+		if !messageID.Valid {
+			continue // se per qualche motivo è NULL, salta
+		}
+
+		id := messageID.Int64
+		idx, found := msgIndexMap[id]
 		if !found {
 			newMsg := MessageFullDB{
 				MessageID:   messageID,
@@ -190,15 +192,15 @@ func (db *appdbimpl) GetConversationMessages(conversationID int) ([]MessageFullD
 				MessageType: messageType,
 				Image:       media,
 				Timestamp:   timestamp,
-				Comment:     []CommentDb{},    // Array vuoto iniziale
-				ReadStatus:  []ReadStatusDb{}, // Array vuoto iniziale
+				Comment:     []CommentDb{},
+				ReadStatus:  []ReadStatusDb{},
 			}
 			results = append(results, newMsg)
 			idx = len(results) - 1
-			msgIndexMap[messageID] = idx
+			msgIndexMap[id] = idx
 		}
 
-		// Gestione dei commenti
+		// Commenti
 		if commentUserName != nil && commentEmoji != nil {
 			alreadyExists := false
 			for _, comm := range results[idx].Comment {
@@ -215,7 +217,7 @@ func (db *appdbimpl) GetConversationMessages(conversationID int) ([]MessageFullD
 			}
 		}
 
-		// Gestione degli stati di lettura/consegna
+		// Stato lettura/consegna
 		if rsUserID != nil {
 			var isRead, isDelivered bool
 			if rsIsRead.Valid {

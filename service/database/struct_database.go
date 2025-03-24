@@ -44,7 +44,7 @@ type Triplos struct {
 
 type ConversationsDb struct {
 	ConversationId   int
-	MessageId        int
+	MessageId        sql.NullInt64
 	ChatImage        sql.NullString
 	ChatName         sql.NullString
 	ChatType         string
@@ -72,7 +72,7 @@ type ReadStatusDb struct {
 }
 
 type MessageFullDB struct {
-	MessageID   int
+	MessageID   sql.NullInt64
 	UserName    string
 	Testo       string
 	MessageType string
