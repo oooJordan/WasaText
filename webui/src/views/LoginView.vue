@@ -43,6 +43,7 @@ export default {
         }
 
         localStorage.setItem('token', String(data.user_id));
+        localStorage.setItem('username', this.username);
         this.$router.push('/chat');
       } catch (error) {
         console.error("Error logging in:", error);
