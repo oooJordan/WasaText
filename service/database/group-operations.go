@@ -49,8 +49,46 @@ func (db *appdbimpl) UpdateGroupName(conversationID int, newName string) error {
 
 // ------------------ #ELIMINA UN GRUPPO# --------------------------
 func (db *appdbimpl) DeleteGroup(conversationID int) error {
-	_, err := db.c.Exec("DELETE FROM conversations WHERE conversation_id = ?", conversationID)
-	return err
+
+	// Elimina messaggi letti
+	_, err := db.c.Exec(`
+		DELETE FROM messages_read_status 
+		WHERE message_id IN (
+			SELECT message_id FROM messages WHERE conversation_id = ?
+		)`, conversationID)
+	if err != nil {
+		return err
+	}
+
+	// Elimina reazioni ai messaggi
+	_, err = db.c.Exec(`
+		DELETE FROM message_reactions 
+		WHERE message_id IN (
+			SELECT message_id FROM messages WHERE conversation_id = ?
+		)`, conversationID)
+	if err != nil {
+		return err
+	}
+
+	// Elimina messaggi del gruppo
+	_, err = db.c.Exec("DELETE FROM messages WHERE conversation_id = ?", conversationID)
+	if err != nil {
+		return err
+	}
+
+	// Elimina partecipanti al gruppo
+	_, err = db.c.Exec("DELETE FROM conversation_participants WHERE conversation_id = ?", conversationID)
+	if err != nil {
+		return err
+	}
+
+	// Elimina il gruppo
+	_, err = db.c.Exec("DELETE FROM conversations WHERE conversation_id = ?", conversationID)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // ------------------ #AGGIORNA IMMAGINE DEL GRUPPO# --------------------------

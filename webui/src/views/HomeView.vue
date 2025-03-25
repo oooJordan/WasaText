@@ -11,17 +11,35 @@
           <span class="search-icon">🔍</span>
           <input
             v-model="searchquery"
+            @input="searchUsers"
             type="text"
             placeholder="Search user..."
             class="search-input"
           />
         </div>
       </div>
+
+      <!-- Risultati ricerca utenti -->
+      <div v-if="users.length > 0" class="search-results-box">
+        <h3 class="search-results-title">Utenti trovati:</h3>
+        <ul class="conversation-list">
+          <li
+            v-for="user in users"
+            :key="user.user_id"
+            class="conversation-item"
+            @click="startPrivateChat(user.nickname)"
+          >
+            {{ user.nickname }}
+          </li>
+        </ul>
+      </div>
+
+
       <ul class="chat-list" v-if="chats && chats.length > 0">
         <li
           v-for="chat in chats"
           :key="chat.conversationId"
-          @click="selectChat(chat)"
+          @click="handleChatClick(chat)"
           :class="{ active: chat.conversationId === currentChat?.conversationId }"
         >
           <div class="chat-item">
@@ -42,8 +60,38 @@
     <!-- Area principale della chat -->
     <div class="chat-window" v-if="currentChat">
       <header class="chat-header">
-        <h2>{{ currentChat.nameChat }}</h2>
+        <div class="group-header-wrapper">
+          <div class="group-name-section">
+            <template v-if="editingGroupName">
+              <input
+                v-model="editedGroupName"
+                @blur="saveGroupName"
+                @keyup.enter="saveGroupName"
+                class="edit-group-name-input"
+              />
+            </template>
+            <template v-else>
+              <h2
+                @click="enableNameEdit"
+                :class="{ editable: currentChat.chatType === 'group_chat' }"
+              >
+                {{ currentChat.nameChat }}
+              </h2>
+            </template>
+          </div>
+
+          <div v-if="currentChat.chatType === 'group_chat'" class="group-menu-wrapper">
+            <div class="menu-icon" @click="toggleGroupMenu">⚙️</div>
+            <div v-if="showGroupMenu" class="dropdown-menu group-dropdown">
+              <p @click="openAddMembersModal">➕ Aggiungi membri</p>
+              <p @click="enableNameEdit">🖊️ Modifica nome</p>
+              <p @click="openChangeImageModal">🖼️ Cambia immagine</p>
+              <p @click="leaveGroup">🚪 Esci dal gruppo</p>
+            </div>
+          </div>
+        </div>
       </header>
+
       <div class="messages">
         <div
           v-for="(message, index_in_array) in currentChat.messages"
@@ -79,6 +127,7 @@
               {{ emoji }}
             </span>
           </div>
+
           <div class="message-reactions" v-if="message.comments && message.comments.length > 0">
             <span v-for="comment in message.comments" :key="comment.username + comment.emojiCode">
               {{ comment.emojiCode }}
@@ -92,67 +141,119 @@
           </span>
         </div>
       </div>
+
       <div class="input-area">
         <input type="text" v-model="newMessage" @keyup.enter="sendMessage" placeholder="Type a message..." />
         <button @click="sendMessage">Send</button>
       </div>
     </div>
 
+
     <div class="chat-window empty" v-else>
       <p>Select a chat to start messaging</p>
     </div>
 
-    <!-- Modal per la selezione degli utenti -->
-    <div v-if="showUserSelection" class="modal">
-      <div class="modal-content full-modal">
-        <div class="modal-left">
-          <h3>Choose Participants</h3>
-          <ul class="user-list">
-            <li v-for="user in users" :key="user.user_id">
-              <label class="user-label">
-                <input type="checkbox" :value="user.nickname" v-model="selectedUsers" class="user-checkbox" />
-                <img :src="user.profile_image" alt="User avatar" class="user-avatar" />
-                <span class="user-name">{{ user.nickname }}</span>
-              </label>
-            </li>
-          </ul>
-        </div>
+    <!-- Modal per inoltro messaggio -->
+    <div v-if="showForwardModal" class="modal">
+      <div class="modal-content">
+        <h3>Inoltra messaggio a...</h3>
+        <ul class="conversation-list">
+          <li
+            v-for="chat in chats"
+            :key="chat.conversationId"
+            :class="{ selected: selectedForwardChatIds.includes(chat.conversationId) }"
+            @click="toggleForwardSelection(chat.conversationId)"
+            class="conversation-item"
+          >
+            {{ chat.nameChat }}
+          </li>
+        </ul>
 
-        <div class="modal-right">
-          <h3>Create New Chat</h3>
-          <div v-if="selectedUsers.length > 1">
-            <input
-              type="text"
-              v-model="groupName"
-              placeholder="Enter group name"
-              class="start-message-input"
-            />
-            <input
-              type="text"
-              v-model="groupImage"
-              placeholder="Group image URL (optional)"
-              class="start-message-input"
-            />
-          </div>
-
-          <textarea
-            v-model="startMessageText"
-            placeholder="Type your start message..."
-            rows="4"
-            class="start-message-input"
-          ></textarea>
-
-          <div class="modal-actions">
-            <button @click="createConversation">Create</button>
-            <button @click="cancelSelection">Cancel</button>
-          </div>
-
-          <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
+        <div class="modal-buttons">
+          <button @click="confirmForward">Inoltra</button>
+          <button @click="cancelForward">Annulla</button>
         </div>
       </div>
     </div>
+
+
+
+    <!-- Modal per la selezione degli utenti -->
+    <div v-if="showUserSelection" class="modal">
+      <div class="modal-content">
+        <h3>Crea nuova chat</h3>
+
+        <ul class="conversation-list">
+          <li
+            v-for="user in users"
+            :key="user.user_id"
+            :class="['conversation-item', selectedUsers.includes(user.nickname) ? 'selected' : '']"
+            @click="toggleUserSelection(user.nickname)"
+          >
+            {{ user.nickname }}
+          </li>
+        </ul>
+
+        <div v-if="selectedUsers.length > 1" class="group-fields">
+          <input
+            v-model="groupName"
+            type="text"
+            placeholder="Nome del gruppo"
+            class="styled-input"
+          />
+          <input
+            v-model="groupImage"
+            type="text"
+            placeholder="URL immagine gruppo (facoltativa)"
+            class="styled-input"
+          />
+        </div>
+
+        <textarea
+          v-model="startMessageText"
+          placeholder="Scrivi un messaggio iniziale..."
+          class="styled-input"
+          rows="4"
+        ></textarea>
+
+        <div class="modal-buttons">
+          <button class="primary-btn" @click="createConversation">Crea</button>
+          <button class="secondary-btn" @click="cancelSelection">Annulla</button>
+        </div>
+
+        <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
+      </div>
+    </div>
+
+
+
+    <!-- Modal per aggiungere membri a un gruppo esistente -->
+    <div v-if="showAddMembersModal" class="modal">
+      <div class="modal-content">
+        <h3>Aggiungi membri al gruppo</h3>
+
+        <ul class="conversation-list">
+          <li
+            v-for="user in users"
+            :key="user.user_id"
+            :class="['conversation-item', selectedUsers.includes(user.nickname) ? 'selected' : '']"
+            @click="toggleUserSelection(user.nickname)"
+          >
+            {{ user.nickname }}
+          </li>
+        </ul>
+
+        <div class="modal-buttons">
+          <button class="primary-btn" @click="confirmAddMembers">Aggiungi</button>
+          <button class="secondary-btn" @click="cancelAddMembers">Annulla</button>
+        </div>
+      </div>
+    </div>
+
+
   </div>
 </template>
+
 
 <script>
 export default {
@@ -172,6 +273,15 @@ export default {
       hoveredMessage: null,
       reactionMessageId: null,
       emojiOptions: ["👍", "😂​", "❤️​"],
+      showGroupMenu: false,
+      editingGroupName: false,
+      editedGroupName: '',
+      showAddMembersModal: false,
+      showForwardModal: false,
+      messageToForward: null,
+      selectedForwardChatIds: [],
+
+
     };
   },
   created() {
@@ -200,6 +310,7 @@ export default {
         }
 
         const data = await response.json();
+
         const chatFromSidebar = this.chats.find(c => c.conversationId === conversation_id);
         console.log(data.messages);
         this.currentChat = {
@@ -253,22 +364,35 @@ export default {
         console.error("Errore nel fetch delle chat:", error);
       }
     },
-    async fetchUsers() {
+    async fetchUsers({ isForNewChat = false } = {}) {
       try {
         const token = localStorage.getItem("token");
         const response = await this.$axios.get("/users", {
           headers: { Authorization: `Bearer ${token}` },
         });
+
         if (!response.data || !response.data.users) {
           throw new Error("La chiave 'users' non esiste nella risposta");
         }
-        this.users = response.data.users;
-        this.users = response.data.users.filter(u => u.nickname !== this.currentUser);
+
+        const allUsers = response.data.users;
+
+        let filteredUsers = allUsers.filter(u => u.nickname !== this.currentUser);
+
+        // Se NON è per una nuova chat, filtra quelli già nel gruppo
+        if (!isForNewChat && this.currentChat && this.currentChat.users && this.currentChat.chatType === 'group_chat') {
+          const existingUsernames = this.currentChat.users.map(u => u.nickname);
+          filteredUsers = filteredUsers.filter(u => !existingUsernames.includes(u.nickname));
+        }
+
+        this.users = filteredUsers;
+
       } catch (error) {
         console.error("Errore nel fetch degli utenti:", error);
       }
     },
     selectChat(chat) {
+      console.log("selectChat invocato con chat:", chat);
       this.currentChat = chat
       if (this.currentChat) {
         this.fetchMessageHistory(this.currentChat.conversationId);
@@ -334,7 +458,7 @@ export default {
     },
     startNewChat() {
       this.showUserSelection = true;
-      this.fetchUsers();
+      this.fetchUsers({ isForNewChat: true });
     },
     async createConversation() {
       if (this.selectedUsers.length === 0) {
@@ -387,6 +511,11 @@ export default {
           },
           body: JSON.stringify(conversationRequest)
         });
+
+        if(!response.ok){
+          const text = await response.text();
+          throw new Error("Errore HTTP: " + response.status + " - " + text);
+        }
 
         const data = await response.json();
         if (!data || !data.ConversationId) {
@@ -511,6 +640,186 @@ export default {
         console.error("Errore durante la rimozione dell'emoji: ", err);
       }
     },
+    async leaveGroup(){
+      try{
+        const token = localStorage.getItem("token");
+        if (!token) {
+          throw new Error("Non sei autorizzato");
+        }
+
+        const response = await fetch(`${__API_URL__}/conversation/${this.currentChat.conversationId}/membership`, {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error("Errore HTTP: " + response.status);
+        }
+
+        this.chats = this.chats.filter(chat => chat.conversationId !== this.currentChat.conversationId);
+
+        if(this.currentChat.conversationId){
+          this.currentChat = null
+        }
+      }catch(err){
+        console.error("Errore durante l'uscita dal gruppo': ", err);
+      }
+    },
+    async updateGroupName(conversationId, newName){
+      try{
+        const token = localStorage.getItem("token");
+        if (!token) {
+          throw new Error("Non sei autorizzato");
+        }
+
+        const response = await fetch(`${__API_URL__}/conversation/${this.currentChat.conversationId}/name`, {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ newUsername: newName })
+        });
+
+        if (!response.ok) {
+          throw new Error("Errore HTTP: " + response.status);
+        }
+
+        const chat = this.chats.find(c => c.conversationId === conversationId);
+        if(chat){
+          chat.nameChat = newName;
+        }
+
+        if(this.currentChat && this.currentChat.conversationId === conversationId){
+          this.currentChat.nameChat = newName;
+        }
+
+      } catch (err) {
+        console.error("Errore durante l'aggiornamento del nome del gruppo: ", err);
+      }
+    },
+    async addUserToGroup(conversationId, usernameUser){
+      try{
+        const token = localStorage.getItem("token");
+        if (!token) {
+          throw new Error("Non sei autorizzato");
+        }
+
+        const response = await fetch(`${__API_URL__}/conversation/${conversationId}/names`, {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ name: usernameUser })
+        });
+
+        if (!response.ok) {
+          throw new Error("Errore HTTP: " + response.status);
+        }
+      } catch (err) {
+        console.error("Errore durante l'aggiunta di un utente al gruppo: ", err);
+      }
+    },
+    async confirmForward() {
+      if (!this.messageToForward || this.selectedForwardChatIds.length === 0) return;
+
+      const token = localStorage.getItem("token");
+
+      for (const conversationId of this.selectedForwardChatIds) {
+        try {
+          const response = await fetch(`${__API_URL__}/conversation/${conversationId}/messages/${this.messageToForward.message_id}`, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          if (!response.ok) {
+            throw new Error(`Errore HTTP: ${response.status}`);
+          }
+
+          const data = await response.json();
+
+          const chatIndex = this.chats.findIndex(c => c.conversationId === conversationId);
+          if (chatIndex !== -1) {
+            const chat = this.chats[chatIndex];
+            chat.lastMessage = {
+              content: this.messageToForward.content,
+              timestamp: new Date().toISOString()
+            };
+            this.chats.splice(chatIndex, 1);
+            this.chats.unshift(chat);
+          }
+
+        } catch (err) {
+          console.error("Errore durante l'inoltro a chat ID:", conversationId, err);
+        }
+      }
+
+      this.showForwardModal = false;
+      this.messageToForward = null;
+      this.selectedForwardChatIds = [];
+    },
+    async searchUsers() {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) throw new Error("Non autorizzato");
+
+        if (!this.searchquery.trim()) {
+          this.users = []; // Svuoto se il campo è vuoto
+          return;
+        }
+
+        const response = await fetch(`${__API_URL__}/users?name=${encodeURIComponent(this.searchquery)}`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`Errore HTTP: ${response.status}`);
+        }
+
+        const data = await response.json();
+        this.users = data.users || [];
+      } catch (err) {
+        console.error("Errore nella ricerca utenti:", err);
+      }
+    },
+    async startPrivateChat(nickname) {
+      try {
+        const chatEsistente = this.chats.find(chat =>
+          chat.chatType === "private_chat" &&
+          chat.nameChat === nickname
+        );
+
+        if (chatEsistente) {
+          console.log("Chat privata già esistente con:", nickname);
+          this.selectChat(chatEsistente);
+          this.users = [];
+          this.searchquery = "";
+          return;
+        }
+
+        console.log("Nessuna chat trovata con", nickname, "-> ne creo una nuova");
+
+        this.selectedUsers = [nickname];
+        this.groupName = "";
+        this.startMessageText = "Ciao!"; 
+
+        await this.createConversation();
+
+        this.users = [];
+        this.searchquery = "";
+      } catch (err) {
+        console.error("Errore in startPrivateChat:", err);
+      }
+    },
+    cancelAddMembers() {
+      this.showAddMembersModal = false;
+      this.selectedUsers = [];
+    },
     cancelSelection() {
       this.showUserSelection = false;
       this.selectedUsers = [];
@@ -540,10 +849,9 @@ export default {
 
       return name;
     },
-
     truncatedMessage(msg) {
       if(!msg) return "";
-      const maxChars = 30;
+      const maxChars = 25;
       return msg.length > maxChars ? msg.slice(0, maxChars) + "..." : msg;
     },
     formatTime(timestamp) {
@@ -565,14 +873,77 @@ export default {
     toggleOptionsMenu(id){
       this.selectedMessageOptions = this.selectedMessageOptions === id ? null : id;
     },
+    handleChatClick(chat) {
+      console.log("handleChatClick invocato con chat: ", chat);
+      if (this.showForwardModal && this.messageToForward) {
+        this.confirmForward(chat.conversationId);
+      } else {
+        this.selectChat(chat);
+      }
+    },
+
     forwardMessage(message) {
-    // Apri modale o selezione destinazione
-    console.log("Inoltro", message);
-    this.selectedMessageOptions = null;
+      this.messageToForward = message;
+      this.showForwardModal = true;
+      this.selectedMessageOptions = null;
+    },
+    cancelForward() {
+      this.showForwardModal = false;
+      this.messageToForward = null;
+      this.selectedForwardChatIds = [];
+    },
+    toggleForwardSelection(conversationId) {
+      const index = this.selectedForwardChatIds.indexOf(conversationId);
+      if (index === -1) {
+        this.selectedForwardChatIds.push(conversationId);
+      } else {
+        this.selectedForwardChatIds.splice(index, 1);
+      }
     },
     showEmoji(message) {
       this.reactionMessageId = message.message_id;
     },
+    toggleGroupMenu() {
+      this.showGroupMenu = !this.showGroupMenu;
+    },
+    toggleUserSelection(nickname) {
+      const index = this.selectedUsers.indexOf(nickname);
+      if (index > -1) {
+        this.selectedUsers.splice(index, 1); // Deseleziona
+      } else {
+        this.selectedUsers.push(nickname); // Seleziona
+      }
+    },
+    enableNameEdit() {
+      this.editedGroupName = this.currentChat.nameChat;
+      this.editingGroupName = true;
+      this.showGroupMenu = false;
+    },
+    saveGroupName() {
+      if (this.editedGroupName && this.editedGroupName !== this.currentChat.nameChat) {
+        this.updateGroupName(this.currentChat.conversationId, this.editedGroupName);
+      }
+      this.editingGroupName = false;
+    },
+    openAddMembersModal() {
+      this.showGroupMenu = false;
+      this.showAddMembersModal = true;
+      this.fetchUsers();
+    },
+    openChangeImageModal() {
+      console.log("Cambia immagine");
+      this.showGroupMenu = false;
+    },
+    confirmAddMembers(){
+      for (const nickname of this.selectedUsers) {
+        this.addUserToGroup(this.currentChat.conversationId, nickname);
+      }
+      this.showAddMembersModal = false;
+      this.selectedUsers = [];
+    },
+
+
+
   },
 
   mounted() {
@@ -652,12 +1023,18 @@ export default {
 .user-list {
   list-style: none;
   padding: 0;
-  margin: 10px 0;
+  margin: 0;
   max-height: 300px;
   overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 10px;
+  background: #f9f9f9;
 }
 
 .user-item {
+  display: flex;
+  align-items: center;
   padding: 8px;
   border-radius: 8px;
   transition: background 0.2s ease-in-out;
@@ -694,8 +1071,38 @@ export default {
   font-weight: 500;
   font-size: 15px;
   color: #333;
+  flex-grow: 1;
 }
 
+.modal-buttons {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.modal-buttons button {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.modal-buttons button:first-of-type {
+  background: #007bff;
+  color: white;
+}
+
+.modal-buttons button:last-of-type {
+  background: #ccc;
+  color: black;
+}
+
+.modal-buttons button:hover {
+  opacity: 0.9;
+}
 
 .chat-list {
   list-style: none;
@@ -703,8 +1110,41 @@ export default {
   margin: 0;
 }
 
+.conversation-list {
+  list-style: none;
+  padding: 0;
+  margin-top: 1rem;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.conversation-item {
+  background: #f1f1f1;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.conversation-item:hover {
+  background: #e0e0e0;
+}
+
+.conversation-item.selected {
+  background: #007bff;
+  color: white;
+}
+
+
+.modal-buttons button {
+  margin-top: 10px;
+  padding: 8px 14px;
+}
+
 .chat-list ul{
   overflow-y: auto;
+  overflow-x: none;
 }
 
 .chat-list li {
@@ -765,14 +1205,91 @@ export default {
   background-color: #3498db;
   color: white;
   font-size: 1.2em;
-  padding: 10px;
-  text-align: center;
-  height: 50px;
+  padding: 10px 20px;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   z-index: 1;
+  height: 60px;
 }
 
+/* Container per nome gruppo e menu */
+.group-header-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+/* Nome gruppo e input inline */
+.group-name-section h2 {
+  margin: 0;
+  font-size: 1.4rem;
+  cursor: default;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.group-name-section h2.editable {
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.group-name-section h2.editable:hover {
+  color: #ecf0f1;
+}
+
+.edit-group-name-input {
+  font-size: 1.4rem;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  max-width: 300px;
+}
+
+/* Icona ⋮ e menu */
+.group-menu-wrapper {
+  position: relative;
+  margin-left: 10px;
+}
+
+.menu-icon {
+  cursor: pointer;
+  font-size: 1.5rem;
+  padding: 4px 10px;
+  user-select: none;
+}
+
+.group-dropdown {
+  position: absolute;
+  top: 30px;
+  right: 0;
+  background: white;
+  color: #333;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 5px 0;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.group-dropdown p {
+  margin: 0;
+  padding: 8px 15px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+
+.group-dropdown p:hover {
+  background-color: #f2f2f2;
+}
+
+.selected {
+  background-color: #f0f0f0;
+  font-weight: bold;
+}
 .emoji-op{
   display: flex;
   gap: 10px;
@@ -1181,4 +1698,20 @@ export default {
   background-color: #c0392b;
   box-shadow: 0 0 10px #e74c3c80;
 }
+
+.search-results-box {
+  background-color: #1abc9c;
+  border-radius: 10px;
+  padding: 12px;
+  margin: 10px 0;
+  color: rgb(0, 0, 0);
+}
+
+.search-results-title {
+  font-weight: bold;
+  margin-bottom: 10px;
+  font-size: 20px;
+}
+
+
 </style>

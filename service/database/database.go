@@ -126,7 +126,7 @@ func New(db *sql.DB) (AppDatabase, error) { // inizializza il database
 							conversation_id INTEGER NOT NULL, 
 							user_id INTEGER NOT NULL, 
 							UNIQUE(conversation_id, user_id), 
-							FOREIGN KEY(conversation_id) REFERENCES conversations(conversation_id),
+							FOREIGN KEY(conversation_id) REFERENCES conversations(conversation_id) ON DELETE CASCADE,
 							FOREIGN KEY(user_id) REFERENCES users(user_id),
 							PRIMARY KEY(conversation_id, user_id)
 						);`
@@ -139,7 +139,7 @@ func New(db *sql.DB) (AppDatabase, error) { // inizializza il database
 						type TEXT CHECK(type IN ('text', 'gif', 'gif_with_text')) NOT NULL,
 						content TEXT, 
 						media TEXT,
-						FOREIGN KEY(conversation_id) REFERENCES conversations(conversation_id) ,
+						FOREIGN KEY(conversation_id) REFERENCES conversations(conversation_id) ON DELETE CASCADE ,
 						FOREIGN KEY(user_id) REFERENCES users(user_id)
 						PRIMARY KEY("message_id" AUTOINCREMENT)
 					);`
@@ -148,7 +148,7 @@ func New(db *sql.DB) (AppDatabase, error) { // inizializza il database
 							user_id INTEGER NOT NULL,
 							is_delivered NOT NULL DEFAULT FALSE,
 							is_read BOOLEAN NOT NULL DEFAULT FALSE,
-							FOREIGN KEY(message_id) REFERENCES messages(message_id),
+							FOREIGN KEY(message_id) REFERENCES messages(message_id) ON DELETE CASCADE,
 							FOREIGN KEY(user_id) REFERENCES users(user_id),
 							PRIMARY KEY(message_id, user_id)
 						);`
@@ -158,7 +158,7 @@ func New(db *sql.DB) (AppDatabase, error) { // inizializza il database
 						user_id INTEGER NOT NULL,
 						reaction TEXT NOT NULL,
 						UNIQUE(message_id, user_id),
-						FOREIGN KEY(message_id) REFERENCES messages(message_id),
+						FOREIGN KEY(message_id) REFERENCES messages(message_id) ON DELETE CASCADE,
 						FOREIGN KEY(user_id) REFERENCES users(user_id)
 					);`
 

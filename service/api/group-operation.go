@@ -27,7 +27,6 @@ func (rt *_router) leaveGroup(w http.ResponseWriter, r *http.Request, ps httprou
 	if !ok {
 		return
 	}
-
 	// verifico che la conversazione esista e che sia un gruppo
 	isGroup, err := rt.db.IsGroupConversation(conversationID)
 	if err != nil {
