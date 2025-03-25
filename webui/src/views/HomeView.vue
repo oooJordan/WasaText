@@ -2,7 +2,6 @@
   <div class="chat-container">
     <!-- Sidebar con le chat -->
     <div class="sidebar">
-      <!-- Parte alta della sidebar -->
       <div class="sidebar-header">
         <h2>Chats</h2>
         <button @click="logout" class="logout-button">Logout</button>
@@ -35,7 +34,6 @@
         </li>
       </ul>
       <p v-else class="no-chats">You have no conversations yet. Start one now!</p>
-      <!-- New Chat in basso -->
       <div class="new-chat-wrapper">
         <button @click="startNewChat" class="new-chat-button">✚ New Chat</button>
       </div>
@@ -56,24 +54,35 @@
         >
           <div class="message-header">
             <div class="message-text">
-              <p
-                v-if="currentChat.chatType === 'group_chat' && message.username !== currentUser"
-                class="sender-name"
-              >
+              <p v-if="currentChat.chatType === 'group_chat' && message.username !== currentUser" class="sender-name">
                 <strong>{{ getNickname(message.username) }}</strong>
               </p>
               <p class="message-content">{{ message.content }}</p>
             </div>
-            <!-- Menu tre puntini: dropdown spostato fuori dal div cliccabile -->
             <div class="message-options-wrapper">
-              <div class="message-options" @click="toggleOptionsMenu(message.message_id)">
-                ⋮
-              </div>
+              <div class="message-options" @click="toggleOptionsMenu(message.message_id)">⋮</div>
               <div v-if="selectedMessageOptions === message.message_id" class="dropdown-menu">
                 <p @click="forwardMessage(message)">📤 Inoltra</p>
+                <p @click="showEmoji(message)">☺️​ Reazione</p>
                 <p v-if="message.username === currentUser" @click="deleteMessage(message)">🗑️ Elimina</p>
               </div>
             </div>
+          </div>
+
+          <div v-if="reactionMessageId === message.message_id" class="emoji-op">
+            <span
+              v-for="emoji in emojiOptions"
+              :key="emoji"
+              class="emoji-option"
+              @click="addReaction(message, emoji)"
+            >
+              {{ emoji }}
+            </span>
+          </div>
+          <div class="message-reactions" v-if="message.comments && message.comments.length > 0">
+            <span v-for="comment in message.comments" :key="comment.username + comment.emojiCode">
+              {{ comment.emojiCode }}
+            </span>
           </div>
           <span class="message-time">{{ formatTime(message.timestamp) }}</span>
           <span class="status-message" v-if="message.username === currentUser">
@@ -89,34 +98,61 @@
       </div>
     </div>
 
-    <!-- Messaggio quando nessuna chat è selezionata -->
     <div class="chat-window empty" v-else>
       <p>Select a chat to start messaging</p>
     </div>
 
     <!-- Modal per la selezione degli utenti -->
     <div v-if="showUserSelection" class="modal">
-      <div class="modal-content">
-        <h3>Select Users</h3>
-        <ul class="user-list">
-          <li v-for="user in users" :key="user.user_id">
-            <label class="user-label">
-              <input type="checkbox" :value="user.nickname" v-model="selectedUsers" class="user-checkbox" />
-              <img :src="user.profile_image" alt="User avatar" class="user-avatar" />
-              <span class="user-name">{{ user.nickname }}</span>
-            </label>
-          </li>
-        </ul>
-        <div v-if="selectedUsers.length > 1">
-          <input type="text" v-model="groupName" placeholder="Enter group name" />
+      <div class="modal-content full-modal">
+        <div class="modal-left">
+          <h3>Choose Participants</h3>
+          <ul class="user-list">
+            <li v-for="user in users" :key="user.user_id">
+              <label class="user-label">
+                <input type="checkbox" :value="user.nickname" v-model="selectedUsers" class="user-checkbox" />
+                <img :src="user.profile_image" alt="User avatar" class="user-avatar" />
+                <span class="user-name">{{ user.nickname }}</span>
+              </label>
+            </li>
+          </ul>
         </div>
-        <button @click="createConversation">Create</button>
-        <button @click="cancelSelection">Cancel</button>
+
+        <div class="modal-right">
+          <h3>Create New Chat</h3>
+          <div v-if="selectedUsers.length > 1">
+            <input
+              type="text"
+              v-model="groupName"
+              placeholder="Enter group name"
+              class="start-message-input"
+            />
+            <input
+              type="text"
+              v-model="groupImage"
+              placeholder="Group image URL (optional)"
+              class="start-message-input"
+            />
+          </div>
+
+          <textarea
+            v-model="startMessageText"
+            placeholder="Type your start message..."
+            rows="4"
+            class="start-message-input"
+          ></textarea>
+
+          <div class="modal-actions">
+            <button @click="createConversation">Create</button>
+            <button @click="cancelSelection">Cancel</button>
+          </div>
+
+          <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
+        </div>
       </div>
     </div>
   </div>
 </template>
-
 
 <script>
 export default {
@@ -134,6 +170,8 @@ export default {
       messageArray: [],
       selectedMessageOptions: null,
       hoveredMessage: null,
+      reactionMessageId: null,
+      emojiOptions: ["👍", "😂​", "❤️​"],
     };
   },
   created() {
@@ -171,13 +209,13 @@ export default {
             const isMyMessage = msg.username === this.currentUser;
             let is_read = false;
             let is_delivered = false;
-            if(isMyMessage && msg.read_status && msg.read_status.length > 0) {
-              const otherUser = msg.read_status.find(r => r.user_id !== this.currentUserId);
-              if(otherUser){
-                is_read = otherUser?.is_read === 1 || otherUser?.is_read === true;  
-                is_delivered = otherUser?.is_delivered === 1 || otherUser?.is_delivered === true;
-              }
+            if (isMyMessage && msg.read_status && msg.read_status.length > 0) {
+              const otherUsers = msg.read_status.filter(r => r.user_id !== this.currentUserId);
+
+              is_read = otherUsers.length > 0 && otherUsers.every(r => r.is_read === 1 || r.is_read === true);
+              is_delivered = otherUsers.length > 0 && otherUsers.every(r => r.is_delivered === 1 || r.is_delivered === true);
             }
+
             return {
               ...msg,
               is_read,
@@ -225,6 +263,7 @@ export default {
           throw new Error("La chiave 'users' non esiste nella risposta");
         }
         this.users = response.data.users;
+        this.users = response.data.users.filter(u => u.nickname !== this.currentUser);
       } catch (error) {
         console.error("Errore nel fetch degli utenti:", error);
       }
@@ -302,6 +341,11 @@ export default {
         this.errorMessage = "Seleziona almeno un utente";
         return;
       }
+      if (!this.startMessageText.trim()) {
+        this.errorMessage = "Devi scrivere un messaggio iniziale";
+        return;
+      }
+
 
       const nSelected = this.selectedUsers.length;
       let chatTypeValue = null;
@@ -326,7 +370,7 @@ export default {
         usersname: this.selectedUsers,                // Array degli utenti selezionati
         startMessage: {
           media: "text",             	 // Tipo di media (text, gif, gif_with_text)
-          content: "Hello!",
+          content: this.startMessageText.trim(),
           image: "",
         }
       };
@@ -349,16 +393,16 @@ export default {
           throw new Error("La risposta API non contiene un ConversationId valido");
         }
 
-        this.chats.unshift({
-          conversationId: data.ConversationId,
-          nameChat: nSelected === 1 ? this.selectedUsers[0] : this.groupName,
-          lastMessage: null,
-          messages: [],
-        });
-
         this.showUserSelection = false;
         this.selectedUsers = [];
         this.groupName = "";
+        await this.fetchChats();
+        const newChat = this.chats.find(c => c.conversationId === data.ConversationId);
+        if(newChat){
+          this.selectChat(newChat);
+          return;
+        }
+
       } catch (error) {
         this.errorMessage = "Errore durante la creazione della chat: " + error.message;
       }
@@ -382,6 +426,11 @@ export default {
         }
 
         this.currentChat.messages = this.currentChat.messages.filter(m => m.message_id !== message.message_id);
+        if(this.currentChat.messages.length === 0){
+          this.chats = this.chats.filter(c => c.conversationId !== this.currentChat.conversationId);
+          this.currentChat = null;
+          return;
+        }
         const chat = this.chats.find(c => c.conversationId === this.currentChat.conversationId);
         if (chat && chat.lastMessage?.content === message.content) {
           const lastM = this.currentChat.messages[this.currentChat.messages.length - 1];
@@ -393,10 +442,81 @@ export default {
         console.error("Errore durante l'eliminazione del messaggio:", error);
       }
     },
+    async addReaction(message, emoji){
+      try{
+        const token = localStorage.getItem("token");
+        if (!token) {
+          throw new Error("Non sei autorizzato");
+        }
+
+        const exist = message.comments?.find(c => c.username === this.currentUser);
+        if(exist && exist.emojiCode === emoji){
+          return this.removeReaction(message);
+        }
+
+        const response = await fetch(`${__API_URL__}/conversation/${this.currentChat.conversationId}/messages/${message.message_id}/comment`, {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ emojiCode: emoji })
+        });
+
+        if (!response.ok) {
+          throw new Error("Errore HTTP: " + response.status);
+        }
+
+        if(!message.comments){
+          message.comments = [];
+        }
+
+        if(exist){
+          exist.emojiCode = emoji;
+        } else {
+          message.comments.push({ username: this.currentUser, emojiCode: emoji});
+        }
+
+        this.reactionMessageId = null;
+        this.selectedMessageOptions = null;
+      } catch (err) {
+        console.error("Errore durante l'aggiunta dell'emoji: ", err);
+      }
+    },
+    async removeReaction(message){
+      try{
+        const token = localStorage.getItem("token");
+        if (!token) {
+          throw new Error("Non sei autorizzato");
+        }
+
+        const response = await fetch(`${__API_URL__}/conversation/${this.currentChat.conversationId}/messages/${message.message_id}/comment`, {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error("Errore HTTP: " + response.status);
+        }
+
+        if(message.comments){
+          message.comments = message.comments.filter(c => c.username !== this.currentUser);
+        }
+      
+
+      this.reactionMessageId = null;
+      this.selectedMessageOptions = null;
+      } catch (err) {
+        console.error("Errore durante la rimozione dell'emoji: ", err);
+      }
+    },
     cancelSelection() {
       this.showUserSelection = false;
       this.selectedUsers = [];
       this.groupName = "";
+      this.groupImage = "";
+      this.startMessageText = "";
       this.errorMessage = "";
     },
     logout() {
@@ -449,6 +569,9 @@ export default {
     // Apri modale o selezione destinazione
     console.log("Inoltro", message);
     this.selectedMessageOptions = null;
+    },
+    showEmoji(message) {
+      this.reactionMessageId = message.message_id;
     },
   },
 
@@ -558,20 +681,21 @@ export default {
   accent-color: #007bff;
 }
 
+
 /* Foto utente */
 .user-avatar {
-  width: 35px;
-  height: 35px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   object-fit: cover;
 }
 
-/* Nome utente */
 .user-name {
-  font-size: 16px;
   font-weight: 500;
+  font-size: 15px;
   color: #333;
 }
+
 
 .chat-list {
   list-style: none;
@@ -649,6 +773,28 @@ export default {
   z-index: 1;
 }
 
+.emoji-op{
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+  padding: 4px 0;
+}
+
+.emoji-option{
+  cursor: pointer;
+  font-size: 1.2em;
+  transition: transform 0.2s ease;
+}
+
+.emoji-option:hover{
+  transform: scale(1.3);
+}
+
+.message-reactions{
+  margin-top: 6px;
+  font-size: 1.1rem;
+}
+
 .messages {
   flex-grow: 1;
   overflow-y: auto;
@@ -679,6 +825,14 @@ export default {
   display: block;
 }
 
+.start-message-input {
+  width: 100%;
+  padding: 8px;
+  resize: vertical;
+  margin-top: 10px;
+}
+
+
 .message {
   max-width: 70%;
   padding: 10px;
@@ -704,18 +858,16 @@ export default {
 .message.sent .dropdown-menu {
   right: 100%;
   left: auto;
-  top: 0;
-  margin-right: 150%;
+  top: 60px;
+  margin-right: 10%;
 }
 
 .message.received .dropdown-menu {
   left: 100%;
   right: auto;
   top: 0;
-  margin-left: 60%;
+  margin-left: 10%;
 }
-
-
 
 .message-options {
   cursor: pointer;
@@ -847,49 +999,136 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.4);
   display: flex;
   justify-content: center;
   align-items: center;
+  z-index: 999;
 }
 
 .modal-content {
   background: white;
+  border-radius: 12px;
   padding: 20px;
-  border-radius: 5px;
-  width: 300px;
-  text-align: center;
+  width: 90%;
+  max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
 }
 
 .modal-content h3 {
-  margin-top: 0;
+  margin: 0 0 10px;
+  font-size: 22px;
+  font-weight: bold;
+  text-align: center;
 }
 
-.modal-content ul {
+.user-list {
   list-style: none;
   padding: 0;
   margin: 0;
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 10px;
+  background: #f9f9f9;
 }
 
-.modal-content li {
-  margin-bottom: 10px;
+.user-item {
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  border-radius: 8px;
+  transition: background 0.2s ease-in-out;
 }
 
-.modal-content button {
-  margin-top: 10px;
-  padding: 10px 15px;
-  border: none;
-  border-radius: 5px;
+.user-item:hover {
+  background: #f1f1f1;
+}
+
+.user-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   cursor: pointer;
+  width: 100%;
 }
 
-.modal-content button:first-of-type {
+.user-checkbox {
+  width: 18px;
+  height: 18px;
+  accent-color: #007bff;
+}
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.user-name {
+  font-weight: 500;
+  font-size: 15px;
+  color: #333;
+  flex-grow: 1;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.modal-actions button {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.modal-actions button:first-of-type {
   background: #007bff;
   color: white;
 }
 
-.modal-content button:last-of-type {
+.modal-actions button:last-of-type {
   background: #ccc;
+  color: black;
+}
+
+.modal-actions button:hover {
+  opacity: 0.9;
+}
+
+.start-message-input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 15px;
+  font-family: inherit;
+  transition: border-color 0.2s ease;
+  margin-top: 10px;
+}
+
+.start-message-input:focus {
+  outline: none;
+  border-color: #1abc9c;
+  box-shadow: 0 0 0 2px #1abc9c33;
+}
+
+.error-message {
+  color: red;
+  font-size: 14px;
+  margin-top: 10px;
+  text-align: center;
 }
 
 .search-bar {
@@ -942,5 +1181,4 @@ export default {
   background-color: #c0392b;
   box-shadow: 0 0 10px #e74c3c80;
 }
-
 </style>

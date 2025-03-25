@@ -186,7 +186,7 @@ func (db *appdbimpl) CreateConversationDB(author int, req ConversationRequest) (
 
 // ------------------ #CONVERSAZIONI DI UN UTENTE# --------------------------
 func (db *appdbimpl) GetUserConversations(author int) ([]Triplos, error) {
-	query := ` SELECT
+	query := `SELECT
 					conversations.conversation_id,
 					conversations.message_id,
 					conversations.imageGroup,
@@ -201,9 +201,13 @@ func (db *appdbimpl) GetUserConversations(author int) ([]Triplos, error) {
 				LEFT JOIN
 					messages_read_status ON conversations.message_id = messages_read_status.message_id
 					AND messages_read_status.user_id = ?
+				LEFT JOIN
+					messages ON conversations.message_id = messages.message_id
 				WHERE
-					conversation_participants.user_id = ?;
+					conversation_participants.user_id = ?
+				ORDER BY messages.timestamp DESC;
 	`
+
 	rows, err := db.c.Query(query, author, author)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -228,7 +232,7 @@ func (db *appdbimpl) GetUserConversations(author int) ([]Triplos, error) {
 
 		// Se è una chat privata, prendo i dati dell'altro utente
 		if conv.ChatType == "private_chat" {
-			q := ` SELECT 
+			q := `SELECT 
 						users.name,
 						users.profile_image
 					FROM
@@ -236,8 +240,7 @@ func (db *appdbimpl) GetUserConversations(author int) ([]Triplos, error) {
 					INNER JOIN
 						conversation_participants ON conversation_participants.user_id = users.user_id
 					WHERE 
-						conversation_participants.conversation_id = ? AND users.user_id != ?;
-			`
+						conversation_participants.conversation_id = ? AND users.user_id != ?;`
 			err := db.c.QueryRow(q, conv.ConversationId, author).Scan(&conv.ChatName, &conv.ChatImage)
 			if err != nil {
 				return nil, errors.New("error executing query to fetch user details")
@@ -247,7 +250,7 @@ func (db *appdbimpl) GetUserConversations(author int) ([]Triplos, error) {
 		// Recupero l'ultimo messaggio solo se MessageId è valido (non NULL)
 		var mex MessageRicvDb
 		if conv.MessageId.Valid {
-			qMex := ` SELECT
+			qMex := `SELECT
 							users.name,
 							messages.timestamp,
 							messages.type,
@@ -274,13 +277,13 @@ func (db *appdbimpl) GetUserConversations(author int) ([]Triplos, error) {
 		// Recupero le reazioni (se ce ne sono)
 		var comments []CommentDb
 		if conv.MessageId.Valid {
-			qComm := ` SELECT
+			qComm := `SELECT
 							reaction,
 							user_id
 						FROM 
 							message_reactions 
 						WHERE 
-							message_reactions.message_id = ?;`
+							message_id = ?;`
 			rowComm, err := db.c.Query(qComm, conv.MessageId.Int64)
 			if err != nil && !errors.Is(err, sql.ErrNoRows) {
 				return nil, errors.New("error executing query to fetch comment details")
