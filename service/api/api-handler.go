@@ -25,7 +25,7 @@ func (rt *_router) Handler() http.Handler {
 	rt.router.DELETE("/conversation/:conversation_id/messages/:message_id", rt.wrap(rt.deleteMessage))
 	rt.router.PUT("/conversation/:conversation_id/messages/:message_id/comment", rt.wrap(rt.commentMessage))
 	rt.router.DELETE("/conversation/:conversation_id/messages/:message_id/comment", rt.wrap(rt.removeReaction))
-	// rt.router.POST("/upload", rt.wrap(rt.uploadImage))
+	rt.router.POST("/upload", rt.wrap(rt.uploadImage))
 	// rt.router.ServeFiles("/foto/*filepath", http.Dir(uploadDir))
 
 	// Register routes
