@@ -1,257 +1,310 @@
-<template>
-  <div class="chat-container">
-    <!-- Sidebar con le chat -->
-    <div class="sidebar">
-      <div class="sidebar-header">
-        <h2>Chats</h2>
-        <button @click="logout" class="logout-button">Logout</button>
-      </div>
-      <div class="search-bar">
-        <div class="search-input-wrapper">
-          <span class="search-icon">🔍</span>
-          <input
-            v-model="searchquery"
-            @input="searchUsers"
-            type="text"
-            placeholder="Search user..."
-            class="search-input"
-          />
-        </div>
-      </div>
+  <template>
+    <div class="chat-container">
+      <div class="sidebar">
+        <div class="sidebar-header">
+          <div class="user-info">
+            <!-- Immagine profilo -->
+            <img
+              :src="profileImage"
+              alt="Profile"
+              class="profile-image"
+            />
+            <!-- Nome utente -->
+            <span class="username-display">{{ currentUser }}</span>
+          </div>
 
-      <!-- Risultati ricerca utenti -->
-      <div v-if="users.length > 0" class="search-results-box">
-        <h3 class="search-results-title">Utenti trovati:</h3>
-        <ul class="conversation-list">
+          <div class="menu-icon" @click="toggleUserMenu">🛠️</div>
+
+          <div v-if="showUserMenu" class="dropdown-menu user-dropdown">
+            <p @click="logout">🚪 Logout</p>
+            <p @click="openChangeUsernameModal">🖊️ Cambia nome</p>
+            <p @click="openChangeProfileImageModal">🖼️ Cambia immagine profilo</p>
+          </div>
+        </div>
+
+        <div class="search-bar">
+          <div class="search-input-wrapper">
+            <span class="search-icon">🔍</span>
+            <input
+              v-model="searchquery"
+              @input="searchUsers"
+              type="text"
+              placeholder="Search chat..."
+              class="search-input"
+            />
+          </div>
+        </div>  
+
+        <ul class="chat-list" v-if="filteredChats.length > 0">
           <li
-            v-for="user in users"
-            :key="user.user_id"
-            class="conversation-item"
-            @click="startPrivateChat(user.nickname)"
+            v-for="chat in filteredChats"
+            :key="chat.conversationId"
+            @click="handleChatClick(chat)"
+            :class="{ active: chat.conversationId === currentChat?.conversationId }"
           >
-            {{ user.nickname }}
+            <div class="chat-item">
+              <div class="chat-avatar">💬</div>
+              <div class="chat-info">
+                <strong>{{ chat.nameChat }}</strong>
+                <p v-if="chat.lastMessage">{{ truncatedMessage(chat.lastMessage.content) }}</p>
+              </div>
+            </div>
           </li>
         </ul>
-      </div>
 
-
-      <ul class="chat-list" v-if="chats && chats.length > 0">
-        <li
-          v-for="chat in chats"
-          :key="chat.conversationId"
-          @click="handleChatClick(chat)"
-          :class="{ active: chat.conversationId === currentChat?.conversationId }"
-        >
-          <div class="chat-item">
-            <div class="chat-avatar">💬</div>
-            <div class="chat-info">
-              <strong>{{ chat.nameChat }}</strong>
-              <p v-if="chat.lastMessage">{{ truncatedMessage(chat.lastMessage.content) }}</p>
-            </div>
-          </div>
-        </li>
-      </ul>
-      <p v-else class="no-chats">You have no conversations yet. Start one now!</p>
-      <div class="new-chat-wrapper">
-        <button @click="startNewChat" class="new-chat-button">✚ New Chat</button>
-      </div>
-    </div>
-
-    <!-- Area principale della chat -->
-    <div class="chat-window" v-if="currentChat">
-      <header class="chat-header">
-        <div class="group-header-wrapper">
-          <div class="group-name-section">
-            <template v-if="editingGroupName">
-              <input
-                v-model="editedGroupName"
-                @blur="saveGroupName"
-                @keyup.enter="saveGroupName"
-                class="edit-group-name-input"
-              />
-            </template>
-            <template v-else>
-              <h2
-                @click="enableNameEdit"
-                :class="{ editable: currentChat.chatType === 'group_chat' }"
-              >
-                {{ currentChat.nameChat }}
-              </h2>
-            </template>
-          </div>
-
-          <div v-if="currentChat.chatType === 'group_chat'" class="group-menu-wrapper">
-            <div class="menu-icon" @click="toggleGroupMenu">⚙️</div>
-            <div v-if="showGroupMenu" class="dropdown-menu group-dropdown">
-              <p @click="openAddMembersModal">➕ Aggiungi membri</p>
-              <p @click="enableNameEdit">🖊️ Modifica nome</p>
-              <p @click="openChangeImageModal">🖼️ Cambia immagine</p>
-              <p @click="leaveGroup">🚪 Esci dal gruppo</p>
-            </div>
-          </div>
+        <p v-else class="no-chats">You have no conversations yet. Start one now!</p>
+        <div class="new-chat-wrapper">
+          <button @click="startNewChat" class="new-chat-button">✚ New Chat</button>
         </div>
-      </header>
+      </div>
 
-      <div class="messages">
-        <div
-          v-for="(message, index_in_array) in currentChat.messages"
-          :key="message.message_id"
-          :class="['message', message.username === currentUser ? 'sent' : 'received']"
-          :ref="index_in_array === currentChat.messages.length - 1 ? 'lastMessage' : null"
-          @mouseleave="hoveredMessage = null"
-        >
-          <div class="message-header">
-            <div class="message-text">
-              <p v-if="currentChat.chatType === 'group_chat' && message.username !== currentUser" class="sender-name">
-                <strong>{{ getNickname(message.username) }}</strong>
-              </p>
-              <p class="message-content">{{ message.content }}</p>
+      <!-- Area principale della chat -->
+      <div class="chat-window" v-if="currentChat">
+        <header class="chat-header">
+          <div class="group-header-wrapper">
+            <div class="group-name-section">
+              <template v-if="editingGroupName">
+                <input
+                  v-model="editedGroupName"
+                  @blur="saveGroupName"
+                  @keyup.enter="saveGroupName"
+                  class="edit-group-name-input"
+                />
+              </template>
+              <template v-else>
+                <h2
+                  @click="enableNameEdit"
+                  :class="{ editable: currentChat.chatType === 'group_chat' }"
+                >
+                  {{ currentChat.nameChat }}
+                </h2>
+              </template>
             </div>
-            <div class="message-options-wrapper">
-              <div class="message-options" @click="toggleOptionsMenu(message.message_id)">⋮</div>
-              <div v-if="selectedMessageOptions === message.message_id" class="dropdown-menu">
-                <p @click="forwardMessage(message)">📤 Inoltra</p>
-                <p @click="showEmoji(message)">☺️​ Reazione</p>
-                <p v-if="message.username === currentUser" @click="deleteMessage(message)">🗑️ Elimina</p>
+
+            <div v-if="currentChat.chatType === 'group_chat'" class="group-menu-wrapper">
+              <div class="menu-icon" @click="toggleGroupMenu">⚙️</div>
+              <div v-if="showGroupMenu" class="dropdown-menu group-dropdown">
+                <p @click="openAddMembersModal">➕ Aggiungi membri</p>
+                <p @click="enableNameEdit">🖊️ Modifica nome</p>
+                <p @click="openChangeImageModal">🖼️ Cambia immagine</p>
+                <p @click="leaveGroup">🚪 Esci dal gruppo</p>
               </div>
             </div>
           </div>
+        </header>
 
-          <div v-if="reactionMessageId === message.message_id" class="emoji-op">
-            <span
-              v-for="emoji in emojiOptions"
-              :key="emoji"
-              class="emoji-option"
-              @click="addReaction(message, emoji)"
+        <div class="messages">
+          <div
+            v-for="(message, index_in_array) in currentChat.messages"
+            :key="message.message_id"
+            :class="['message', message.username === currentUser ? 'sent' : 'received']"
+            :ref="index_in_array === currentChat.messages.length - 1 ? 'lastMessage' : null"
+            @mouseleave="hoveredMessage = null"
+          >
+            <div class="message-header">
+              <div class="message-text">
+                <p v-if="currentChat.chatType === 'group_chat' && message.username !== currentUser" class="sender-name">
+                  <strong>{{ getNickname(message.username) }}</strong>
+                </p>
+                <p class="message-content">{{ message.content }}</p>
+              </div>
+              <div class="message-options-wrapper">
+                <div class="message-options" @click="toggleOptionsMenu(message.message_id)">⋮</div>
+                <div v-if="selectedMessageOptions === message.message_id" class="dropdown-menu">
+                  <p @click="forwardMessage(message)">📤 Inoltra</p>
+                  <p @click="showEmoji(message)">☺️​ Reazione</p>
+                  <p v-if="message.username === currentUser" @click="deleteMessage(message)">🗑️ Elimina</p>
+                </div>
+              </div>
+            </div>
+
+            <div v-if="reactionMessageId === message.message_id" class="emoji-op">
+              <span
+                v-for="emoji in emojiOptions"
+                :key="emoji"
+                class="emoji-option"
+                @click="addReaction(message, emoji)"
+              >
+                {{ emoji }}
+              </span>
+            </div>
+
+            <div class="message-reactions" v-if="message.comments && message.comments.length > 0">
+              <span v-for="comment in message.comments" :key="comment.username + comment.emojiCode">
+                {{ comment.emojiCode }}
+              </span>
+            </div>
+            <span class="message-time">{{ formatTime(message.timestamp) }}</span>
+            <span class="status-message" v-if="message.username === currentUser">
+              <i v-if="!message.is_read && message.is_delivered" class="fas fa-check is_delivered"></i>
+              <i v-else-if="!message.is_read" class="fas fa-check"></i>
+              <i v-else class="fas fa-check-double letto"></i>
+            </span>
+          </div>
+        </div>
+
+        <div class="input-area">
+          <input type="text" v-model="newMessage" @keyup.enter="sendMessage" placeholder="Type a message..." />
+          <button @click="sendMessage">Send</button>
+        </div>
+      </div>
+
+
+      <div class="chat-window empty" v-else>
+        <p>Select a chat to start messaging</p>
+      </div>
+
+      <!-- Modal per inoltro messaggio -->
+      <div v-if="showForwardModal" class="modal">
+        <div class="modal-content-forward">
+          <h3>Inoltra messaggio a...</h3>
+          <ul class="conversation-list">
+            <li
+              v-for="chat in chats"
+              :key="chat.conversationId"
+              :class="{ selected: selectedForwardChatIds.includes(chat.conversationId) }"
+              @click="toggleForwardSelection(chat.conversationId)"
+              class="conversation-item"
             >
-              {{ emoji }}
-            </span>
+              {{ chat.nameChat }}
+            </li>
+          </ul>
+
+          <div class="modal-buttons">
+            <button @click="confirmForward">Inoltra</button>
+            <button @click="cancelForward">Annulla</button>
+          </div>
+        </div>
+      </div>
+
+
+
+      <!-- Modal per la creazione di una nuova chat -->
+      <div v-if="showUserSelection" class="modal">
+        <div class="modal-content">
+          <!-- Colonna di sinistra -->
+          <div class="left-column">
+            <h3>Crea nuova chat</h3>
+
+            <!-- Per selezionare il tipo chat -->
+            <div class="chatType-buttons">
+              <button
+                :class="{ active: chatType === 'private_chat' }"
+                @click="chatType = 'private_chat'"
+              >
+                Chat Privata
+              </button>
+              <button
+                :class="{ active: chatType === 'group_chat' }"
+                @click="chatType = 'group_chat'"
+              >
+                Gruppo
+              </button>
+            </div>
+
+            <!-- Barra di ricerca utenti -->
+            <input
+              v-model="searchnome"
+              placeholder="Cerca utente..."
+              class="search-input-wrapper"
+            />
+
+            <!-- Lista utenti filtrata -->
+            <ul class="conversation-list">
+              <li
+                v-for="user in filteredUserList"
+                :key="user.user_id"
+                :class="['conversation-item', selectedUsers.includes(user.nickname) ? 'selected' : '']"
+                @click="toggleUserSelection(user.nickname)"
+              >
+                {{ user.nickname }}
+              </li>
+            </ul>
           </div>
 
-          <div class="message-reactions" v-if="message.comments && message.comments.length > 0">
-            <span v-for="comment in message.comments" :key="comment.username + comment.emojiCode">
-              {{ comment.emojiCode }}
-            </span>
+          <!-- Colonna destra -->
+          <div class="right-column">
+            <!-- Nome e immagine gruppo (se gruppo) -->
+            <div v-if="chatType === 'group_chat'" class="group-fields">
+              <input
+                v-model="groupName"
+                type="text"
+                placeholder="Nome del gruppo"
+                class="search-input-wrapper"
+              />
+              <input
+                v-model="groupImage"
+                type="text"
+                placeholder="URL immagine gruppo (facoltativa)"
+                class="search-input-wrapper"
+              />
+            </div>
+
+            <!-- Messaggio iniziale -->
+            <textarea
+              v-model="startMessageText"
+              placeholder="Scrivi un messaggio iniziale..."
+              class="search-input-wrapper"
+              rows="4"
+            ></textarea>
+
+            <!-- Messaggi di errore -->
+            <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
+
+            <!-- Bottoni -->
+            <div class="modal-buttons">
+              <button class="primary-btn" @click="createConversation">Crea</button>
+              <button class="secondary-btn" @click="cancelSelection">Annulla</button>
+            </div>
           </div>
-          <span class="message-time">{{ formatTime(message.timestamp) }}</span>
-          <span class="status-message" v-if="message.username === currentUser">
-            <i v-if="!message.is_read && message.is_delivered" class="fas fa-check is_delivered"></i>
-            <i v-else-if="!message.is_read" class="fas fa-check"></i>
-            <i v-else class="fas fa-check-double letto"></i>
-          </span>
         </div>
       </div>
 
-      <div class="input-area">
-        <input type="text" v-model="newMessage" @keyup.enter="sendMessage" placeholder="Type a message..." />
-        <button @click="sendMessage">Send</button>
-      </div>
-    </div>
 
 
-    <div class="chat-window empty" v-else>
-      <p>Select a chat to start messaging</p>
-    </div>
+      <!-- Modal per aggiungere membri a un gruppo esistente -->
+      <div v-if="showAddMembersModal" class="modal">
+        <div class="modal-content-forward">
+          <h3>Aggiungi membri al gruppo</h3>
 
-    <!-- Modal per inoltro messaggio -->
-    <div v-if="showForwardModal" class="modal">
-      <div class="modal-content">
-        <h3>Inoltra messaggio a...</h3>
-        <ul class="conversation-list">
-          <li
-            v-for="chat in chats"
-            :key="chat.conversationId"
-            :class="{ selected: selectedForwardChatIds.includes(chat.conversationId) }"
-            @click="toggleForwardSelection(chat.conversationId)"
-            class="conversation-item"
-          >
-            {{ chat.nameChat }}
-          </li>
-        </ul>
+          <ul class="conversation-list">
+            <li
+              v-for="user in users"
+              :key="user.user_id"
+              :class="['conversation-item', selectedUsers.includes(user.nickname) ? 'selected' : '']"
+              @click="toggleUserSelection(user.nickname)"
+            >
+              {{ user.nickname }}
+            </li>
+          </ul>
 
-        <div class="modal-buttons">
-          <button @click="confirmForward">Inoltra</button>
-          <button @click="cancelForward">Annulla</button>
+          <div class="modal-buttons">
+            <button class="primary-btn" @click="confirmAddMembers">Aggiungi</button>
+            <button class="secondary-btn" @click="cancelAddMembers">Annulla</button>
+          </div>
         </div>
       </div>
-    </div>
-
-
-
-    <!-- Modal per la selezione degli utenti -->
-    <div v-if="showUserSelection" class="modal">
-      <div class="modal-content">
-        <h3>Crea nuova chat</h3>
-
-        <ul class="conversation-list">
-          <li
-            v-for="user in users"
-            :key="user.user_id"
-            :class="['conversation-item', selectedUsers.includes(user.nickname) ? 'selected' : '']"
-            @click="toggleUserSelection(user.nickname)"
-          >
-            {{ user.nickname }}
-          </li>
-        </ul>
-
-        <div v-if="selectedUsers.length > 1" class="group-fields">
-          <input
-            v-model="groupName"
-            type="text"
-            placeholder="Nome del gruppo"
-            class="styled-input"
-          />
-          <input
-            v-model="groupImage"
-            type="text"
-            placeholder="URL immagine gruppo (facoltativa)"
-            class="styled-input"
-          />
-        </div>
-
-        <textarea
-          v-model="startMessageText"
-          placeholder="Scrivi un messaggio iniziale..."
-          class="styled-input"
-          rows="4"
-        ></textarea>
-
-        <div class="modal-buttons">
-          <button class="primary-btn" @click="createConversation">Crea</button>
-          <button class="secondary-btn" @click="cancelSelection">Annulla</button>
-        </div>
-
-        <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
+      <!-- Modal per cambiare il nome utente -->
+      <div v-if="showChangeUsernameModal" class="modal">
+          <div class="modal-change-username">
+            <h3>Cambia il mio nome utente</h3>
+            <input
+              v-model="newUsername"
+              type="text"
+              placeholder="Inserisci il nuovo nome"
+              class="styled-input"
+            />
+            <div class="modal-buttons">
+              <button class="primary-btn" @click="updateUsername">
+                Salva
+              </button>
+              <button class="secondary-btn" @click="showChangeUsernameModal = false">
+                Annulla
+              </button>
+            </div>
+          </div>
       </div>
     </div>
-
-
-
-    <!-- Modal per aggiungere membri a un gruppo esistente -->
-    <div v-if="showAddMembersModal" class="modal">
-      <div class="modal-content">
-        <h3>Aggiungi membri al gruppo</h3>
-
-        <ul class="conversation-list">
-          <li
-            v-for="user in users"
-            :key="user.user_id"
-            :class="['conversation-item', selectedUsers.includes(user.nickname) ? 'selected' : '']"
-            @click="toggleUserSelection(user.nickname)"
-          >
-            {{ user.nickname }}
-          </li>
-        </ul>
-
-        <div class="modal-buttons">
-          <button class="primary-btn" @click="confirmAddMembers">Aggiungi</button>
-          <button class="secondary-btn" @click="cancelAddMembers">Annulla</button>
-        </div>
-      </div>
-    </div>
-
-
-  </div>
 </template>
 
 
@@ -280,7 +333,13 @@ export default {
       showForwardModal: false,
       messageToForward: null,
       selectedForwardChatIds: [],
-
+      chatType: "",
+      searchnome: "",
+      showUserMenu: false, 
+      newUsername: "",
+      showChangeUsernameModal: false,
+      currentUser:"",
+      profileImage: "",
 
     };
   },
@@ -292,6 +351,17 @@ export default {
     } else {
       this.fetchChats();
     }
+  },
+  computed:
+  {
+    filteredChats() {
+      return this.chats.filter(chat => chat.nameChat.toLowerCase().includes(this.searchquery.toLowerCase()));
+    },
+    filteredUserList() {
+      return this.users.filter(user => user.nickname.toLowerCase().includes(this.searchnome.toLowerCase())
+    );
+}
+
   },
   methods: {
     async fetchMessageHistory(conversation_id) {
@@ -379,7 +449,7 @@ export default {
 
         let filteredUsers = allUsers.filter(u => u.nickname !== this.currentUser);
 
-        // Se NON è per una nuova chat, filtra quelli già nel gruppo
+        // Se non è per una nuova chat allora devo filtrare gli utenti che sono già nel gruppo
         if (!isForNewChat && this.currentChat && this.currentChat.users && this.currentChat.chatType === 'group_chat') {
           const existingUsernames = this.currentChat.users.map(u => u.nickname);
           filteredUsers = filteredUsers.filter(u => !existingUsernames.includes(u.nickname));
@@ -392,49 +462,50 @@ export default {
       }
     },
     selectChat(chat) {
-      console.log("selectChat invocato con chat:", chat);
       this.currentChat = chat
-      if (this.currentChat) {
-        this.fetchMessageHistory(this.currentChat.conversationId);
+      if (chat.conversationId) {
+        this.fetchMessageHistory(chat.conversationId);
       } else {
         console.warn("Nessuna chat trovata con id:", chat.conversationId);
       }
-
     },
     async sendMessage() {
       if (!this.newMessage.trim()) return;
 
       try {
         const token = localStorage.getItem("token");
-        if (!token) {
-          throw new Error("Non autorizzato");
+        if (!token) throw new Error("Non autorizzato");
+
+        if (!this.currentChat?.conversationId) {
+          console.warn("Tentativo di invio su una chat temporanea. Bloccato.");
+          return;
         }
 
         const messagePayload = {
-          content: this.newMessage,   // Il testo del messaggio
-          media: "text",              // Di default è testo, ma potrebbe essere gif o altro
-          image: ""                   // Vuoto per i messaggi di solo testo
+          content: this.newMessage,
+          media: "text",
+          image: ""
         };
 
-        // Chiamata API per inviare il messaggio
         const response = await fetch(`${__API_URL__}/conversation/${this.currentChat.conversationId}`, {
           method: "POST",
           headers: {
-            "Authorization": `Bearer ${token}`,
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify(messagePayload)
         });
 
-        if (!response.ok) {
-          throw new Error(`Errore HTTP: ${response.status}`);
-        }
+        if (!response.ok) throw new Error(`Errore HTTP: ${response.status}`);
+
         const data = await response.json();
+
         this.currentChat.messages.push({
           message_id: data.messageId || Date.now(),
           username: this.currentUser,
           content: this.newMessage,
           timestamp: new Date().toISOString(),
         });
+
         const chat = this.chats.find(c => c.conversationId === this.currentChat.conversationId);
         if (chat) {
           chat.lastMessage = {
@@ -442,16 +513,16 @@ export default {
             timestamp: new Date().toISOString()
           };
 
-          const index = this.chats.findIndex(c => c.conversationId === this.currentChat.conversationId);
-          if(index > -1){
-            const[updateChat] = this.chats.splice(index, 1);
-            this.chats.unshift(updateChat)
+          const index = this.chats.findIndex(c => c.conversationId === chat.conversationId);
+          if (index > -1) {
+            const [updateChat] = this.chats.splice(index, 1);
+            this.chats.unshift(updateChat);
           }
         }
+
         this.newMessage = "";
-        this.$nextTick(() => {
-          this.scrollToLastMessageWithSmooth();
-        });
+        this.$nextTick(() => this.scrollToLastMessageWithSmooth());
+
       } catch (error) {
         console.error("Errore nell'invio del messaggio:", error);
       }
@@ -461,6 +532,8 @@ export default {
       this.fetchUsers({ isForNewChat: true });
     },
     async createConversation() {
+      this.errorMessage = "";
+      
       if (this.selectedUsers.length === 0) {
         this.errorMessage = "Seleziona almeno un utente";
         return;
@@ -469,31 +542,23 @@ export default {
         this.errorMessage = "Devi scrivere un messaggio iniziale";
         return;
       }
-
-
-      const nSelected = this.selectedUsers.length;
-      let chatTypeValue = null;
-      let groupNameValue = '';
-
-      // Se viene selezionato 1 utente: private_chat, altrimenti group_chat
-      if (nSelected === 1) {
-        chatTypeValue = { ChatType: 'private_chat' };
-      } else if (nSelected > 1) {
-        if (!this.groupName.trim()) {
-          this.errorMessage = "Per un gruppo è necessario un nome";
-          return;
-        }
-        chatTypeValue = { ChatType: 'group_chat' };
-        groupNameValue = this.groupName;
+      
+      if (this.chatType === "private_chat" && this.selectedUsers.length !== 1) {
+        this.errorMessage = "La chat privata deve avere esattamente un partecipante";
+        return;
       }
-
+      if (this.chatType === "group_chat" && !this.groupName.trim()) {
+        this.errorMessage = "Devi inserire un nome al gruppo";
+        return;
+      }
+      
       const conversationRequest = {
-        chatType: chatTypeValue,                        // Tipo di chat (private_chat, group_chat)
-        groupName: groupNameValue,                      // Valido solo per group chat
-        imageGroup: nSelected > 1 ? "https://cdn.raceroster.com/assets/images/team-placeholder.png" : "",
-        usersname: this.selectedUsers,                // Array degli utenti selezionati
+        chatType: { ChatType: this.chatType },
+        groupName: this.chatType === "group_chat" ? this.groupName : "",
+        imageGroup: this.chatType === "group_chat" ? "https://cdn.raceroster.com/assets/images/team-placeholder.png" : "",
+        usersname: this.selectedUsers,
         startMessage: {
-          media: "text",             	 // Tipo di media (text, gif, gif_with_text)
+          media: "text",
           content: this.startMessageText.trim(),
           image: "",
         }
@@ -501,9 +566,7 @@ export default {
 
       try {
         const token = localStorage.getItem("token");
-        if (!token) {
-          throw new Error("Non sei autorizzato");
-        }
+        if (!token) throw new Error("Non sei autorizzato");
         const response = await fetch(`${__API_URL__}/conversations`, {
           method: "POST",
           headers: {
@@ -531,7 +594,6 @@ export default {
           this.selectChat(newChat);
           return;
         }
-
       } catch (error) {
         this.errorMessage = "Errore durante la creazione della chat: " + error.message;
       }
@@ -767,7 +829,7 @@ export default {
         if (!token) throw new Error("Non autorizzato");
 
         if (!this.searchquery.trim()) {
-          this.users = []; // Svuoto se il campo è vuoto
+          this.users = [];
           return;
         }
 
@@ -787,33 +849,33 @@ export default {
         console.error("Errore nella ricerca utenti:", err);
       }
     },
-    async startPrivateChat(nickname) {
-      try {
-        const chatEsistente = this.chats.find(chat =>
-          chat.chatType === "private_chat" &&
-          chat.nameChat === nickname
-        );
+    async updateUsername() {
+      if (!this.newUsername.trim()) {
+        return;
+      }
 
-        if (chatEsistente) {
-          console.log("Chat privata già esistente con:", nickname);
-          this.selectChat(chatEsistente);
-          this.users = [];
-          this.searchquery = "";
-          return;
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) throw new Error("Non autorizzato");
+
+        const response = await fetch(`${__API_URL__}/username`, {
+          method: "PUT",
+          headers: {
+            "Authorization": `Bearer ${token}`
+          },
+          body: JSON.stringify({ newUsername: this.newUsername.trim() })
+        });
+
+        if (!response.ok) {
+          const text = await response.text();
+          throw new Error("Errore: " + response.status + " - " + text);
         }
 
-        console.log("Nessuna chat trovata con", nickname, "-> ne creo una nuova");
-
-        this.selectedUsers = [nickname];
-        this.groupName = "";
-        this.startMessageText = "Ciao!"; 
-
-        await this.createConversation();
-
-        this.users = [];
-        this.searchquery = "";
-      } catch (err) {
-        console.error("Errore in startPrivateChat:", err);
+        localStorage.setItem("username", this.newUsername.trim());
+        this.currentUser = this.newUsername.trim();
+        this.showChangeUsernameModal = false;
+      } catch (error) {
+        console.error("Errore durante l'aggiornamento del nome utente:", error);
       }
     },
     cancelAddMembers() {
@@ -870,18 +932,29 @@ export default {
         lastMessage[lastMessage.length - 1].scrollIntoView({ behavior: 'smooth' });
       }
     },
-    toggleOptionsMenu(id){
-      this.selectedMessageOptions = this.selectedMessageOptions === id ? null : id;
+    toggleOptionsMenu(id) {
+      if (this.selectedMessageOptions === id) {
+        this.selectedMessageOptions = null;
+
+        if (this.reactionMessageId === id) {
+          this.reactionMessageId = null;
+        }
+      } else {
+        this.selectedMessageOptions = id;
+      }
     },
     handleChatClick(chat) {
-      console.log("handleChatClick invocato con chat: ", chat);
+      if (!chat.conversationId) {
+        this.currentChat = null;
+        return;
+      }
+
       if (this.showForwardModal && this.messageToForward) {
         this.confirmForward(chat.conversationId);
       } else {
         this.selectChat(chat);
       }
     },
-
     forwardMessage(message) {
       this.messageToForward = message;
       this.showForwardModal = true;
@@ -909,9 +982,9 @@ export default {
     toggleUserSelection(nickname) {
       const index = this.selectedUsers.indexOf(nickname);
       if (index > -1) {
-        this.selectedUsers.splice(index, 1); // Deseleziona
+        this.selectedUsers.splice(index, 1);
       } else {
-        this.selectedUsers.push(nickname); // Seleziona
+        this.selectedUsers.push(nickname);
       }
     },
     enableNameEdit() {
@@ -940,6 +1013,18 @@ export default {
       }
       this.showAddMembersModal = false;
       this.selectedUsers = [];
+    },
+    toggleUserMenu() {
+    this.showUserMenu = !this.showUserMenu;
+    },
+    openChangeUsernameModal() {
+      this.newUsername = "";
+    this.showChangeUsernameModal = true;
+    this.showUserMenu = false;
+    },
+    openChangeProfileImageModal() {
+      // Apri un modal o avvia la logica per cambiare l'immagine
+      console.log("Cambia immagine profilo");
     },
 
 
@@ -1058,8 +1143,6 @@ export default {
   accent-color: #007bff;
 }
 
-
-/* Foto utente */
 .user-avatar {
   width: 32px;
   height: 32px;
@@ -1186,7 +1269,64 @@ export default {
   display: block;
 }
 
-/* Finestra della chat */
+.user-info {
+  background: rgba(43, 218, 194, 0.638); 
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 6px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.25s ease;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  position: relative;
+}
+
+.user-info:hover {
+  transform: scale(1.02);
+  box-shadow: 0 6px 18px rgba(45, 212, 191, 0.4);
+  background: rgba(49, 243, 217, 0.35); 
+}
+
+.user-info .profile-image {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1.5px solid white;
+  object-fit: cover;
+  transition: transform 0.2s ease;
+}
+
+.user-info .profile-image:hover {
+  transform: scale(1.1);
+}
+
+.username-display {
+  font-weight: 600;
+  font-size: 1rem;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+
+
+.profile-image {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 2px solid #ccc;
+}
+
+.username-display {
+  font-weight: bold;
+  color: #fff;
+}
+
 .chat-window {
   margin-left: 25%;
   flex-grow: 1;
@@ -1395,7 +1535,7 @@ export default {
 .dropdown-menu {
   position: absolute;
   right: 0;
-  top: 25px;
+  top: 90%;
   background: white;
   border: 1px solid #ccc;
   box-shadow: 0 2px 6px rgba(0,0,0,0.2);
@@ -1404,6 +1544,12 @@ export default {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+}
+
+.user-dropdown{
+  position: absolute;
+  right: 0;
+  top: 8%;
 }
 
 .dropdown-menu p {
@@ -1523,7 +1669,71 @@ export default {
   z-index: 999;
 }
 
-.modal-content {
+.modal-change-username {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 24px;
+  width: 100%;
+  max-width: 500px;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 16px;
+  animation: fadeInUp 0.25s ease-out;
+}
+
+.modal-change-username h3 {
+  font-size: 24px;
+  font-weight: bold;
+  color: #2c3e50;
+  margin: 0;
+  text-align: center;
+}
+
+.modal-change-username input.styled-input {
+  padding: 12px 16px;
+  font-size: 1rem;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  width: 100%;
+}
+
+.modal-change-username input.styled-input:focus {
+  border-color:#1abc9c;
+  box-shadow: 0 0 0 3px rgba(26, 188, 156, 0.3);
+  outline: none;
+}
+
+.modal-change-username .modal-buttons {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.modal-change-username .modal-buttons button {
+  flex: 1;
+  padding: 12px 0;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.modal-change-username .modal-buttons .primary-btn {
+  background-color: #007bff;
+  color: white;
+}
+
+.modal-change-username .modal-buttons .secondary-btn {
+  background-color: #ecf0f1;
+  color: #2c3e50;
+}
+
+.modal-content-forward{
   background: white;
   border-radius: 12px;
   padding: 20px;
@@ -1531,7 +1741,19 @@ export default {
   max-width: 600px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 1rem;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+}
+
+.modal-content {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  width: 90%;
+  max-width: 600px;
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
 }
 
@@ -1541,6 +1763,23 @@ export default {
   font-weight: bold;
   text-align: center;
 }
+
+.left-column,
+.right-column {
+  flex: 1;              
+  display: flex;
+  flex-direction: column;
+}
+
+.left-column {
+  border-right: 1px solid #ccc;
+  padding-right: 1rem;
+}
+
+.right-column {
+  padding-left: 1rem;
+}
+
 
 .user-list {
   list-style: none;
@@ -1643,16 +1882,17 @@ export default {
 
 .error-message {
   color: red;
-  font-size: 14px;
+  font-weight: bold;
   margin-top: 10px;
-  text-align: center;
 }
+
 
 .search-bar {
   margin: 0 0 15px 0;
 }
 
 .search-input-wrapper {
+  margin-top: 1rem;
   display: flex;
   align-items: center;
   background-color: #ffffff;
@@ -1713,5 +1953,34 @@ export default {
   font-size: 20px;
 }
 
+.chatType-buttons {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+/* Stile dei pulsanti per scegliere chatType */
+.chatType-buttons button {
+  background-color: #eee;
+  color: #333;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.3s ease, color 0.3s ease;
+
+}
+
+.chatType-buttons button:hover {
+  background-color: #ddd;
+}
+
+/* Pulsante quando lo seleziono */
+.chatType-buttons button.active {
+  background-color: #007bff;
+  color: #fff;
+  border-color: #007bff;
+}
 
 </style>

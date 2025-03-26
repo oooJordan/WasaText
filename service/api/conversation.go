@@ -29,6 +29,8 @@ func (rt *_router) newConversation(w http.ResponseWriter, r *http.Request, ps ht
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
+
+	ctx.Logger.Infof(req.ChatType.ChatType)
 	// controllo la richiesta se è valida
 	if req.ChatType.ChatType == "" || req.StartMessage.Media == "" || len(req.Usersname) == 0 {
 		http.Error(w, "Missing required fields", http.StatusBadRequest)
