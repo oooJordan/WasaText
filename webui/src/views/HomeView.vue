@@ -8,6 +8,7 @@
               :src="profileImage"
               alt="Profile"
               class="profile-image"
+              @click="openImageModal"
             />
             <!-- Nome utente -->
             <span class="username-display">{{ currentUser }}</span>
@@ -304,6 +305,13 @@
             </div>
           </div>
       </div>
+      <!-- Modal per immagine profilo ingrandita -->
+      <div v-if="showImageModal" class="modal-image">
+        <div class="modal-content-image">
+          <img :src="profileImage" class="modal-profile-image" />
+          <button class="close-btn" @click="showImageModal = false">Chiudi</button>
+        </div>
+      </div>
     </div>
 </template>
 
@@ -340,6 +348,8 @@ export default {
       showChangeUsernameModal: false,
       currentUser:"",
       profileImage: "",
+      showImageModal: false,
+
 
     };
   },
@@ -355,7 +365,10 @@ export default {
   computed:
   {
     filteredChats() {
-      return this.chats.filter(chat => chat.nameChat.toLowerCase().includes(this.searchquery.toLowerCase()));
+      if (!Array.isArray(this.chats)) return []; // fallback sicuro
+      return this.chats.filter(chat =>
+        chat.nameChat?.toLowerCase().includes(this.searchquery.toLowerCase())
+      );
     },
     filteredUserList() {
       return this.users.filter(user => user.nickname.toLowerCase().includes(this.searchnome.toLowerCase())
@@ -878,6 +891,34 @@ export default {
         console.error("Errore durante l'aggiornamento del nome utente:", error);
       }
     },
+    async fetchProfileImage() {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          console.error("Token mancante");
+          return;
+        }
+
+        const response = await fetch(`${__API_URL__}/profile_image`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`Errore HTTP: ${response.status}`);
+        }
+
+        const data = await response.json();
+        this.profileImage = data.actualImage;
+
+      } catch (error) {
+        console.error("Errore nel caricamento dell'immagine profilo:", error);
+      }
+    },
+    openImageModal() {
+      this.showImageModal = true;
+    },
     cancelAddMembers() {
       this.showAddMembersModal = false;
       this.selectedUsers = [];
@@ -1026,13 +1067,11 @@ export default {
       // Apri un modal o avvia la logica per cambiare l'immagine
       console.log("Cambia immagine profilo");
     },
-
-
-
   },
 
   mounted() {
     this.fetchChats();
+    this.fetchProfileImage();
   },
 };
 </script>
@@ -1156,6 +1195,43 @@ export default {
   color: #333;
   flex-grow: 1;
 }
+
+.modal-image {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.modal-content-image {
+  background: white;
+  padding: 1rem;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.modal-profile-image {
+  max-width: 90vw;
+  max-height: 80vh;
+  border-radius: 8px;
+}
+
+.close-btn {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  background: #333;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
 
 .modal-buttons {
   display: flex;

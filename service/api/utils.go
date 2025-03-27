@@ -90,7 +90,7 @@ func (rt *_router) uploadImage(w http.ResponseWriter, r *http.Request, ps httpro
 		return
 	}
 
-	const maxUploadSize = 10 << 20
+	const maxUploadSize = 10 << 20 // 10MB
 	r.Body = http.MaxBytesReader(w, r.Body, int64(maxUploadSize))
 
 	if err := r.ParseMultipartForm(int64(maxUploadSize)); err != nil {
@@ -126,7 +126,10 @@ func (rt *_router) uploadImage(w http.ResponseWriter, r *http.Request, ps httpro
 	uploadedFile.Seek(0, io.SeekStart)
 
 	uploadDir := "uploads"
-	os.MkdirAll(uploadDir, os.ModePerm)
+	if err := os.MkdirAll(uploadDir, os.ModePerm); err != nil {
+		http.Error(w, "failed to create upload directory", http.StatusInternalServerError)
+		return
+	}
 
 	timestamp := strconv.FormatInt(time.Now().UnixNano(), 10)
 	finalName := timestamp + "_" + fileInfo.Filename
@@ -144,7 +147,13 @@ func (rt *_router) uploadImage(w http.ResponseWriter, r *http.Request, ps httpro
 		return
 	}
 
-	imageURL := "/image/" + finalName
+	scheme := "http"
+	if r.TLS != nil {
+		scheme = "https"
+	}
+	host := r.Host
+	imageURL := scheme + "://" + host + "/uploads/" + finalName
+
 	response := struct {
 		ImageURL string `json:"imageUrl"`
 	}{

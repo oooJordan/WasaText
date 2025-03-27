@@ -40,7 +40,7 @@ import (
 type AppDatabase interface {
 	GetName() (string, error)
 	SetName(string) error
-	GetIdUser(string) (int, error)
+	GetIdUser(string, string) (int, error)
 	GetListUsers(string) ([]Users, error)
 	UpdateUsername(int, string) error
 	CheckIDDatabase(int) (bool, string, error)

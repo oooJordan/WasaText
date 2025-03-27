@@ -30,8 +30,15 @@ func (rt *_router) loginUser(w http.ResponseWriter, r *http.Request, ps httprout
 		return
 	}
 
+	scheme := "http"
+	if r.TLS != nil {
+		scheme = "https"
+	}
+	host := r.Host
+	imageURL := scheme + "://" + host + "/defaultimage/defaultimage.jpg"
+
 	// prendo l'id dell'utente dal database
-	userID, err := rt.db.GetIdUser(req.User)
+	userID, err := rt.db.GetIdUser(req.User, imageURL)
 	if err != nil {
 		http.Error(w, "Server error", http.StatusInternalServerError)
 		return

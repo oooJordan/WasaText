@@ -27,13 +27,12 @@ func (db *appdbimpl) GetProfileImage(userid int) (string, error) {
 	return imageURL, nil
 }
 
-func (db *appdbimpl) GetIdUser(name string) (int, error) {
+func (db *appdbimpl) GetIdUser(name string, defaultimage string) (int, error) {
 	var user_id UserIdDatabase
 	err := db.c.QueryRow("SELECT user_id FROM users WHERE name = ?", name).Scan(&user_id.User_ID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			DefaultImage := "http://localhost:3000/foto/default.jpg"
-			result, err := db.c.Exec("INSERT INTO users (name, profile_image) VALUES (?, ?)", name, DefaultImage)
+			result, err := db.c.Exec("INSERT INTO users (name, profile_image) VALUES (?, ?)", name, defaultimage)
 			if err != nil {
 				return 0, err
 			}
