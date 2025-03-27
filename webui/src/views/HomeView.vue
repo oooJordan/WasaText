@@ -44,7 +44,14 @@
             :class="{ active: chat.conversationId === currentChat?.conversationId }"
           >
             <div class="chat-item">
-              <div class="chat-avatar">💬</div>
+              <div class="chat-avatar">
+                <img
+                  v-if="chat.ChatType === 'group_chat' && chat.profileimage"
+                  :src="chat.profileimage"
+                  alt="Group"
+                  class="chat-avatar-img"
+                />
+              </div>
               <div class="chat-info">
                 <strong>{{ chat.nameChat }}</strong>
                 <p v-if="chat.lastMessage">{{ truncatedMessage(chat.lastMessage.content) }}</p>
@@ -63,7 +70,17 @@
       <div class="chat-window" v-if="currentChat">
         <header class="chat-header">
           <div class="group-header-wrapper">
-            <div class="group-name-section">
+            <div class="group-name-section" style="display: flex; align-items: center; gap: 10px;">
+              <!-- Immagine gruppo -->
+              <img
+                v-if="currentChat.chatType === 'group_chat' && currentChat.profileimage"
+                :src="currentChat.profileimage"
+                alt="Group"
+                class="group-avatar-img"
+                style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;"
+              />
+
+              <!-- Nome gruppo -->
               <template v-if="editingGroupName">
                 <input
                   v-model="editedGroupName"
@@ -81,6 +98,7 @@
                 </h2>
               </template>
             </div>
+
 
             <div v-if="currentChat.chatType === 'group_chat'" class="group-menu-wrapper">
               <div class="menu-icon" @click="toggleGroupMenu">⚙️</div>
@@ -460,6 +478,8 @@ export default {
           throw new Error("Errore HTTP: " + response.status);
         }
         const data = await response.json();
+        console.log("Conversazioni ricevute:", data.conversation);
+
         this.chats = data.conversation;
       } catch (error) {
         console.error("Errore nel fetch delle chat:", error);
@@ -586,7 +606,7 @@ export default {
       const conversationRequest = {
         chatType: { ChatType: this.chatType },
         groupName: this.chatType === "group_chat" ? this.groupName : "",
-        imageGroup: this.chatType === "group_chat" ? "https://cdn.raceroster.com/assets/images/team-placeholder.png" : "",
+        imageGroup: this.chatType === "group_chat" ? (this.groupImage?.trim() || "") : "",
         usersname: this.selectedUsers,
         startMessage: {
           media: "text",
@@ -1474,8 +1494,6 @@ export default {
   text-overflow: ellipsis;
 }
 
-
-
 .profile-image {
   width: 40px;
   height: 40px;
@@ -1489,6 +1507,12 @@ export default {
   color: #fff;
 }
 
+.chat-avatar-img {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 50%;
+}
 .chat-window {
   margin-left: 25%;
   flex-grow: 1;

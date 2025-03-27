@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -30,7 +31,16 @@ func (rt *_router) newConversation(w http.ResponseWriter, r *http.Request, ps ht
 		return
 	}
 
-	ctx.Logger.Infof(req.ChatType.ChatType)
+	if req.ChatType.ChatType == "group_chat" && req.ImageGroup == "" {
+		scheme := "http"
+		if r.TLS != nil {
+			scheme = "https"
+		}
+		host := r.Host
+		req.ImageGroup = scheme + "://" + host + "/defaultimage/defaultGroup.png"
+	}
+
+	fmt.Println("Immagine di default assegnata al gruppo:", req.ImageGroup)
 	// controllo la richiesta se è valida
 	if req.ChatType.ChatType == "" || req.StartMessage.Media == "" || len(req.Usersname) == 0 {
 		http.Error(w, "Missing required fields", http.StatusBadRequest)

@@ -7,7 +7,6 @@ import (
 
 // ------------------ #CREAZIONE DI UNA CONVERSAZIONE# --------------------------
 func (db *appdbimpl) CreateConversationDB(author int, req ConversationRequest) (int, error) {
-	DefaultImage := "https://cdn.raceroster.com/assets/images/team-placeholder.png"
 	trans, err := db.c.Begin()
 	if err != nil {
 		return 0, err
@@ -61,9 +60,6 @@ func (db *appdbimpl) CreateConversationDB(author int, req ConversationRequest) (
 	} else if req.ChatType == "group_chat" {
 		if req.GroupName == "" {
 			return 0, errors.New("groupName is required for group chat")
-		}
-		if req.ImageGroup == "" {
-			req.ImageGroup = DefaultImage
 		}
 
 		query := "INSERT INTO conversations (chatType, groupName, imageGroup) VALUES (?, ?, ?)"
