@@ -45,13 +45,13 @@
           >
             <div class="chat-item">
               <div class="chat-avatar">
+                <!-- Immagine profilo di una chat dentro una chat -->
                 <img
                   v-if="chat.ChatType === 'group_chat' && chat.profileimage"
                   :src="chat.profileimage"
                   alt="Group"
                   class="chat-avatar-img"
                 />
-                <!-- Per le chat private, mostra l'immagine della conversazione (che potrebbe essere un'immagine di default) -->
                 <img
                   v-else-if="chat.ChatType === 'private_chat' && chat.profileimage"
                   :src="chat.profileimage"
@@ -127,13 +127,13 @@
               </div>
             </div>
 
-            <!-- Modale per Cambiare l'Immagine del Gruppo -->
+            <!-- Modale per cambiare l'immagine del gruppo -->
             <div v-if="showChangeImageGroupModal" class="modal">
               <div class="modal-change-image-profile">
                 <h3>Cambia immagine del gruppo</h3>
                 
                 <!-- Input per selezionare una nuova immagine -->
-                <input type="file" @change="handleProfileImageUpload($event, 'group')" />
+                <input type="file" ref="imageInput" @change="handleProfileImageUpload($event, 'group')" />
                 
                 <!-- Messaggio di errore -->
                 <p v-if="uploadError" class="error-message">{{ uploadError }}</p>
@@ -161,7 +161,17 @@
                 <p v-if="currentChat.chatType === 'group_chat' && message.username !== currentUser" class="sender-name">
                   <strong>{{ getNickname(message.username) }}</strong>
                 </p>
-                <p class="message-content">{{ message.content }}</p>
+                <div class="message-content">
+                  <!-- Messaggio di testo -->
+                  <p v-if="message.media === 'text' || message.media === 'gif_with_text'">{{ message.content }}</p>
+                  
+                  <!-- PEr vedere se un messaggio è una gif o una gif con testo -->
+                  <img
+                    v-if="message.media === 'gif' || message.media === 'gif_with_text'"
+                    :src="message.image"
+                    alt="immagine del messaggio"
+                  />
+                </div>
               </div>
               <div class="message-options-wrapper">
                 <div class="message-options" @click="toggleOptionsMenu(message.message_id)">⋮</div>
@@ -199,9 +209,34 @@
         </div>
 
         <div class="input-area">
-          <input type="text" v-model="newMessage" @keyup.enter="sendMessage" placeholder="Type a message..." />
-          <button @click="sendMessage">Send</button>
+          <div v-if="selectedGifUrl" class="image-preview">
+            <img :src="selectedGifUrl" alt="Anteprima immagine" />
+            <button class="remove-image-btn" @click="selectedGifUrl = null">✕</button>
+          </div>
+
+          <div class="input-controls">
+            <input
+              type="text"
+              v-model="newMessage"
+              @keyup.enter="sendMessage"
+              placeholder="Type a message..."
+              class="message-input"
+            />
+
+            <label class="file-label">
+              📎
+              <input
+                type="file"
+                @change="handleProfileImageUpload($event, 'message')"
+                style="display: none;"
+              />
+            </label>
+
+            <button class="send-button" @click="sendMessage">Send</button>
+          </div>
         </div>
+
+
       </div>
 
 
@@ -231,8 +266,6 @@
           </div>
         </div>
       </div>
-
-
 
       <!-- Modal per la creazione di una nuova chat -->
       <div v-if="showUserSelection" class="modal">
@@ -306,7 +339,7 @@
             <!-- Messaggi di errore -->
             <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
 
-            <!-- Bottoni -->
+            <!-- Bottoni per creazione o annulla -->
             <div class="modal-buttons">
               <button class="primary-btn" @click="createConversation">Crea</button>
               <button class="secondary-btn" @click="cancelSelection">Annulla</button>
@@ -314,8 +347,6 @@
           </div>
         </div>
       </div>
-
-
 
       <!-- Modal per aggiungere membri a un gruppo esistente -->
       <div v-if="showAddMembersModal" class="modal">
@@ -384,8 +415,6 @@
       </div>
     </div>
 </template>
-
-
 <script>
 export default {
   data() {
@@ -423,7 +452,8 @@ export default {
       showImageModal: false,
       showChangeImageGroupModal: false,
       selectedImageGroup: null,
-
+      selectedGifUrl: null,
+      newImageFile: null,
     };
   },
   created() {
@@ -558,59 +588,84 @@ export default {
       }
     },
     async sendMessage() {
-      if (!this.newMessage.trim()) return;
+      // Se non c'è testo e non c'è immagine, errore
+      if (!this.newMessage.trim() && !this.selectedGifUrl) return;
 
+      // tipo di messaggio
+      let mediaType = "text";
+      if (this.selectedGifUrl && this.newMessage.trim()) {
+        mediaType = "gif_with_text";
+      } else if (this.selectedGifUrl && !this.newMessage.trim()) {
+        mediaType = "gif";
+      }
+      
       try {
         const token = localStorage.getItem("token");
         if (!token) throw new Error("Non autorizzato");
-
+        
         if (!this.currentChat?.conversationId) {
           console.warn("Tentativo di invio su una chat temporanea. Bloccato.");
           return;
         }
-
-        const messagePayload = {
+        
+        const messagePayload = JSON.stringify({
           content: this.newMessage,
-          media: "text",
-          image: ""
-        };
-
+          media: mediaType,
+          image: this.selectedGifUrl || ""
+        });
+        
         const response = await fetch(`${__API_URL__}/conversation/${this.currentChat.conversationId}`, {
           method: "POST",
-          headers: {
+          headers: { 
             Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json"
           },
-          body: JSON.stringify(messagePayload)
+          body: messagePayload
         });
-
+        
         if (!response.ok) throw new Error(`Errore HTTP: ${response.status}`);
-
+        
         const data = await response.json();
-
+        
         this.currentChat.messages.push({
           message_id: data.messageId || Date.now(),
           username: this.currentUser,
           content: this.newMessage,
+          media: mediaType,
+          image: this.selectedGifUrl || "",
           timestamp: new Date().toISOString(),
         });
-
+        
         const chat = this.chats.find(c => c.conversationId === this.currentChat.conversationId);
         if (chat) {
+          let preview = "";
+            if (mediaType === "gif" && !this.newMessage) {
+              preview = "[Foto]";
+            } else if (mediaType === "gif_with_text") {
+              preview = "[Foto] " + this.newMessage;
+            } else {
+              preview = this.newMessage;
+            }
           chat.lastMessage = {
-            content: this.newMessage,
+            content: preview,
             timestamp: new Date().toISOString()
           };
-
           const index = this.chats.findIndex(c => c.conversationId === chat.conversationId);
           if (index > -1) {
             const [updateChat] = this.chats.splice(index, 1);
             this.chats.unshift(updateChat);
           }
         }
-
+        
         this.newMessage = "";
+        this.selectedGifUrl = null;
+        this.newImageFile = null;
+        if (this.$refs.imageInput) {
+          this.$refs.imageInput.value = null;
+        }
+        
         this.$nextTick(() => this.scrollToLastMessageWithSmooth());
-
+        
       } catch (error) {
         console.error("Errore nell'invio del messaggio:", error);
       }
@@ -968,7 +1023,6 @@ export default {
     },
     async handleProfileImageUpload(event, type) {
       const file = event.target.files[0];
-
       if (!file) return;
 
       const formData = new FormData();
@@ -976,12 +1030,9 @@ export default {
 
       try {
         const token = localStorage.getItem("token");
-
         const response = await fetch(`${__API_URL__}/upload`, {
           method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
           body: formData,
         });
 
@@ -991,12 +1042,14 @@ export default {
         }
 
         const data = await response.json();
-        if (type === 'profile') {
-          this.selectedProfileImage = data.imageUrl;  // immagine del profilo
-        } else if (type === 'group') {
-          this.selectedImageGroup = data.imageUrl;  // immagine del gruppo
-        }
 
+        if (type === 'profile') {
+          this.selectedProfileImage = data.imageUrl;
+        } else if (type === 'group') {
+          this.selectedImageGroup = data.imageUrl;
+        } else if (type === 'message') {
+          this.selectedGifUrl = data.imageUrl;
+        }
 
       } catch (err) {
         console.error("Errore upload immagine:", err);
@@ -1034,7 +1087,6 @@ export default {
         this.uploadError = "Devi prima selezionare un'immagine!";
         return;
       }
-
       try {
         const token = localStorage.getItem("token");
 
@@ -1246,7 +1298,6 @@ export default {
       this.selectedProfileImage = null;
       this.showUserMenu = false;
     },
-
   },
 
   mounted() {
@@ -2254,5 +2305,72 @@ export default {
   color: #fff;
   border-color: #007bff;
 }
+
+.input-area {
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+  border-top: 1px solid #ddd;
+  background-color: #f9f9f9;
+  width: 100%;
+}
+
+.input-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.message-input {
+  flex: 1;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+.send-button {
+  background-color: #007bff;
+  color: white;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.file-label {
+  cursor: pointer;
+  font-size: 20px;
+}
+
+.image-preview {
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+}
+
+.image-preview img {
+  max-width: 10px;
+  max-height: 10px;
+  object-fit: cover;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  margin-right: 8px;
+}
+
+.remove-image-btn {
+  background: transparent;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.message-content img {
+  max-width: 200px;
+  max-height: 200px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+
 
 </style>
