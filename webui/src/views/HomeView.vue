@@ -51,6 +51,14 @@
                   alt="Group"
                   class="chat-avatar-img"
                 />
+                <!-- Per le chat private, mostra l'immagine della conversazione (che potrebbe essere un'immagine di default) -->
+                <img
+                  v-else-if="chat.ChatType === 'private_chat' && chat.profileimage"
+                  :src="chat.profileimage"
+                  alt="Private"
+                  class="chat-avatar-img"
+                />
+
               </div>
               <div class="chat-info">
                 <strong>{{ chat.nameChat }}</strong>
@@ -80,6 +88,15 @@
                 style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;"
               />
 
+              <!-- Immagine chat privata -->
+              <img
+                v-if="currentChat.chatType === 'private_chat' && currentChat.profileimage"
+                :src="currentChat.profileimage"
+                alt="Private Chat"
+                class="group-avatar-img"
+                style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;"
+              />
+
               <!-- Nome gruppo -->
               <template v-if="editingGroupName">
                 <input
@@ -105,8 +122,27 @@
               <div v-if="showGroupMenu" class="dropdown-menu group-dropdown">
                 <p @click="openAddMembersModal">➕ Aggiungi membri</p>
                 <p @click="enableNameEdit">🖊️ Modifica nome</p>
-                <p @click="openChangeImageModal">🖼️ Cambia immagine</p>
+                <p @click="openChangeImageModalGroup">🖼️ Cambia immagine</p>
                 <p @click="leaveGroup">🚪 Esci dal gruppo</p>
+              </div>
+            </div>
+
+            <!-- Modale per Cambiare l'Immagine del Gruppo -->
+            <div v-if="showChangeImageGroupModal" class="modal">
+              <div class="modal-change-image-profile">
+                <h3>Cambia immagine del gruppo</h3>
+                
+                <!-- Input per selezionare una nuova immagine -->
+                <input type="file" @change="handleProfileImageUpload($event, 'group')" />
+                
+                <!-- Messaggio di errore -->
+                <p v-if="uploadError" class="error-message">{{ uploadError }}</p>
+                
+                <!-- Bottoni per confermare o annullare -->
+                <div class="modal-buttons">
+                  <button @click="confirmProfileImageGroupChange">Salva</button>
+                  <button @click="showChangeImageGroupModal=false">Annulla</button>
+                </div>
               </div>
             </div>
           </div>
@@ -336,7 +372,7 @@
         <div class="modal-change-image-profile">
           <h3>Carica una nuova immagine profilo</h3>
 
-          <input type="file" @change="handleProfileImageUpload"/>
+          <input type="file" @change="handleProfileImageUpload($event, 'profile')" />
 
           <p v-if="uploadError" class="error-message">{{ uploadError }}</p>
 
@@ -385,7 +421,8 @@ export default {
       currentUser:"",
       profileImage: "",
       showImageModal: false,
-
+      showChangeImageGroupModal: false,
+      selectedImageGroup: null,
 
     };
   },
@@ -401,7 +438,7 @@ export default {
   computed:
   {
     filteredChats() {
-      if (!Array.isArray(this.chats)) return []; // fallback sicuro
+      if (!Array.isArray(this.chats)) return [];
       return this.chats.filter(chat =>
         chat.nameChat?.toLowerCase().includes(this.searchquery.toLowerCase())
       );
@@ -478,7 +515,7 @@ export default {
           throw new Error("Errore HTTP: " + response.status);
         }
         const data = await response.json();
-        console.log("Conversazioni ricevute:", data.conversation);
+        console.log("Conversazioni ricevute:", data);
 
         this.chats = data.conversation;
       } catch (error) {
@@ -929,7 +966,7 @@ export default {
         console.error("Errore durante l'aggiornamento del nome utente:", error);
       }
     },
-    async handleProfileImageUpload(event) {
+    async handleProfileImageUpload(event, type) {
       const file = event.target.files[0];
 
       if (!file) return;
@@ -954,7 +991,12 @@ export default {
         }
 
         const data = await response.json();
-        this.selectedProfileImage = data.imageUrl;
+        if (type === 'profile') {
+          this.selectedProfileImage = data.imageUrl;  // immagine del profilo
+        } else if (type === 'group') {
+          this.selectedImageGroup = data.imageUrl;  // immagine del gruppo
+        }
+
 
       } catch (err) {
         console.error("Errore upload immagine:", err);
@@ -999,7 +1041,6 @@ export default {
         const response = await fetch(`${__API_URL__}/profile_image`, {
           method: "PUT",
           headers: {
-            "Content-Type": "application/json",
             Authorization: `Bearer ${token}`
           },
           body: JSON.stringify({ image: this.selectedProfileImage })
@@ -1013,6 +1054,36 @@ export default {
 
         this.showChangeProfileImageModal = false;
         this.selectedProfileImage = null;
+
+      } catch (err) {
+        this.uploadError = "Errore durante aggiornamento immagine profilo";
+        console.error(err);
+      }
+    },
+    async confirmProfileImageGroupChange() {
+      if (!this.selectedImageGroup) {
+        this.uploadError = "Devi prima selezionare un'immagine!";
+        return;
+      }
+
+      try {
+        const token = localStorage.getItem("token");
+
+        const response = await fetch(`${__API_URL__}/conversation/${this.currentChat.conversationId}/groupimage`, {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({ Image: this.selectedImageGroup })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Errore HTTP: ${response.status}`);
+        }
+
+        this.currentChat.profileimage = this.selectedImageGroup;
+        this.fetchChats();
+        this.showChangeImageGroupModal = false;
 
       } catch (err) {
         this.uploadError = "Errore durante aggiornamento immagine profilo";
@@ -1148,7 +1219,10 @@ export default {
       this.fetchUsers();
     },
     openChangeImageModal() {
-      console.log("Cambia immagine");
+      this.showChangeImageModal = true;
+    },
+    openChangeImageModalGroup(){
+      this.showChangeImageGroupModal = true;
       this.showGroupMenu = false;
     },
     confirmAddMembers(){
