@@ -312,6 +312,22 @@
           <button class="close-btn" @click="showImageModal = false">Chiudi</button>
         </div>
       </div>
+
+      <!-- Modale per cambiare immagine profilo -->
+      <div v-if="showChangeProfileImageModal" class="modal">
+        <div class="modal-change-image-profile">
+          <h3>Carica una nuova immagine profilo</h3>
+
+          <input type="file" @change="handleProfileImageUpload"/>
+
+          <p v-if="uploadError" class="error-message">{{ uploadError }}</p>
+
+          <div class="modal-buttons">
+            <button @click="confirmProfileImageChange">Salva</button>
+            <button @click="showChangeProfileImageModal = false">Annulla</button>
+          </div>
+        </div>
+      </div>
     </div>
 </template>
 
@@ -345,7 +361,9 @@ export default {
       searchnome: "",
       showUserMenu: false, 
       newUsername: "",
-      showChangeUsernameModal: false,
+      showChangeProfileImageModal: false,
+      selectedProfileImage: null,
+      uploadError: "",
       currentUser:"",
       profileImage: "",
       showImageModal: false,
@@ -891,6 +909,38 @@ export default {
         console.error("Errore durante l'aggiornamento del nome utente:", error);
       }
     },
+    async handleProfileImageUpload(event) {
+      const file = event.target.files[0];
+
+      if (!file) return;
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      try {
+        const token = localStorage.getItem("token");
+
+        const response = await fetch(`${__API_URL__}/upload`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const text = await response.text();
+          throw new Error(text || "Errore upload");
+        }
+
+        const data = await response.json();
+        this.selectedProfileImage = data.imageUrl;
+
+      } catch (err) {
+        console.error("Errore upload immagine:", err);
+        this.uploadError = err.message || "Errore durante l'upload";
+      }
+    },
     async fetchProfileImage() {
       try {
         const token = localStorage.getItem("token");
@@ -915,6 +965,38 @@ export default {
 
       } catch (error) {
         console.error("Errore nel caricamento dell'immagine profilo:", error);
+      }
+    },
+    async confirmProfileImageChange() {
+      if (!this.selectedProfileImage) {
+        this.uploadError = "Devi prima selezionare un'immagine!";
+        return;
+      }
+
+      try {
+        const token = localStorage.getItem("token");
+
+        const response = await fetch(`${__API_URL__}/profile_image`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({ image: this.selectedProfileImage })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Errore HTTP: ${response.status}`);
+        }
+
+        this.fetchProfileImage();
+
+        this.showChangeProfileImageModal = false;
+        this.selectedProfileImage = null;
+
+      } catch (err) {
+        this.uploadError = "Errore durante aggiornamento immagine profilo";
+        console.error(err);
       }
     },
     openImageModal() {
@@ -1065,9 +1147,12 @@ export default {
     this.showUserMenu = false;
     },
     openChangeProfileImageModal() {
-      // Apri un modal o avvia la logica per cambiare l'immagine
-      console.log("Cambia immagine profilo");
+      this.showChangeProfileImageModal = true;
+      this.uploadError = "";
+      this.selectedProfileImage = null;
+      this.showUserMenu = false;
     },
+
   },
 
   mounted() {
@@ -1830,6 +1915,18 @@ export default {
   max-width: 600px;
   display: flex;
   flex-direction: row;
+  gap: 1rem;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+}
+
+.modal-change-image-profile {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  width: 90%;
+  max-width: 600px;
+  display: flex;
+  flex-direction: column;
   gap: 1rem;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
 }
