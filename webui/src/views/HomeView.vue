@@ -900,6 +900,7 @@ export default {
         }
 
         const response = await fetch(`${__API_URL__}/profile_image`, {
+          method: "GET",
           headers: {
             Authorization: `Bearer ${token}`
           }
