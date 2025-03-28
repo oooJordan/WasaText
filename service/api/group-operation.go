@@ -194,7 +194,7 @@ func (rt *_router) updateGroupImage(w http.ResponseWriter, r *http.Request, ps h
 	}
 
 	// successo
-	w.WriteHeader(http.StatusNoContent)
+	w.WriteHeader(http.StatusOK)
 }
 
 // ---------------------- #AGGIUNGO MEMBRI A UN GRUPPO# ----------------------------------
