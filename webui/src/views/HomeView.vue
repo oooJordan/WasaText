@@ -514,6 +514,30 @@ export default {
               is_delivered = otherUsers.length > 0 && otherUsers.every(r => r.is_delivered);
             }
 
+            // Gestione del content basata sul tipo di media
+            const trimmedContent = (msg.content || "").trim();
+            switch (msg.media) {
+              case "text":
+                if (!trimmedContent) {
+                  msg.content = "[Messaggio vuoto]";
+                }
+                break;
+
+              case "gif":
+                if (!trimmedContent) {
+                  msg.content = "[Foto]";
+                }
+                break;
+
+              case "gif_with_text":
+                msg.content = trimmedContent ? `[Foto] ${trimmedContent}` : "[Foto]";
+                break;
+
+              default:
+                console.warn("Media sconosciuto:", msg.media);
+                break;
+            }
+
             return {
               ...msg,
               is_read,
@@ -534,11 +558,9 @@ export default {
     async fetchChats() {
       try {
         const token = localStorage.getItem("token");
-        if (!token) {
-          throw new Error("Non autorizzato");
-        }
+        if (!token) throw new Error("Non autorizzato");
 
-        const response = await this.$axios.get("/conversations", {
+        const response = await this.$axios.get(`/conversations`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -546,10 +568,35 @@ export default {
 
         const data = response.data;
 
-        this.chats = data.conversation.map(chat => ({
-          ...chat,
-          chatType: chat.chatType?.ChatType || chat.chatType?.chatType || chat.ChatType || "private_chat"
-        }));
+        this.chats = data.conversation.map(chat => {
+          const lastMsg = chat.lastMessage || {};
+          const trimmedContent = (lastMsg.content || "").trim();
+
+          switch (lastMsg.media) {
+            case "gif":
+              lastMsg.content = trimmedContent || "[Foto]";
+              break;
+
+            case "gif_with_text":
+              lastMsg.content = trimmedContent ? `[Foto] ${trimmedContent}` : "[Foto]";
+              break;
+
+            case "text":
+              if (!trimmedContent) {
+                lastMsg.content = "[Messaggio vuoto]";
+              }
+              break;
+
+            default:
+              break;
+          }
+
+          return {
+            ...chat,
+            lastMessage: lastMsg,
+            chatType: chat.chatType?.chatType || chat.chatType || "private_chat"
+          };
+        });
 
       } catch (error) {
         console.error("Errore nel fetch delle chat:", error);
@@ -639,10 +686,10 @@ export default {
         const chat = this.chats.find(c => c.conversationId === this.currentChat.conversationId);
         if (chat) {
           let preview = "";
-          if (mediaType === "gif" && !this.newMessage) {
+          if (mediaType === "gif" && !this.newMessage.trim()) {
             preview = "[Foto]";
           } else if (mediaType === "gif_with_text") {
-            preview = "[Foto] " + this.newMessage;
+            preview = "[Foto] " + this.newMessage.trim();
           } else {
             preview = this.newMessage;
           }
@@ -1018,6 +1065,8 @@ export default {
       } catch (err) {
         console.error("Errore upload immagine:", err);
         this.uploadError = err.message || "Errore durante l'upload";
+      }finally{
+        event.target.value = null;
       }
     },
     async fetchProfileImage() {
