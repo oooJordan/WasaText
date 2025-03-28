@@ -594,7 +594,7 @@ export default {
           return {
             ...chat,
             lastMessage: lastMsg,
-            chatType: chat.chatType?.chatType || chat.chatType || "private_chat"
+            chatType: chat.chatType?.chatType || chat.chatType || chat.ChatType || "private_chat"
           };
         });
 
