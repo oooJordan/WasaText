@@ -208,12 +208,13 @@
           </div>
         </div>
 
-        <div class="input-area">
-          <div v-if="selectedGifUrl" class="image-preview">
+
+        <div v-if="selectedGifUrl" class="image-preview">
             <img :src="selectedGifUrl" alt="Anteprima immagine" />
             <button class="remove-image-btn" @click="selectedGifUrl = null">✕</button>
-          </div>
+        </div>
 
+        <div class="input-area">
           <div class="input-controls">
             <input
               type="text"
@@ -486,21 +487,19 @@ export default {
         const token = localStorage.getItem("token");
         if (!token) throw new Error("Non autorizzato");
 
-        const response = await fetch(`${__API_URL__}/conversation/${conversation_id}`, {
-          method: "GET",
+        const response = await this.$axios.get(`/conversation/${conversation_id}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
 
-        if (!response.ok) {
-          throw new Error("Errore HTTP: " + response.status);
-        }
-
-        const data = await response.json();
+        const data = response.data;
 
         const chatFromSidebar = this.chats.find(c => c.conversationId === conversation_id);
-        console.log(data.messages);
+        if (!chatFromSidebar) {
+          console.warn("Chat non trovata nella sidebar");
+        }
+
         this.currentChat = {
           ...chatFromSidebar,
           chatType: chatFromSidebar?.chatType?.chatType || chatFromSidebar?.chatType || "private_chat",
@@ -508,11 +507,11 @@ export default {
             const isMyMessage = msg.username === this.currentUser;
             let is_read = false;
             let is_delivered = false;
-            if (isMyMessage && msg.read_status && msg.read_status.length > 0) {
-              const otherUsers = msg.read_status.filter(r => r.user_id !== this.currentUserId);
 
-              is_read = otherUsers.length > 0 && otherUsers.every(r => r.is_read === 1 || r.is_read === true);
-              is_delivered = otherUsers.length > 0 && otherUsers.every(r => r.is_delivered === 1 || r.is_delivered === true);
+            if (isMyMessage && msg.read_status?.length > 0) {
+              const otherUsers = msg.read_status.filter(r => r.user_id !== this.currentUserId);
+              is_read = otherUsers.length > 0 && otherUsers.every(r => r.is_read);
+              is_delivered = otherUsers.length > 0 && otherUsers.every(r => r.is_delivered);
             }
 
             return {
@@ -538,20 +537,18 @@ export default {
         if (!token) {
           throw new Error("Non autorizzato");
         }
-        const response = await fetch(`${__API_URL__}/conversations`, {
-          method: "GET",
+
+        const response = await this.$axios.get("/conversations", {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
-        if(!response.ok){
-          throw new Error("Errore HTTP: " + response.status);
-        }
-        const data = await response.json();
+
+        const data = response.data;
 
         this.chats = data.conversation.map(chat => ({
           ...chat,
-          chatType: chat.chatType?.chatType || chat.chatType || "private_chat" // Normalizza a stringa
+          chatType: chat.chatType?.ChatType || chat.chatType?.chatType || chat.ChatType || "private_chat"
         }));
 
       } catch (error) {
@@ -561,14 +558,14 @@ export default {
     async fetchUsers({ isForNewChat = false } = {}) {
       try {
         const token = localStorage.getItem("token");
-        const response = await fetch(`${__API_URL__}/users`, {
-          method: "GET",
+
+        const response = await this.$axios.get("/users", {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
 
-        const data = await response.json();
+        const data = response.data;
 
         if (!data || !data.users) {
           throw new Error("La chiave 'users' non esiste nella risposta");
@@ -596,44 +593,40 @@ export default {
       }
     },
     async sendMessage() {
-      // Se non c'è testo e non c'è immagine, errore
       if (!this.newMessage.trim() && !this.selectedGifUrl) return;
 
-      // tipo di messaggio
       let mediaType = "text";
       if (this.selectedGifUrl && this.newMessage.trim()) {
         mediaType = "gif_with_text";
       } else if (this.selectedGifUrl && !this.newMessage.trim()) {
         mediaType = "gif";
       }
-      
+
       try {
         const token = localStorage.getItem("token");
         if (!token) throw new Error("Non autorizzato");
-        
+
         if (!this.currentChat?.conversationId) {
-          console.warn("Tentativo di invio su una chat temporanea. Bloccato.");
           return;
         }
-        
-        const messagePayload = JSON.stringify({
+
+        const messagePayload = {
           content: this.newMessage,
           media: mediaType,
           image: this.selectedGifUrl || ""
-        });
-        
-        const response = await fetch(`${__API_URL__}/conversation/${this.currentChat.conversationId}`, {
-          method: "POST",
-          headers: { 
-            Authorization: `Bearer ${token}`,
-          },
-          body: messagePayload
-        });
-        
-        if (!response.ok) throw new Error(`Errore HTTP: ${response.status}`);
-        
-        const data = await response.json();
-        
+        };
+
+        const response = await this.$axios.post(`/conversation/${this.currentChat.conversationId}`,
+          messagePayload,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          }
+        );
+
+        const data = response.data;
+
         this.currentChat.messages.push({
           message_id: data.messageId || Date.now(),
           username: this.currentUser,
@@ -642,17 +635,17 @@ export default {
           image: this.selectedGifUrl || "",
           timestamp: new Date().toISOString(),
         });
-        
+
         const chat = this.chats.find(c => c.conversationId === this.currentChat.conversationId);
         if (chat) {
           let preview = "";
-            if (mediaType === "gif" && !this.newMessage) {
-              preview = "[Foto]";
-            } else if (mediaType === "gif_with_text") {
-              preview = "[Foto] " + this.newMessage;
-            } else {
-              preview = this.newMessage;
-            }
+          if (mediaType === "gif" && !this.newMessage) {
+            preview = "[Foto]";
+          } else if (mediaType === "gif_with_text") {
+            preview = "[Foto] " + this.newMessage;
+          } else {
+            preview = this.newMessage;
+          }
           chat.lastMessage = {
             content: preview,
             timestamp: new Date().toISOString()
@@ -663,16 +656,16 @@ export default {
             this.chats.unshift(updateChat);
           }
         }
-        
+
         this.newMessage = "";
         this.selectedGifUrl = null;
         this.newImageFile = null;
         if (this.$refs.imageInput) {
           this.$refs.imageInput.value = null;
         }
-        
+
         this.$nextTick(() => this.scrollToLastMessageWithSmooth());
-        
+
       } catch (error) {
         console.error("Errore nell'invio del messaggio:", error);
       }
@@ -683,7 +676,7 @@ export default {
     },
     async createConversation() {
       this.errorMessage = "";
-      
+
       if (this.selectedUsers.length === 0) {
         this.errorMessage = "Seleziona almeno un utente";
         return;
@@ -692,7 +685,7 @@ export default {
         this.errorMessage = "Devi scrivere un messaggio iniziale";
         return;
       }
-      
+
       if (this.chatType === "private_chat" && this.selectedUsers.length !== 1) {
         this.errorMessage = "La chat privata deve avere esattamente un partecipante";
         return;
@@ -701,7 +694,7 @@ export default {
         this.errorMessage = "Devi inserire un nome al gruppo";
         return;
       }
-      
+
       const conversationRequest = {
         chatType: { ChatType: this.chatType },
         groupName: this.chatType === "group_chat" ? this.groupName : "",
@@ -717,20 +710,15 @@ export default {
       try {
         const token = localStorage.getItem("token");
         if (!token) throw new Error("Non sei autorizzato");
-        const response = await fetch(`${__API_URL__}/conversations`, {
-          method: "POST",
+
+        const response = await this.$axios.post(`/conversations`, conversationRequest, {
           headers: {
-            "Authorization": `Bearer ${token}`,
-          },
-          body: JSON.stringify(conversationRequest)
+            Authorization: `Bearer ${token}`
+          }
         });
 
-        if(!response.ok){
-          const text = await response.text();
-          throw new Error("Errore HTTP: " + response.status + " - " + text);
-        }
+        const data = response.data;
 
-        const data = await response.json();
         if (!data || !data.ConversationId) {
           throw new Error("La risposta API non contiene un ConversationId valido");
         }
@@ -738,40 +726,38 @@ export default {
         this.showUserSelection = false;
         this.selectedUsers = [];
         this.groupName = "";
+
         await this.fetchChats();
         const newChat = this.chats.find(c => c.conversationId === data.ConversationId);
-        if(newChat){
+        if (newChat) {
           this.selectChat(newChat);
-          return;
         }
+
       } catch (error) {
         this.errorMessage = "Errore durante la creazione della chat: " + error.message;
       }
     },
-    async deleteMessage(message){
-      try{
+    async deleteMessage(message) {
+      try {
         const token = localStorage.getItem("token");
         if (!token) {
           throw new Error("Non sei autorizzato");
         }
 
-        const response = await fetch(`${__API_URL__}/conversation/${this.currentChat.conversationId}/messages/${message.message_id}`, {
-          method: "DELETE",
+        await this.$axios.delete(`/conversation/${this.currentChat.conversationId}/messages/${message.message_id}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
 
-        if (!response.ok) {
-          throw new Error("Errore HTTP: " + response.status);
-        }
-
         this.currentChat.messages = this.currentChat.messages.filter(m => m.message_id !== message.message_id);
-        if(this.currentChat.messages.length === 0){
+
+        if (this.currentChat.messages.length === 0) {
           this.chats = this.chats.filter(c => c.conversationId !== this.currentChat.conversationId);
           this.currentChat = null;
           return;
         }
+
         const chat = this.chats.find(c => c.conversationId === this.currentChat.conversationId);
         if (chat && chat.lastMessage?.content === message.content) {
           const lastM = this.currentChat.messages[this.currentChat.messages.length - 1];
@@ -779,156 +765,141 @@ export default {
         }
 
         this.selectedMessageOptions = null;
+
       } catch (error) {
         console.error("Errore durante l'eliminazione del messaggio:", error);
       }
     },
-    async addReaction(message, emoji){
-      try{
+    async addReaction(message, emoji) {
+      try {
         const token = localStorage.getItem("token");
         if (!token) {
           throw new Error("Non sei autorizzato");
         }
 
         const exist = message.comments?.find(c => c.username === this.currentUser);
-        if(exist && exist.emojiCode === emoji){
+        if (exist && exist.emojiCode === emoji) {
           return this.removeReaction(message);
         }
 
-        const response = await fetch(`${__API_URL__}/conversation/${this.currentChat.conversationId}/messages/${message.message_id}/comment`, {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ emojiCode: emoji })
-        });
+        await this.$axios.put(
+          `/conversation/${this.currentChat.conversationId}/messages/${message.message_id}/comment`,
+          { emojiCode: emoji },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
 
-        if (!response.ok) {
-          throw new Error("Errore HTTP: " + response.status);
-        }
-
-        if(!message.comments){
+        if (!message.comments) {
           message.comments = [];
         }
 
-        if(exist){
+        if (exist) {
           exist.emojiCode = emoji;
         } else {
-          message.comments.push({ username: this.currentUser, emojiCode: emoji});
+          message.comments.push({ username: this.currentUser, emojiCode: emoji });
         }
 
         this.reactionMessageId = null;
         this.selectedMessageOptions = null;
+
       } catch (err) {
         console.error("Errore durante l'aggiunta dell'emoji: ", err);
       }
     },
-    async removeReaction(message){
-      try{
+    async removeReaction(message) {
+      try {
         const token = localStorage.getItem("token");
         if (!token) {
           throw new Error("Non sei autorizzato");
         }
 
-        const response = await fetch(`${__API_URL__}/conversation/${this.currentChat.conversationId}/messages/${message.message_id}/comment`, {
-          method: "DELETE",
+        await this.$axios.delete(`/conversation/${this.currentChat.conversationId}/messages/${message.message_id}/comment`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
 
-        if (!response.ok) {
-          throw new Error("Errore HTTP: " + response.status);
-        }
-
-        if(message.comments){
+        if (message.comments) {
           message.comments = message.comments.filter(c => c.username !== this.currentUser);
         }
-      
 
-      this.reactionMessageId = null;
-      this.selectedMessageOptions = null;
+        this.reactionMessageId = null;
+        this.selectedMessageOptions = null;
+
       } catch (err) {
         console.error("Errore durante la rimozione dell'emoji: ", err);
       }
     },
-    async leaveGroup(){
-      try{
+    async leaveGroup() {
+      try {
         const token = localStorage.getItem("token");
         if (!token) {
           throw new Error("Non sei autorizzato");
         }
 
-        const response = await fetch(`${__API_URL__}/conversation/${this.currentChat.conversationId}/membership`, {
-          method: "DELETE",
+        await this.$axios.delete(`/conversation/${this.currentChat.conversationId}/membership`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
-
-        if (!response.ok) {
-          throw new Error("Errore HTTP: " + response.status);
-        }
 
         this.chats = this.chats.filter(chat => chat.conversationId !== this.currentChat.conversationId);
-
-        if(this.currentChat.conversationId){
-          this.currentChat = null
+        if (this.currentChat.conversationId) {
+          this.currentChat = null;
         }
-      }catch(err){
-        console.error("Errore durante l'uscita dal gruppo': ", err);
+
+      } catch (err) {
+        console.error("Errore durante l'uscita dal gruppo:", err);
       }
     },
-    async updateGroupName(conversationId, newName){
-      try{
+    async updateGroupName(conversationId, newName) {
+      try {
         const token = localStorage.getItem("token");
         if (!token) {
           throw new Error("Non sei autorizzato");
         }
 
-        const response = await fetch(`${__API_URL__}/conversation/${this.currentChat.conversationId}/name`, {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ newUsername: newName })
-        });
-
-        if (!response.ok) {
-          throw new Error("Errore HTTP: " + response.status);
-        }
+        await this.$axios.put(`/conversation/${this.currentChat.conversationId}/name`, { newUsername: newName },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
 
         const chat = this.chats.find(c => c.conversationId === conversationId);
-        if(chat){
+        if (chat) {
           chat.nameChat = newName;
         }
 
-        if(this.currentChat && this.currentChat.conversationId === conversationId){
+        if (this.currentChat?.conversationId === conversationId) {
           this.currentChat.nameChat = newName;
         }
 
       } catch (err) {
-        console.error("Errore durante l'aggiornamento del nome del gruppo: ", err);
+        console.error("Errore durante l'aggiornamento del nome del gruppo:", err);
       }
     },
-    async addUserToGroup(conversationId, usernameUser){
-      try{
+    async addUserToGroup(conversationId, usernameUser) {
+      try {
         const token = localStorage.getItem("token");
         if (!token) {
           throw new Error("Non sei autorizzato");
         }
 
-        const response = await fetch(`${__API_URL__}/conversation/${conversationId}/names`, {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ name: usernameUser })
-        });
+        await this.$axios.put(
+          `/conversation/${conversationId}/names`,
+          { name: usernameUser },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
 
-        if (!response.ok) {
-          throw new Error("Errore HTTP: " + response.status);
-        }
       } catch (err) {
         console.error("Errore durante l'aggiunta di un utente al gruppo: ", err);
       }
@@ -940,18 +911,15 @@ export default {
 
       for (const conversationId of this.selectedForwardChatIds) {
         try {
-          const response = await fetch(`${__API_URL__}/conversation/${conversationId}/messages/${this.messageToForward.message_id}`, {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          });
+          const response = await this.$axios.post(`/conversation/${conversationId}/messages/${this.messageToForward.message_id}`, {},
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
 
-          if (!response.ok) {
-            throw new Error(`Errore HTTP: ${response.status}`);
-          }
-
-          const data = await response.json();
+          const data = response.data;
 
           const chatIndex = this.chats.findIndex(c => c.conversationId === conversationId);
           if (chatIndex !== -1) {
@@ -983,48 +951,41 @@ export default {
           return;
         }
 
-        const response = await fetch(`${__API_URL__}/users?name=${encodeURIComponent(this.searchquery)}`, {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`
+        const response = await this.$axios.get(`/users?name=${encodeURIComponent(this.searchquery)}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
           }
-        });
+        );
 
-        if (!response.ok) {
-          throw new Error(`Errore HTTP: ${response.status}`);
-        }
+        this.users = response.data.users || [];
 
-        const data = await response.json();
-        this.users = data.users || [];
       } catch (err) {
         console.error("Errore nella ricerca utenti:", err);
       }
     },
     async updateUsername() {
-      if (!this.newUsername.trim()) {
-        return;
-      }
+      if (!this.newUsername.trim()) return;
 
       try {
         const token = localStorage.getItem("token");
         if (!token) throw new Error("Non autorizzato");
 
-        const response = await fetch(`${__API_URL__}/username`, {
-          method: "PUT",
-          headers: {
-            "Authorization": `Bearer ${token}`
-          },
-          body: JSON.stringify({ newUsername: this.newUsername.trim() })
-        });
-
-        if (!response.ok) {
-          const text = await response.text();
-          throw new Error("Errore: " + response.status + " - " + text);
-        }
+        const response = await this.$axios.put(
+          "/username",
+          { newUsername: this.newUsername.trim() },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          }
+        );
 
         localStorage.setItem("username", this.newUsername.trim());
         this.currentUser = this.newUsername.trim();
         this.showChangeUsernameModal = false;
+
       } catch (error) {
         console.error("Errore durante l'aggiornamento del nome utente:", error);
       }
@@ -1038,18 +999,13 @@ export default {
 
       try {
         const token = localStorage.getItem("token");
-        const response = await fetch(`${__API_URL__}/upload`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-          body: formData,
+        const response = await this.$axios.post("/upload", formData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         });
 
-        if (!response.ok) {
-          const text = await response.text();
-          throw new Error(text || "Errore upload");
-        }
-
-        const data = await response.json();
+        const data = response.data;
 
         if (type === 'profile') {
           this.selectedProfileImage = data.imageUrl;
@@ -1072,19 +1028,13 @@ export default {
           return;
         }
 
-        const response = await fetch(`${__API_URL__}/profile_image`, {
-          method: "GET",
+        const response = await this.$axios.get("/profile_image", {
           headers: {
-            Authorization: `Bearer ${token}`
-          }
+            Authorization: `Bearer ${token}`,
+          },
         });
 
-        if (!response.ok) {
-          throw new Error(`Errore HTTP: ${response.status}`);
-        }
-
-        const data = await response.json();
-        this.profileImage = data.actualImage;
+        this.profileImage = response.data.actualImage;
 
       } catch (error) {
         console.error("Errore nel caricamento dell'immagine profilo:", error);
@@ -1095,23 +1045,21 @@ export default {
         this.uploadError = "Devi prima selezionare un'immagine!";
         return;
       }
+
       try {
         const token = localStorage.getItem("token");
 
-        const response = await fetch(`${__API_URL__}/profile_image`, {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${token}`
-          },
-          body: JSON.stringify({ image: this.selectedProfileImage })
-        });
-
-        if (!response.ok) {
-          throw new Error(`Errore HTTP: ${response.status}`);
-        }
+        const response = await this.$axios.put(
+          "/profile_image",
+          { image: this.selectedProfileImage },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
 
         this.fetchProfileImage();
-
         this.showChangeProfileImageModal = false;
         this.selectedProfileImage = null;
 
@@ -1129,17 +1077,14 @@ export default {
       try {
         const token = localStorage.getItem("token");
 
-        const response = await fetch(`${__API_URL__}/conversation/${this.currentChat.conversationId}/groupimage`, {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${token}`
-          },
-          body: JSON.stringify({ Image: this.selectedImageGroup })
-        });
-
-        if (!response.ok) {
-          throw new Error(`Errore HTTP: ${response.status}`);
-        }
+        const response = await this.$axios.put(`/conversation/${this.currentChat.conversationId}/groupimage`,
+          { Image: this.selectedImageGroup },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
 
         this.currentChat.profileimage = this.selectedImageGroup;
         this.fetchChats();
@@ -2351,18 +2296,16 @@ export default {
 }
 
 .image-preview {
-  margin-bottom: 8px;
+  margin-bottom: 100px;
   display: flex;
   align-items: center;
 }
 
 .image-preview img {
-  max-width: 10px;
-  max-height: 10px;
-  object-fit: cover;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  margin-right: 8px;
+  width: 300px; 
+  height: auto; 
+  max-width: 200px; 
+  max-height: 200px;
 }
 
 .remove-image-btn {
