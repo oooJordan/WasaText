@@ -123,7 +123,10 @@ func (rt *_router) uploadImage(w http.ResponseWriter, r *http.Request, ps httpro
 		return
 	}
 
-	uploadedFile.Seek(0, io.SeekStart)
+	if _, err := uploadedFile.Seek(0, io.SeekStart); err != nil {
+		http.Error(w, "failed to seek file", http.StatusInternalServerError)
+		return
+	}
 
 	uploadDir := "uploads"
 	if err := os.MkdirAll(uploadDir, os.ModePerm); err != nil {

@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -40,7 +39,6 @@ func (rt *_router) newConversation(w http.ResponseWriter, r *http.Request, ps ht
 		req.ImageGroup = scheme + "://" + host + "/defaultimage/defaultGroup.png"
 	}
 
-	fmt.Println("Immagine di default assegnata al gruppo:", req.ImageGroup)
 	// controllo la richiesta se è valida
 	if req.ChatType.ChatType == "" || req.StartMessage.Media == "" || len(req.Usersname) == 0 {
 		http.Error(w, "Missing required fields", http.StatusBadRequest)

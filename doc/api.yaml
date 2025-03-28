@@ -164,6 +164,8 @@ components:
         read_status:
           type: array
           description: "Elenco dello stato di lettura per ogni utente"
+          minItems: 0
+          maxItems: 500
           items:
             type: object
             properties:

@@ -49,5 +49,9 @@ func (db *appdbimpl) GetConversationUsers(conversationID int) ([]Users, error) {
 		}
 		users = append(users, user)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
 	return users, nil
 }

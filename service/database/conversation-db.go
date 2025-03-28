@@ -153,6 +153,9 @@ func (db *appdbimpl) CreateConversationDB(author int, req ConversationRequest) (
 			return 0, err
 		}
 	}
+	if err := rows.Err(); err != nil {
+		return 0, err
+	}
 
 	// L’autore ha is_delivered=1 e is_read=1
 	_, err = trans.Exec(

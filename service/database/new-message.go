@@ -66,6 +66,9 @@ func (db *appdbimpl) NewMessage(conversationID int, senderID int, messageType st
 			return 0, err
 		}
 	}
+	if err := rows.Err(); err != nil {
+		return 0, err
+	}
 
 	// **Modifica principale:**
 	// Inserisco anche il record per il mittente, impostando is_delivered e is_read a TRUE (1)
@@ -356,6 +359,9 @@ func (db *appdbimpl) ForwardMessage(destinationConversationID int, originalMessa
 			return 0, err
 		}
 
+	}
+	if err := rows.Err(); err != nil {
+		return 0, err
 	}
 
 	// Il mittente dell'inoltro ha sempre is_delivered = 1 e is_read = 1
