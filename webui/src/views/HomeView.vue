@@ -47,13 +47,13 @@
               <div class="chat-avatar">
                 <!-- Immagine profilo di una chat dentro una chat -->
                 <img
-                  v-if="chat.ChatType === 'group_chat' && chat.profileimage"
+                  v-if="chat.chatType === 'group_chat' && chat.profileimage"
                   :src="chat.profileimage"
                   alt="Group"
                   class="chat-avatar-img"
                 />
                 <img
-                  v-else-if="chat.ChatType === 'private_chat' && chat.profileimage"
+                  v-else-if="chat.chatType === 'private_chat' && chat.profileimage"
                   :src="chat.profileimage"
                   alt="Private"
                   class="chat-avatar-img"
@@ -454,6 +454,7 @@ export default {
       selectedImageGroup: null,
       selectedGifUrl: null,
       newImageFile: null,
+      showChangeUsernameModal: false,
     };
   },
   created() {
@@ -486,6 +487,7 @@ export default {
         if (!token) throw new Error("Non autorizzato");
 
         const response = await fetch(`${__API_URL__}/conversation/${conversation_id}`, {
+          method: "GET",
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -501,7 +503,7 @@ export default {
         console.log(data.messages);
         this.currentChat = {
           ...chatFromSidebar,
-          chatType: chatFromSidebar?.ChatType,
+          chatType: chatFromSidebar?.chatType?.chatType || chatFromSidebar?.chatType || "private_chat",
           messages: data.messages.map(msg => {
             const isMyMessage = msg.username === this.currentUser;
             let is_read = false;
@@ -537,6 +539,7 @@ export default {
           throw new Error("Non autorizzato");
         }
         const response = await fetch(`${__API_URL__}/conversations`, {
+          method: "GET",
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -545,9 +548,12 @@ export default {
           throw new Error("Errore HTTP: " + response.status);
         }
         const data = await response.json();
-        console.log("Conversazioni ricevute:", data);
 
-        this.chats = data.conversation;
+        this.chats = data.conversation.map(chat => ({
+          ...chat,
+          chatType: chat.chatType?.chatType || chat.chatType || "private_chat" // Normalizza a stringa
+        }));
+
       } catch (error) {
         console.error("Errore nel fetch delle chat:", error);
       }
@@ -555,20 +561,22 @@ export default {
     async fetchUsers({ isForNewChat = false } = {}) {
       try {
         const token = localStorage.getItem("token");
-        const response = await this.$axios.get("/users", {
-          headers: { Authorization: `Bearer ${token}` },
+        const response = await fetch(`${__API_URL__}/users`, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         });
 
-        if (!response.data || !response.data.users) {
+        const data = await response.json();
+
+        if (!data || !data.users) {
           throw new Error("La chiave 'users' non esiste nella risposta");
         }
 
-        const allUsers = response.data.users;
+        let filteredUsers = data.users.filter(u => u.nickname !== this.currentUser);
 
-        let filteredUsers = allUsers.filter(u => u.nickname !== this.currentUser);
-
-        // Se non è per una nuova chat allora devo filtrare gli utenti che sono già nel gruppo
-        if (!isForNewChat && this.currentChat && this.currentChat.users && this.currentChat.chatType === 'group_chat') {
+        if (!isForNewChat && this.currentChat?.chatType === 'group_chat') {
           const existingUsernames = this.currentChat.users.map(u => u.nickname);
           filteredUsers = filteredUsers.filter(u => !existingUsernames.includes(u.nickname));
         }
@@ -618,7 +626,6 @@ export default {
           method: "POST",
           headers: { 
             Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json"
           },
           body: messagePayload
         });
@@ -977,6 +984,7 @@ export default {
         }
 
         const response = await fetch(`${__API_URL__}/users?name=${encodeURIComponent(this.searchquery)}`, {
+          method: "GET",
           headers: {
             Authorization: `Bearer ${token}`
           }
