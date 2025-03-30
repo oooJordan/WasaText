@@ -1014,7 +1014,7 @@ export default {
       if (!message || (!this.selectedForwardChatIds.length && !this.selectedForwardUsernames.length))
         return;
 
-      // Inoltro a chat esistenti tramite ID
+      // Inoltro a chat esistenti
       for (const conversationId of this.selectedForwardChatIds) {
         try {
           await this.$axios.post(
@@ -1027,12 +1027,11 @@ export default {
         }
       }
 
-      // Inoltro a utenti per cui non esiste già una chat privata (la lista è già filtrata)
+      // Inoltro a utenti per cui non esiste già una chat privata
       for (const username of this.selectedForwardUsernames) {
         try {
-          // Crea la nuova chat privata con l'utente
-          await this.$axios.post(
-            `/conversations`,
+          // Creo la nuova chat privata con l'utente
+          await this.$axios.post(`/conversations`,
             {
               chatType: { ChatType: "private_chat" },
               groupName: "",
@@ -1046,18 +1045,11 @@ export default {
             },
             { headers: { Authorization: `Bearer ${token}` } }
           );
-          // Ricarica le chat per includere la nuova conversazione
           await this.fetchChats();
-          const newChat = this.chats.find(chat =>
-            chat.chatType === "private_chat" &&
-            chat.users &&
-            chat.users.some(u => (u.nickname || u.username) === username)
-          );
+          const newChat = this.chats.find(chat => chat.chatType === "private_chat" && chat.users && chat.users.some(u => (u.nickname || u.username) === username));
           if (newChat && newChat.conversationId) {
-            // Inoltra il messaggio anche nella nuova chat
-            await this.$axios.post(
-              `/conversation/${newChat.conversationId}/messages/${message.message_id}`,
-              {},
+            // Inoltro il messaggio nella nuova chat
+            await this.$axios.post(`/conversation/${newChat.conversationId}/messages/${message.message_id}`, {},
               { headers: { Authorization: `Bearer ${token}` } }
             );
           } else {
@@ -1068,22 +1060,25 @@ export default {
         }
       }
 
-      // Ricarica le chat per aggiornare la sidebar
       await this.fetchChats();
 
-      // Crea la preview evitando duplicazioni di "[Foto]"
+      // Creo la preview evitando duplicazioni di "[Foto]"
       let preview = "";
       if (message.media === "gif") {
         preview = !message.content.trim() ? "[Foto]" : message.content.trim();
       } else if (message.media === "gif_with_text") {
-        preview = message.content.trim().startsWith("[Foto]")
-          ? message.content.trim()
-          : "[Foto] " + message.content.trim();
+        // Se il contenuto inizia già con "[Foto]", non lo aggiungo di nuovo
+        if (message.content.trim().startsWith("[Foto]")) {
+          preview = message.content.trim();
+        } else {
+          preview = "[Foto] " + message.content.trim();
+        }
       } else {
         preview = message.content;
       }
 
-      // Aggiorna le preview nelle chat inoltrate tramite ID
+
+      // Aggiorno le preview nelle chat
       this.selectedForwardChatIds.forEach(conversationId => {
         const chat = this.chats.find(c => c.conversationId === conversationId);
         if (chat) {
@@ -1096,7 +1091,7 @@ export default {
         }
       });
 
-      // Aggiorna le preview per le chat inoltrate a utenti
+      // Aggiorno le preview per le chat con utenti
       this.selectedForwardUsernames.forEach(username => {
         const chat = this.chats.find(chat =>
           chat.chatType === "private_chat" &&
@@ -1113,7 +1108,6 @@ export default {
         }
       });
 
-      // Pulizia finale e chiusura del modal
       this.showForwardModal = false;
       this.messageToForward = null;
       this.selectedForwardChatIds = [];
