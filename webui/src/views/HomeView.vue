@@ -275,7 +275,7 @@
               <h4>Altri utenti</h4>
               <ul class="conversation-list">
                 <li
-                  v-for="user in allUsers"
+                  v-for="user in availableForwardUsers"
                   :key="user.user_id"
                   :class="{ selected: selectedForwardUsernames.includes(user.nickname) }"
                   @click="toggleForwardUserSelection(user.nickname)"
@@ -524,9 +524,12 @@ export default {
     },
     filteredUserList() {
       return this.users.filter(user => user.nickname.toLowerCase().includes(this.searchnome.toLowerCase())
-    );
-}
+      )},
+    availableForwardUsers() {
+      const existingPrivateUsernames = this.chats.filter(chat => chat.ChatType === "private_chat").map(chat => chat.nameChat);
 
+      return this.allUsers.filter( user => user.nickname !== this.currentUser && !existingPrivateUsernames.includes(user.nickname));
+    }
   },
   methods: {
     async fetchMessageHistory(conversation_id) {
@@ -1008,14 +1011,15 @@ export default {
     async confirmForward() {
       const token = localStorage.getItem("token");
       const message = this.messageToForward;
-
       if (!message || (!this.selectedForwardChatIds.length && !this.selectedForwardUsernames.length))
         return;
 
-      // Inoltro in chat esistenti
+      // Inoltro a chat esistenti tramite ID
       for (const conversationId of this.selectedForwardChatIds) {
         try {
-          await this.$axios.post(`/conversation/${conversationId}/messages/${message.message_id}`, {},
+          await this.$axios.post(
+            `/conversation/${conversationId}/messages/${message.message_id}`,
+            {},
             { headers: { Authorization: `Bearer ${token}` } }
           );
         } catch (err) {
@@ -1023,10 +1027,10 @@ export default {
         }
       }
 
-      // Inoltro a nuovo utente
+      // Inoltro a utenti per cui non esiste già una chat privata (la lista è già filtrata)
       for (const username of this.selectedForwardUsernames) {
         try {
-          // Crea la nuova chat con l'utente
+          // Crea la nuova chat privata con l'utente
           await this.$axios.post(
             `/conversations`,
             {
@@ -1042,40 +1046,44 @@ export default {
             },
             { headers: { Authorization: `Bearer ${token}` } }
           );
-
+          // Ricarica le chat per includere la nuova conversazione
           await this.fetchChats();
-          const newChat = this.chats.find(
-            chat =>
-              chat.chatType === "private_chat" &&
-              chat.users?.some(u => u.nickname === username)
+          const newChat = this.chats.find(chat =>
+            chat.chatType === "private_chat" &&
+            chat.users &&
+            chat.users.some(u => (u.nickname || u.username) === username)
           );
-          if (!newChat || !newChat.conversationId) {
-            console.error("Chat appena creata non trovata per", username);
-            continue;
+          if (newChat && newChat.conversationId) {
+            // Inoltra il messaggio anche nella nuova chat
+            await this.$axios.post(
+              `/conversation/${newChat.conversationId}/messages/${message.message_id}`,
+              {},
+              { headers: { Authorization: `Bearer ${token}` } }
+            );
+          } else {
+            console.error("Chat non trovata dopo creazione per", username);
           }
-
-          // Inoltro il messaggio nella nuova chat
-          await this.$axios.post(
-            `/conversation/${newChat.conversationId}/messages/${message.message_id}`,
-            {},
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
         } catch (err) {
-          console.error("Errore inoltro a utente:", username, err);
+          console.error("Errore nella creazione della chat per utente:", username, err);
         }
       }
 
+      // Ricarica le chat per aggiornare la sidebar
       await this.fetchChats();
-      
-      // Aggiorno la preview manualmente
-      const preview =
-        message.media === "gif" && !message.content.trim()
-          ? "[Foto]"
-          : message.media === "gif_with_text"
-          ? "[Foto] " + message.content.trim()
-          : message.content;
 
-      // Aggiornamento per le chat che già esistono
+      // Crea la preview evitando duplicazioni di "[Foto]"
+      let preview = "";
+      if (message.media === "gif") {
+        preview = !message.content.trim() ? "[Foto]" : message.content.trim();
+      } else if (message.media === "gif_with_text") {
+        preview = message.content.trim().startsWith("[Foto]")
+          ? message.content.trim()
+          : "[Foto] " + message.content.trim();
+      } else {
+        preview = message.content;
+      }
+
+      // Aggiorna le preview nelle chat inoltrate tramite ID
       this.selectedForwardChatIds.forEach(conversationId => {
         const chat = this.chats.find(c => c.conversationId === conversationId);
         if (chat) {
@@ -1088,12 +1096,12 @@ export default {
         }
       });
 
-      // Aggiornamento per le nuove chat appena create
+      // Aggiorna le preview per le chat inoltrate a utenti
       this.selectedForwardUsernames.forEach(username => {
-        const chat = this.chats.find(
-          chat =>
-            chat.chatType === "private_chat" &&
-            chat.users?.some(u => u.nickname === username)
+        const chat = this.chats.find(chat =>
+          chat.chatType === "private_chat" &&
+          chat.users &&
+          chat.users.some(u => (u.nickname || u.username) === username)
         );
         if (chat) {
           chat.lastMessage = { content: preview, timestamp: new Date().toISOString() };
@@ -1105,6 +1113,7 @@ export default {
         }
       });
 
+      // Pulizia finale e chiusura del modal
       this.showForwardModal = false;
       this.messageToForward = null;
       this.selectedForwardChatIds = [];
@@ -2202,17 +2211,20 @@ export default {
   color: #2c3e50;
 }
 
-.modal-content-forward{
+.modal-content-forward {
   background: white;
-  border-radius: 12px;
+  border-radius: 10px;
   padding: 20px;
   width: 90%;
   max-width: 600px;
+  max-height: 1900px;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 1rem;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
 }
+
 
 .forward-columns {
   display: flex;
@@ -2222,13 +2234,14 @@ export default {
 
 .forward-column {
   flex: 1;
-  max-height: 300px;
+  max-height: 700px;
   overflow-y: auto;
+  overflow: hidden;
 }
 
 .horizontal-layout {
-  width: 80%;
-  max-width: 800px;
+  width: 90%;
+  max-width: 900px;
 }
 
 
