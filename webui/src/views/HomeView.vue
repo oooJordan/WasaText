@@ -250,26 +250,51 @@
 
       <!-- Modal per inoltro messaggio -->
       <div v-if="showForwardModal" class="modal">
-        <div class="modal-content-forward">
-          <h3>Inoltra messaggio a...</h3>
-          <ul class="conversation-list">
-            <li
-              v-for="chat in chats"
-              :key="chat.conversationId"
-              :class="{ selected: selectedForwardChatIds.includes(chat.conversationId) }"
-              @click="toggleForwardSelection(chat.conversationId)"
-              class="conversation-item"
-            >
-              {{ chat.nameChat }}
-            </li>
-          </ul>
+        <div class="modal-content-forward horizontal-layout">
+          <h3>Inoltra messaggio</h3>
 
+          <div class="forward-columns">
+            <!-- Colonna sinistra: Chat esistenti -->
+            <div class="forward-column">
+              <h4>Chat esistenti</h4>
+              <ul class="conversation-list">
+                <li
+                  v-for="chat in chats"
+                  :key="chat.conversationId"
+                  :class="{ selected: selectedForwardChatIds.includes(chat.conversationId) }"
+                  @click="toggleForwardSelection(chat.conversationId)"
+                  class="conversation-item"
+                >
+                  {{ chat.nameChat }}
+                </li>
+              </ul>
+            </div>
+
+            <!-- Colonna destra: Tutti gli utenti -->
+            <div class="forward-column">
+              <h4>Altri utenti</h4>
+              <ul class="conversation-list">
+                <li
+                  v-for="user in allUsers"
+                  :key="user.user_id"
+                  :class="{ selected: selectedForwardUsernames.includes(user.nickname) }"
+                  @click="toggleForwardUserSelection(user.nickname)"
+                  class="conversation-item"
+                >
+                  {{ user.nickname }}
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Bottoni -->
           <div class="modal-buttons">
             <button @click="confirmForward">Inoltra</button>
             <button @click="cancelForward">Annulla</button>
           </div>
         </div>
       </div>
+
 
       <!-- Modal per la creazione di una nuova chat -->
       <div v-if="showUserSelection" class="modal">
@@ -368,16 +393,18 @@
         <div class="modal-content-forward">
           <h3>Aggiungi membri al gruppo</h3>
 
-          <ul class="conversation-list">
-            <li
-              v-for="user in users"
-              :key="user.user_id"
-              :class="['conversation-item', selectedUsers.includes(user.nickname) ? 'selected' : '']"
-              @click="toggleUserSelection(user.nickname)"
-            >
-              {{ user.nickname }}
-            </li>
-          </ul>
+          <h4>Utenti</h4>
+            <ul class="conversation-list">
+              <li
+                v-for="user in allUsers"
+                :key="user.user_id"
+                :class="{ selected: selectedForwardUsernames.includes(user.nickname) }"
+                @click="toggleForwardUserSelection(user.nickname)"
+                class="conversation-item"
+              >
+                {{ user.nickname }}
+              </li>
+            </ul>
 
           <div class="modal-buttons">
             <button class="primary-btn" @click="confirmAddMembers">Aggiungi</button>
@@ -441,6 +468,7 @@ export default {
       newMessage: "",
       showUserSelection: false,
       users: [],
+      allUsers: [],
       selectedUsers: [],
       groupName: "",
       errorMessage: "",
@@ -456,6 +484,7 @@ export default {
       showAddMembersModal: false,
       showForwardModal: false,
       messageToForward: null,
+      selectedForwardUsernames: [],
       selectedForwardChatIds: [],
       chatType: "",
       searchnome: "",
@@ -482,6 +511,7 @@ export default {
       this.$router.push("/login");
     } else {
       this.fetchChats();
+      this.fetchAllUsers(); 
     }
   },
   computed:
@@ -729,6 +759,8 @@ export default {
         }
 
         this.$nextTick(() => this.scrollToLastMessageWithSmooth());
+        await this.fetchChats();
+
 
       } catch (error) {
         console.error("Errore nell'invio del messaggio:", error);
@@ -974,41 +1006,121 @@ export default {
       }
     },
     async confirmForward() {
-      if (!this.messageToForward || this.selectedForwardChatIds.length === 0) return;
-
       const token = localStorage.getItem("token");
+      const message = this.messageToForward;
 
+      if (!message || (!this.selectedForwardChatIds.length && !this.selectedForwardUsernames.length))
+        return;
+
+      // Inoltro in chat esistenti
       for (const conversationId of this.selectedForwardChatIds) {
         try {
-          const response = await this.$axios.post(`/conversation/${conversationId}/messages/${this.messageToForward.message_id}`, {},
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            }
+          await this.$axios.post(`/conversation/${conversationId}/messages/${message.message_id}`, {},
+            { headers: { Authorization: `Bearer ${token}` } }
           );
-
-          const data = response.data;
-
-          const chatIndex = this.chats.findIndex(c => c.conversationId === conversationId);
-          if (chatIndex !== -1) {
-            const chat = this.chats[chatIndex];
-            chat.lastMessage = {
-              content: this.messageToForward.content,
-              timestamp: new Date().toISOString()
-            };
-            this.chats.splice(chatIndex, 1);
-            this.chats.unshift(chat);
-          }
-
         } catch (err) {
-          console.error("Errore durante l'inoltro a chat ID:", conversationId, err);
+          console.error("Errore inoltro a chat ID:", conversationId, err);
         }
       }
+
+      // Inoltro a nuovo utente
+      for (const username of this.selectedForwardUsernames) {
+        try {
+          // Crea la nuova chat con l'utente
+          await this.$axios.post(
+            `/conversations`,
+            {
+              chatType: { ChatType: "private_chat" },
+              groupName: "",
+              imageGroup: "",
+              usersname: [username],
+              startMessage: {
+                media: message.media,
+                content: message.content || "",
+                image: message.image || ""
+              }
+            },
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+
+          await this.fetchChats();
+          const newChat = this.chats.find(
+            chat =>
+              chat.chatType === "private_chat" &&
+              chat.users?.some(u => u.nickname === username)
+          );
+          if (!newChat || !newChat.conversationId) {
+            console.error("Chat appena creata non trovata per", username);
+            continue;
+          }
+
+          // Inoltro il messaggio nella nuova chat
+          await this.$axios.post(
+            `/conversation/${newChat.conversationId}/messages/${message.message_id}`,
+            {},
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+        } catch (err) {
+          console.error("Errore inoltro a utente:", username, err);
+        }
+      }
+
+      await this.fetchChats();
+      
+      // Aggiorno la preview manualmente
+      const preview =
+        message.media === "gif" && !message.content.trim()
+          ? "[Foto]"
+          : message.media === "gif_with_text"
+          ? "[Foto] " + message.content.trim()
+          : message.content;
+
+      // Aggiornamento per le chat che già esistono
+      this.selectedForwardChatIds.forEach(conversationId => {
+        const chat = this.chats.find(c => c.conversationId === conversationId);
+        if (chat) {
+          chat.lastMessage = { content: preview, timestamp: new Date().toISOString() };
+          const index = this.chats.findIndex(c => c.conversationId === conversationId);
+          if (index > -1) {
+            const [updateChat] = this.chats.splice(index, 1);
+            this.chats.unshift(updateChat);
+          }
+        }
+      });
+
+      // Aggiornamento per le nuove chat appena create
+      this.selectedForwardUsernames.forEach(username => {
+        const chat = this.chats.find(
+          chat =>
+            chat.chatType === "private_chat" &&
+            chat.users?.some(u => u.nickname === username)
+        );
+        if (chat) {
+          chat.lastMessage = { content: preview, timestamp: new Date().toISOString() };
+          const index = this.chats.findIndex(c => c.conversationId === chat.conversationId);
+          if (index > -1) {
+            const [updateChat] = this.chats.splice(index, 1);
+            this.chats.unshift(updateChat);
+          }
+        }
+      });
 
       this.showForwardModal = false;
       this.messageToForward = null;
       this.selectedForwardChatIds = [];
+      this.selectedForwardUsernames = [];
+    },
+    async fetchAllUsers() {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await this.$axios.get("/users", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        this.allUsers = res.data.users.filter(u => u.nickname !== this.currentUser);
+      } catch (err) {
+        console.error("Errore nel fetch utenti:", err);
+      }
     },
     async searchUsers() {
       try {
@@ -1288,6 +1400,14 @@ export default {
         this.selectedUsers.splice(index, 1);
       } else {
         this.selectedUsers.push(nickname);
+      }
+    },
+    toggleForwardUserSelection(nickname) {
+      const index = this.selectedForwardUsernames.indexOf(nickname);
+      if (index === -1) {
+        this.selectedForwardUsernames.push(nickname);
+      } else {
+        this.selectedForwardUsernames.splice(index, 1);
       }
     },
     enableNameEdit() {
@@ -2093,6 +2213,24 @@ export default {
   gap: 1rem;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
 }
+
+.forward-columns {
+  display: flex;
+  gap: 20px;
+  margin-top: 10px;
+}
+
+.forward-column {
+  flex: 1;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.horizontal-layout {
+  width: 80%;
+  max-width: 800px;
+}
+
 
 .modal-content {
   background: white;
