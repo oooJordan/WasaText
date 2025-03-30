@@ -942,6 +942,11 @@ export default {
         if (this.currentChat?.conversationId === conversationId) {
           this.currentChat.nameChat = newName;
         }
+        const chatInSidebar = this.chats.find(c => c.conversationId === conversationId);
+          if (chatInSidebar) {
+            chatInSidebar.nameChat = newName;
+          }
+
 
       } catch (err) {
         console.error("Errore durante l'aggiornamento del nome del gruppo:", err);
@@ -1163,6 +1168,10 @@ export default {
         this.currentChat.profileimage = this.selectedImageGroup;
         this.fetchChats();
         this.showChangeImageGroupModal = false;
+        const chatInSidebar = this.chats.find(c => c.conversationId === this.currentChat.conversationId);
+        if (chatInSidebar) {
+          chatInSidebar.profileimage = this.selectedImageGroup;
+        }
 
       } catch (err) {
         this.uploadError = "Errore durante aggiornamento immagine profilo";
@@ -1310,6 +1319,8 @@ export default {
       }
       this.showAddMembersModal = false;
       this.selectedUsers = [];
+
+      this.fetchMessageHistory(this.currentChat.conversationId);
     },
     toggleUserMenu() {
     this.showUserMenu = !this.showUserMenu;
