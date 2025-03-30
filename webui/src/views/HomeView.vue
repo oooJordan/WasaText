@@ -98,22 +98,25 @@
               />
 
               <!-- Nome gruppo -->
-              <template v-if="editingGroupName">
-                <input
-                  v-model="editedGroupName"
-                  @blur="saveGroupName"
-                  @keyup.enter="saveGroupName"
-                  class="edit-group-name-input"
-                />
+              <template v-if="currentChat.chatType === 'group_chat'">
+                <template v-if="editingGroupName">
+                  <input
+                    v-model="editedGroupName"
+                    @blur="saveGroupName"
+                    @keyup.enter="saveGroupName"
+                    class="edit-group-name-input"
+                  />
+                </template>
+                <template v-else>
+                  <h2 @click="enableNameEdit" class="editable">
+                    {{ currentChat.nameChat }}
+                  </h2>
+                </template>
               </template>
               <template v-else>
-                <h2
-                  @click="enableNameEdit"
-                  :class="{ editable: currentChat.chatType === 'group_chat' }"
-                >
-                  {{ currentChat.nameChat }}
-                </h2>
+                <h2>{{ currentChat.nameChat }}</h2>
               </template>
+
             </div>
 
 
@@ -224,7 +227,7 @@
               class="message-input"
             />
 
-            <label class="file-label">
+            <label class="file-label-message">
               📎
               <input
                 type="file"
@@ -321,12 +324,23 @@
                 placeholder="Nome del gruppo"
                 class="search-input-wrapper"
               />
-              <input
-                v-model="groupImage"
-                type="text"
-                placeholder="URL immagine gruppo (facoltativa)"
-                class="search-input-wrapper"
-              />
+              <div class="upload-section">
+                  <label class="file-label">
+                    📁 Carica immagine gruppo
+                    <input
+                      type="file"
+                      @change="handleProfileImageUpload($event, 'group')"
+                      accept="image/*"
+                      style="display: none;"
+                    />
+                  </label>
+
+                  <!-- Messaggio di errore se c'è stato un errore nell'upload -->
+                  <p v-if="uploadError" class="error-message">{{ uploadError }}</p>
+
+                  <!-- Messaggio di conferma immagine caricata -->
+                  <p v-if="selectedImageGroupNewChat" class="preview-label">Immagine caricata!</p>
+                </div>
             </div>
 
             <!-- Messaggio iniziale -->
@@ -373,23 +387,25 @@
       </div>
       <!-- Modal per cambiare il nome utente -->
       <div v-if="showChangeUsernameModal" class="modal">
-          <div class="modal-change-username">
-            <h3>Cambia il mio nome utente</h3>
-            <input
-              v-model="newUsername"
-              type="text"
-              placeholder="Inserisci il nuovo nome"
-              class="styled-input"
-            />
-            <div class="modal-buttons">
-              <button class="primary-btn" @click="updateUsername">
-                Salva
-              </button>
-              <button class="secondary-btn" @click="showChangeUsernameModal = false">
-                Annulla
-              </button>
-            </div>
+        <div class="modal-change-username">
+          <h3>Cambia il mio nome utente</h3>
+
+          <input
+            v-model="newUsername"
+            type="text"
+            placeholder="Inserisci il nuovo nome"
+            class="styled-input"
+          />
+
+          <!-- Messaggio di errore in caso di nome utente già esistente -->
+          <p v-if="usernameError" class="error-message">{{ usernameError }}</p>
+
+          <div class="modal-buttons">
+            <button class="primary-btn" @click="updateUsername">Salva</button>
+            <button class="secondary-btn" @click="showChangeUsernameModal = false">Annulla</button>
           </div>
+        </div>
+
       </div>
       <!-- Modal per immagine profilo ingrandita -->
       <div v-if="showImageModal" class="modal-image">
@@ -456,6 +472,7 @@ export default {
       selectedGifUrl: null,
       newImageFile: null,
       showChangeUsernameModal: false,
+      usernameError: "",
     };
   },
   created() {
@@ -745,7 +762,7 @@ export default {
       const conversationRequest = {
         chatType: { ChatType: this.chatType },
         groupName: this.chatType === "group_chat" ? this.groupName : "",
-        imageGroup: this.chatType === "group_chat" ? (this.groupImage?.trim() || "") : "",
+        imageGroup: this.chatType === "group_chat" ? (this.selectedImageGroup || "") : "",
         usersname: this.selectedUsers,
         startMessage: {
           media: "text",
@@ -1013,15 +1030,18 @@ export default {
       }
     },
     async updateUsername() {
-      if (!this.newUsername.trim()) return;
+      this.usernameError = "";
+
+      if (!this.newUsername.trim()) {
+        this.usernameError = "Il nome non può essere vuoto.";
+        return;
+      }
 
       try {
         const token = localStorage.getItem("token");
         if (!token) throw new Error("Non autorizzato");
 
-        const response = await this.$axios.put(
-          "/username",
-          { newUsername: this.newUsername.trim() },
+        await this.$axios.put( "/username", { newUsername: this.newUsername.trim() },
           {
             headers: {
               Authorization: `Bearer ${token}`
@@ -1035,6 +1055,11 @@ export default {
 
       } catch (error) {
         console.error("Errore durante l'aggiornamento del nome utente:", error);
+        if (error.response && error.response.status === 409) {
+          this.usernameError = "Questo nome utente è già in uso.";
+        } else {
+          this.usernameError = "Errore durante l'aggiornamento del nome.";
+        }
       }
     },
     async handleProfileImageUpload(event, type) {
@@ -2340,6 +2365,11 @@ export default {
 }
 
 .file-label {
+  padding: 20px;
+  cursor: pointer;
+  font-size: 15px;
+}
+.file-label-message {
   cursor: pointer;
   font-size: 20px;
 }
