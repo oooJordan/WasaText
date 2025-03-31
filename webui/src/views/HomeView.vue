@@ -201,8 +201,13 @@
             </div>
 
             <div class="message-reactions" v-if="message.comments && message.comments.length > 0">
-              <span v-for="comment in message.comments" :key="comment.username + comment.emojiCode">
-                {{ comment.emojiCode }}
+              <span
+                v-for="(usernames, emoji) in groupReactionsByEmoji(message.comments)"
+                :key="emoji"
+                class="reaction-tooltip"
+                :title="usernames.join(', ')"
+              >
+                {{ emoji }}
               </span>
             </div>
             <span class="message-time">{{ formatTime(message.timestamp) }}</span>
@@ -1532,6 +1537,16 @@ export default {
       this.selectedProfileImage = null;
       this.showUserMenu = false;
     },
+    groupReactionsByEmoji(comments) {
+      const grouped = {};
+      for (const comment of comments) {
+        if (!grouped[comment.emojiCode]) {
+          grouped[comment.emojiCode] = [];
+        }
+        grouped[comment.emojiCode].push(comment.username);
+      }
+      return grouped;
+    },
     getPreview(msg) {
       const content = msg.content.trim();
       if (msg.media === "gif") {
@@ -2015,6 +2030,19 @@ export default {
 .message-reactions{
   margin-top: 6px;
   font-size: 1.1rem;
+}
+
+.reaction-tooltip {
+  background-color: rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 2px 8px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+.reaction-tooltip:hover {
+  background-color: rgba(255, 255, 255, 0.2);
 }
 
 .messages {
