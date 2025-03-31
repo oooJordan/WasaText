@@ -421,9 +421,14 @@
           <h3>Aggiungi membri al gruppo</h3>
 
           <h4>Utenti</h4>
+            <input
+              v-model="searchAddMemberQuery"
+              placeholder="Cerca utente..."
+              class="search-input-wrapper"
+            />
             <ul class="conversation-list">
               <li
-                v-for="user in allUsers"
+                v-for="user in filteredAddMemberUsers"
                 :key="user.user_id"
                 :class="{ selected: selectedForwardUsernames.includes(user.nickname) }"
                 @click="toggleForwardUserSelection(user.nickname)"
@@ -531,6 +536,7 @@ export default {
       usernameError: "",
       startMessageText: "",
       selectedImageGroupNewChat: null,
+      searchAddMemberQuery: "",
     };
   },
   created() {
@@ -558,7 +564,22 @@ export default {
       const existingPrivateUsernames = this.chats.filter(chat => chat.ChatType === "private_chat").map(chat => chat.nameChat);
 
       return this.allUsers.filter( user => user.nickname !== this.currentUser && !existingPrivateUsernames.includes(user.nickname));
-    }
+    },
+    filteredAddMemberUsers() {
+      const search = this.searchAddMemberQuery.toLowerCase();
+
+      const currentGroupParticipants = this.currentChat.participants || [];
+
+      return this.allUsers
+        .filter(user =>
+          user.nickname !== this.currentUser &&
+          !currentGroupParticipants.includes(user.nickname)
+        )
+        .filter(user =>
+          user.nickname.toLowerCase().includes(search)
+        );
+    },
+
   },
   methods: {
     async fetchMessageHistory(conversation_id) {
@@ -627,6 +648,9 @@ export default {
           }),
           users: data.utenti?.users || []
         };
+
+        this.currentChat.participants = data.utenti?.users.map(u => u.nickname) || [];
+
 
         this.$nextTick(() => {
           this.scrollToLastMessage();
