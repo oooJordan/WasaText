@@ -108,6 +108,7 @@ type MessageRicvApi struct {
 	MessageType string          `json:"media"`
 	Image       string          `json:"image"`
 	Timestamp   string          `json:"timestamp"`
+	IsForwarded bool            `json:"is_forwarded"`
 	Comment     []CommentApi    `json:"comments"`
 	ReadStatus  []ReadStatusApi `json:"read_status"`
 }
@@ -150,7 +151,6 @@ func ConvertConversationFromDatabase(req database.Triplos) ConversationsApi {
 		id := int(req.Conversation.MessageId.Int64)
 		messageID = &id
 	}
-
 	// Converto il messaggio
 	message := MessageRicvApi{
 		UserName:    req.Message.UserName,
@@ -159,6 +159,7 @@ func ConvertConversationFromDatabase(req database.Triplos) ConversationsApi {
 		Testo:       req.Message.Testo,
 		Image:       req.Message.Image,
 		Message_ID:  messageID,
+		IsForwarded: req.Message.IsForwarded,
 		Comment:     comments,
 		ReadStatus:  ReadStatusArray,
 	}

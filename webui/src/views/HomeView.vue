@@ -165,6 +165,9 @@
                   <strong>{{ getNickname(message.username) }}</strong>
                 </p>
                 <div class="message-content">
+                  <p v-if="message.is_forwarded == 1 && message.forwarded_from !== currentChat.conversationId">
+                    [Inoltrato]
+                  </p>
                   <!-- Messaggio di testo -->
                   <p v-if="message.media === 'text' || message.media === 'gif_with_text'">{{ sanitizeContent(message.content) }}</p>
                   
@@ -580,6 +583,8 @@ export default {
           ...chatFromSidebar,
           chatType: chatFromSidebar?.chatType?.chatType || chatFromSidebar?.chatType || "private_chat",
           messages: data.messages.map(msg => {
+            console.log("msg", msg);
+
             const isMyMessage = msg.username === this.currentUser;
             let is_read = false;
             let is_delivered = false;
@@ -673,7 +678,7 @@ export default {
             chatType: chat.chatType?.chatType || chat.chatType || chat.ChatType || "private_chat"
           };
         }) : [];
-
+        
       } catch (error) {
         console.error("Errore nel fetch delle chat:", error);
       }
@@ -2628,6 +2633,12 @@ export default {
   max-height: 200px;
   object-fit: cover;
   border-radius: 4px;
+}
+
+.forwarded-label {
+  font-size: 0.85em;
+  color: rgb(165, 9, 9);
+  margin-bottom: 4px;
 }
 
 

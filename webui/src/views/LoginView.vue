@@ -26,18 +26,11 @@ export default {
   methods: {
     async doLogin() {
       try {
-        const response = await fetch(`${__API_URL__}/session`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ name: this.username }),
+        const response = await this.$axios.post(`/session`, {
+          name: this.username
         });
-        if (!response.ok) {
-          throw new Error("Login failed");
-        }
         
-        const data = await response.json();
+        const data = response.data;
         if(!data.user_id || data.user_id <= 0){
           throw new Error("Invalid user ID");
         }

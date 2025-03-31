@@ -243,6 +243,7 @@ func (rt *_router) messageHistory(w http.ResponseWriter, r *http.Request, ps htt
 			MessageType: msg.MessageType,
 			Image:       msg.Image,
 			Timestamp:   msg.Timestamp,
+			IsForwarded: msg.IsForwarded,
 			Comment:     commentArray,
 			ReadStatus:  readStatusArray,
 		}

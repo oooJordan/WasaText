@@ -139,8 +139,9 @@ func New(db *sql.DB) (AppDatabase, error) { // inizializza il database
 						type TEXT CHECK(type IN ('text', 'gif', 'gif_with_text')) NOT NULL,
 						content TEXT, 
 						media TEXT,
-						FOREIGN KEY(conversation_id) REFERENCES conversations(conversation_id) ON DELETE CASCADE ,
-						FOREIGN KEY(user_id) REFERENCES users(user_id)
+						is_forwarded BOOLEAN NOT NULL DEFAULT FALSE,
+						FOREIGN KEY(conversation_id) REFERENCES conversations(conversation_id) ON DELETE CASCADE,
+						FOREIGN KEY(user_id) REFERENCES users(user_id),
 						PRIMARY KEY("message_id" AUTOINCREMENT)
 					);`
 		Message_read := `CREATE TABLE messages_read_status (

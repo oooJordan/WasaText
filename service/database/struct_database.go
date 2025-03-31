@@ -58,6 +58,7 @@ type MessageRicvDb struct {
 	MessageType string
 	Testo       string
 	Image       string
+	IsForwarded bool
 }
 
 type CommentDb struct {
@@ -78,6 +79,7 @@ type MessageFullDB struct {
 	MessageType string
 	Image       string
 	Timestamp   string
+	IsForwarded bool
 	Comment     []CommentDb
 	ReadStatus  []ReadStatusDb
 }

@@ -127,6 +127,7 @@ func (db *appdbimpl) GetConversationMessages(conversationID int) ([]MessageFullD
             m.media,
             m."type",
             m.timestamp,
+			m.is_forwarded,
             c.name AS comment_user,
             cm.reaction,
             mrs.user_id,
@@ -157,6 +158,7 @@ func (db *appdbimpl) GetConversationMessages(conversationID int) ([]MessageFullD
 			media           string
 			messageType     string
 			timestamp       string
+			isForwarded     sql.NullBool
 			commentUserName *string
 			commentEmoji    *string
 			rsUserID        *int
@@ -171,6 +173,7 @@ func (db *appdbimpl) GetConversationMessages(conversationID int) ([]MessageFullD
 			&media,
 			&messageType,
 			&timestamp,
+			&isForwarded,
 			&commentUserName,
 			&commentEmoji,
 			&rsUserID,
@@ -195,6 +198,7 @@ func (db *appdbimpl) GetConversationMessages(conversationID int) ([]MessageFullD
 				MessageType: messageType,
 				Image:       media,
 				Timestamp:   timestamp,
+				IsForwarded: isForwarded.Valid && isForwarded.Bool,
 				Comment:     []CommentDb{},
 				ReadStatus:  []ReadStatusDb{},
 			}
@@ -311,10 +315,10 @@ func (db *appdbimpl) ForwardMessage(destinationConversationID int, originalMessa
 
 	// Inserisco il messaggio inoltrato nella tabella messages
 	insertQuery := `
-		INSERT INTO messages (conversation_id, user_id, type, content, media)
-		VALUES (?, ?, ?, ?, ?)
+		INSERT INTO messages (conversation_id, user_id, type, content, media, is_forwarded)
+		VALUES (?, ?, ?, ?, ?, ?)
 	`
-	result, err := trans.Exec(insertQuery, destinationConversationID, forwardingUserID, msgType, content, media)
+	result, err := trans.Exec(insertQuery, destinationConversationID, forwardingUserID, msgType, content, media, true)
 	if err != nil {
 		return 0, err
 	}

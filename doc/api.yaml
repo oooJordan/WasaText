@@ -161,6 +161,11 @@ components:
             $ref: "#/components/schemas/Image" #immagine
         timestamp:
             $ref: "#/components/schemas/Timestamp" #timestamp
+        is_forwarded:
+          type: integer
+          description: "0 if the message is not forwarded, 1 if it is forwarded"
+          minimum: 0
+          maximum: 1
         read_status:
           type: array
           description: "Elenco dello stato di lettura per ogni utente"
