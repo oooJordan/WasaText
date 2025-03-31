@@ -166,7 +166,7 @@
                 </p>
                 <div class="message-content">
                   <!-- Messaggio di testo -->
-                  <p v-if="message.media === 'text' || message.media === 'gif_with_text'">{{ message.content }}</p>
+                  <p v-if="message.media === 'text' || message.media === 'gif_with_text'">{{ sanitizeContent(message.content) }}</p>
                   
                   <!-- PEr vedere se un messaggio è una gif o una gif con testo -->
                   <img
@@ -618,7 +618,7 @@ export default {
 
         const data = response.data;
 
-        this.chats = data.conversation.map(chat => {
+        this.chats = Array.isArray(data.conversation) ? data.conversation.map(chat => {
           const lastMsg = chat.lastMessage || {};
           const trimmedContent = (lastMsg.content || "").trim();
 
@@ -646,7 +646,7 @@ export default {
             lastMessage: lastMsg,
             chatType: chat.chatType?.chatType || chat.chatType || chat.ChatType || "private_chat"
           };
-        });
+        }) : [];
 
       } catch (error) {
         console.error("Errore nel fetch delle chat:", error);
@@ -708,7 +708,7 @@ export default {
         }
 
         const messagePayload = {
-          content: this.newMessage,
+          content: this.newMessage.trim(),
           media: mediaType,
           image: this.selectedGifUrl || ""
         };
@@ -727,7 +727,7 @@ export default {
         this.currentChat.messages.push({
           message_id: data.messageId || Date.now(),
           username: this.currentUser,
-          content: this.newMessage,
+          content: this.newMessage.trim(),
           media: mediaType,
           image: this.selectedGifUrl || "",
           timestamp: new Date().toISOString(),
@@ -735,18 +735,16 @@ export default {
 
         const chat = this.chats.find(c => c.conversationId === this.currentChat.conversationId);
         if (chat) {
-          let preview = "";
-          if (mediaType === "gif" && !this.newMessage.trim()) {
-            preview = "[Foto]";
-          } else if (mediaType === "gif_with_text") {
-            preview = "[Foto] " + this.newMessage.trim();
-          } else {
-            preview = this.newMessage;
-          }
+          const preview = this.getPreview({
+            media: mediaType,
+            content: this.newMessage.trim()
+          });
+
           chat.lastMessage = {
             content: preview,
             timestamp: new Date().toISOString()
           };
+
           const index = this.chats.findIndex(c => c.conversationId === chat.conversationId);
           if (index > -1) {
             const [updateChat] = this.chats.splice(index, 1);
@@ -794,17 +792,25 @@ export default {
         return;
       }
 
+      let mediaType = "text";
+      if (this.selectedImageGroup && this.startMessageText.trim()) {
+        mediaType = "gif_with_text";
+      } else if (this.selectedImageGroup && !this.startMessageText.trim()) {
+        mediaType = "gif";
+      }
+
       const conversationRequest = {
         chatType: { ChatType: this.chatType },
         groupName: this.chatType === "group_chat" ? this.groupName : "",
         imageGroup: this.chatType === "group_chat" ? (this.selectedImageGroup || "") : "",
         usersname: this.selectedUsers,
         startMessage: {
-          media: "text",
+          media: mediaType,
           content: this.startMessageText.trim(),
-          image: "",
+          image: this.selectedImageGroup || ""
         }
       };
+
 
       try {
         const token = localStorage.getItem("token");
@@ -1011,15 +1017,12 @@ export default {
     async confirmForward() {
       const token = localStorage.getItem("token");
       const message = this.messageToForward;
-      if (!message || (!this.selectedForwardChatIds.length && !this.selectedForwardUsernames.length))
-        return;
+      if (!message || (!this.selectedForwardChatIds.length && !this.selectedForwardUsernames.length)) return;
 
       // Inoltro a chat esistenti
       for (const conversationId of this.selectedForwardChatIds) {
         try {
-          await this.$axios.post(
-            `/conversation/${conversationId}/messages/${message.message_id}`,
-            {},
+          await this.$axios.post(`/conversation/${conversationId}/messages/${message.message_id}`, {},
             { headers: { Authorization: `Bearer ${token}` } }
           );
         } catch (err) {
@@ -1027,11 +1030,12 @@ export default {
         }
       }
 
-      // Inoltro a utenti per cui non esiste già una chat privata
+      const createdChats = new Map(); // username → conversationId
+
+      // Creo nuove chat private e salvo il loro ID
       for (const username of this.selectedForwardUsernames) {
         try {
-          // Creo la nuova chat privata con l'utente
-          await this.$axios.post(`/conversations`,
+          const response = await this.$axios.post(`/conversations`,
             {
               chatType: { ChatType: "private_chat" },
               groupName: "",
@@ -1039,46 +1043,54 @@ export default {
               usersname: [username],
               startMessage: {
                 media: message.media,
-                content: message.content || "",
+                content: this.sanitizeContent(message.content) || "",
                 image: message.image || ""
               }
             },
             { headers: { Authorization: `Bearer ${token}` } }
           );
-          await this.fetchChats();
-          const newChat = this.chats.find(chat => chat.chatType === "private_chat" && chat.users && chat.users.some(u => (u.nickname || u.username) === username));
-          if (newChat && newChat.conversationId) {
-            // Inoltro il messaggio nella nuova chat
-            await this.$axios.post(`/conversation/${newChat.conversationId}/messages/${message.message_id}`, {},
-              { headers: { Authorization: `Bearer ${token}` } }
-            );
+
+
+          const conversationId = response.data.ConversationId;
+          if (conversationId) {
+            createdChats.set(username, conversationId);
           } else {
-            console.error("Chat non trovata dopo creazione per", username);
+            console.error("conversationId non presente nella risposta per", username);
           }
+
         } catch (err) {
           console.error("Errore nella creazione della chat per utente:", username, err);
         }
       }
 
-      await this.fetchChats();
-
-      // Creo la preview evitando duplicazioni di "[Foto]"
-      let preview = "";
-      if (message.media === "gif") {
-        preview = !message.content.trim() ? "[Foto]" : message.content.trim();
-      } else if (message.media === "gif_with_text") {
-        // Se il contenuto inizia già con "[Foto]", non lo aggiungo di nuovo
-        if (message.content.trim().startsWith("[Foto]")) {
-          preview = message.content.trim();
-        } else {
-          preview = "[Foto] " + message.content.trim();
+      for (const username of this.selectedForwardUsernames) {
+        if (createdChats.has(username)) {
+          // Messaggio già incluso come startMessage, non inoltro di nuovo
+          continue;
         }
-      } else {
-        preview = message.content;
+
+        const chat = this.chats.find(chat =>
+          chat.chatType === "private_chat" &&
+          chat.users &&
+          chat.users.some(u => (u.nickname || u.username) === username)
+        );
+        if (chat && chat.conversationId) {
+          try {
+            await this.$axios.post(`/conversation/${chat.conversationId}/messages/${message.message_id}`, {},
+              { headers: { Authorization: `Bearer ${token}` } }
+            );
+          } catch (err) {
+            console.error("Errore inoltro fallback per", username, err);
+          }
+        }
       }
 
+      await this.fetchChats(); // ricarico per aggiornare le preview
 
-      // Aggiorno le preview nelle chat
+      // Costruzione della preview
+      const preview = this.getPreview(message);
+
+      // Aggiorno le preview nelle chat esistenti
       this.selectedForwardChatIds.forEach(conversationId => {
         const chat = this.chats.find(c => c.conversationId === conversationId);
         if (chat) {
@@ -1091,16 +1103,12 @@ export default {
         }
       });
 
-      // Aggiorno le preview per le chat con utenti
-      this.selectedForwardUsernames.forEach(username => {
-        const chat = this.chats.find(chat =>
-          chat.chatType === "private_chat" &&
-          chat.users &&
-          chat.users.some(u => (u.nickname || u.username) === username)
-        );
+      // Aggiorno anche le nuove chat
+      createdChats.forEach((conversationId, username) => {
+        const chat = this.chats.find(c => c.conversationId === conversationId);
         if (chat) {
           chat.lastMessage = { content: preview, timestamp: new Date().toISOString() };
-          const index = this.chats.findIndex(c => c.conversationId === chat.conversationId);
+          const index = this.chats.findIndex(c => c.conversationId === conversationId);
           if (index > -1) {
             const [updateChat] = this.chats.splice(index, 1);
             this.chats.unshift(updateChat);
@@ -1459,6 +1467,26 @@ export default {
       this.selectedProfileImage = null;
       this.showUserMenu = false;
     },
+    getPreview(msg) {
+      const content = msg.content.trim();
+      if (msg.media === "gif") {
+        // Se non c'è testo, metto [Foto]
+        // Se c’è già "[Foto]" in content, non lo ri-aggiungo
+        if (!content) return "[Foto]";
+        if (content.startsWith("[Foto]")) return content; 
+        return "[Foto] " + content;
+      }
+      if (msg.media === "gif_with_text") {
+        if (content.startsWith("[Foto]")) return content;
+        return "[Foto] " + content;
+      }
+      return content;
+    },
+    sanitizeContent(rawContent) {
+      return rawContent.replace(/^(\[Foto\]\s*)+/, "").trim();
+    }
+    
+
   },
 
   mounted() {
