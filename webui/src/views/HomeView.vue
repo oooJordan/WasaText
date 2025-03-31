@@ -341,7 +341,7 @@
 
           <!-- Colonna destra -->
           <div class="right-column">
-            <!-- Nome e immagine gruppo (se gruppo) -->
+            <!-- Nome e immagine gruppo  -->
             <div v-if="chatType === 'group_chat'" class="group-fields">
               <input
                 v-model="groupName"
@@ -349,6 +349,7 @@
                 placeholder="Nome del gruppo"
                 class="search-input-wrapper"
               />
+              <!-- Upload immagine gruppo -->
               <div class="upload-section">
                   <label class="file-label">
                     📁 Carica immagine gruppo
@@ -375,6 +376,29 @@
               class="search-input-wrapper"
               rows="4"
             ></textarea>
+
+            <!-- Upload immagine per il messaggio iniziale -->
+            <div class="upload-section">
+              <label class="file-label">
+                🖼️ Aggiungi immagine al messaggio iniziale
+                <input
+                  type="file"
+                  @change="handleProfileImageUpload($event, 'initialMessageImage')"
+                  accept="image/*"
+                  style="display: none;"
+                />
+              </label>
+
+              <!-- Messaggio di errore -->
+              <p v-if="uploadError" class="error-message">{{ uploadError }}</p>
+
+            </div>
+
+            <!-- Anteprima immagine messaggio iniziale -->
+            <div v-if="selectedImageGroupNewChat" class="image-preview-upload">
+              <img :src="selectedImageGroupNewChat" alt="Anteprima immagine" />
+              <button class="remove-image-btn" @click="selectedImageGroupNewChat = null">✕</button>
+            </div>
 
             <!-- Messaggi di errore -->
             <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
@@ -502,6 +526,8 @@ export default {
       newImageFile: null,
       showChangeUsernameModal: false,
       usernameError: "",
+      startMessageText: "",
+      selectedImageGroupNewChat: null,
     };
   },
   created() {
@@ -778,7 +804,7 @@ export default {
         this.errorMessage = "Seleziona almeno un utente";
         return;
       }
-      if (!this.startMessageText.trim()) {
+      if (!this.startMessageText.trim()  && !this.selectedImageGroupNewChat) {
         this.errorMessage = "Devi scrivere un messaggio iniziale";
         return;
       }
@@ -805,13 +831,16 @@ export default {
         imageGroup: this.chatType === "group_chat" ? (this.selectedImageGroup || "") : "",
         usersname: this.selectedUsers,
         startMessage: {
-          media: mediaType,
+          media: this.selectedImageGroupNewChat && this.startMessageText.trim()
+            ? "gif_with_text"
+            : this.selectedImageGroupNewChat
+            ? "gif"
+            : "text",
           content: this.startMessageText.trim(),
-          image: this.selectedImageGroup || ""
+          image: this.selectedImageGroupNewChat || ""
         }
+
       };
-
-
       try {
         const token = localStorage.getItem("token");
         if (!token) throw new Error("Non sei autorizzato");
@@ -1213,6 +1242,8 @@ export default {
           this.selectedImageGroup = data.imageUrl;
         } else if (type === 'message') {
           this.selectedGifUrl = data.imageUrl;
+        } else if (type === 'initialMessageImage') {
+          this.selectedImageGroupNewChat = data.imageUrl;
         }
 
       } catch (err) {
@@ -2554,8 +2585,9 @@ export default {
   font-size: 15px;
 }
 .file-label-message {
+  padding: 20px;
   cursor: pointer;
-  font-size: 20px;
+  font-size: 15px;
 }
 
 .image-preview {
@@ -2565,10 +2597,23 @@ export default {
 }
 
 .image-preview img {
-  width: 300px; 
+  width: 200px; 
   height: auto; 
-  max-width: 200px; 
-  max-height: 200px;
+  max-width: 150px; 
+  max-height: 150px;
+}
+
+.image-preview-upload {
+  margin-bottom: 40px;
+  display: flex;
+  align-items: center;
+}
+
+.image-preview-upload img {
+  width: 200px; 
+  height: auto; 
+  max-width: 150px; 
+  max-height: 150px;
 }
 
 .remove-image-btn {
