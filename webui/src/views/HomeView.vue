@@ -921,12 +921,14 @@ export default {
           return;
         }
 
+        await this.fetchChats();
+
         const chat = this.chats.find(c => c.conversationId === this.currentChat.conversationId);
         if (chat && chat.lastMessage?.content === message.content) {
           const lastM = this.currentChat.messages[this.currentChat.messages.length - 1];
           chat.lastMessage = lastM ? { content: lastM.content, timestamp: lastM.timestamp } : null;
         }
-
+        await this.fetchChats();
         this.selectedMessageOptions = null;
 
       } catch (error) {
@@ -1013,6 +1015,8 @@ export default {
         if (this.currentChat.conversationId) {
           this.currentChat = null;
         }
+
+        await this.fetchChats();
 
       } catch (err) {
         console.error("Errore durante l'uscita dal gruppo:", err);
@@ -1504,10 +1508,11 @@ export default {
       this.showChangeImageGroupModal = true;
       this.showGroupMenu = false;
     },
-    confirmAddMembers(){
+    async confirmAddMembers(){
       for (const nickname of this.selectedUsers) {
         this.addUserToGroup(this.currentChat.conversationId, nickname);
       }
+      await this.fetchMessageHistory(this.currentChat.conversationId);
       this.showAddMembersModal = false;
       this.selectedUsers = [];
 
