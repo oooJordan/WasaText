@@ -195,15 +195,16 @@ func (db *appdbimpl) GetConversationMessages(conversationID int) ([]MessageFullD
 		idx, found := msgIndexMap[id]
 		if !found {
 			newMsg := MessageFullDB{
-				MessageID:   messageID,
-				UserName:    userName,
-				Testo:       content,
-				MessageType: messageType,
-				Image:       media,
-				Timestamp:   timestamp,
-				IsForwarded: isForwarded.Valid && isForwarded.Bool,
-				Comment:     []CommentDb{},
-				ReadStatus:  []ReadStatusDb{},
+				MessageID:        messageID,
+				UserName:         userName,
+				Testo:            content,
+				MessageType:      messageType,
+				Image:            media,
+				Timestamp:        timestamp,
+				IsForwarded:      isForwarded.Valid && isForwarded.Bool,
+				ReplyToMessageID: replyTo,
+				Comment:          []CommentDb{},
+				ReadStatus:       []ReadStatusDb{},
 			}
 			results = append(results, newMsg)
 			idx = len(results) - 1

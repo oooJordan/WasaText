@@ -155,6 +155,7 @@
           <div
             v-for="(message, index_in_array) in currentChat.messages"
             :key="message.message_id"
+            :data-msgid="message.message_id"
             :class="['message', message.username === currentUser ? 'sent' : 'received']"
             :ref="index_in_array === currentChat.messages.length - 1 ? 'lastMessage' : null"
             @mouseleave="hoveredMessage = null"
@@ -164,6 +165,21 @@
                 <p v-if="currentChat.chatType === 'group_chat' && message.username !== currentUser" class="sender-name">
                   <strong>{{ getNickname(message.username) }}</strong>
                 </p>
+
+                <!-- REPLY -> Mostra preview del messaggio a cui si risponde -->
+                <div
+                  v-if="message.reply_to_message_id"
+                  class="reply-preview"
+                  @click="scrollToMessage(message.reply_to_message_id)"
+                >
+                  <div class="reply-author">
+                    {{ getReplyUsername(message.reply_to_message_id) || 'Messaggio' }}
+                  </div>
+                  <div class="reply-snippet">
+                    {{ getReplySnippet(message.reply_to_message_id) }}
+                  </div>
+                </div>
+                <!-- IS_FORWARDED -> Mostra la scritta sul messaggio inoltrato -->
                 <div class="message-content">
                   <p v-if="message.is_forwarded == 1 && message.forwarded_from !== currentChat.conversationId">
                     [Inoltrato]
@@ -184,6 +200,7 @@
                 <div v-if="selectedMessageOptions === message.message_id" class="dropdown-menu">
                   <p @click="forwardMessage(message)">📤 Inoltra</p>
                   <p @click="showEmoji(message)">☺️​ Reazione</p>
+                  <p @click="selectReplyMessage(message)">↩️ Rispondi</p>
                   <p v-if="message.username === currentUser" @click="deleteMessage(message)">🗑️ Elimina</p>
                 </div>
               </div>
@@ -227,6 +244,17 @@
 
         <div class="input-area">
           <div class="input-controls">
+
+            <div v-if="replyToMessage" class="replying-preview">
+              <div class="reply-user">
+                Rispondi a <strong>{{ getNickname(replyToMessage.username) }}</strong>
+              </div>
+              <div class="reply-snippet">
+                {{ sanitizeContent(replyToMessage.content) }}
+              </div>
+              <button class="remove-reply-btn" @click="replyToMessage = null">✕</button>
+            </div>
+
             <input
               type="text"
               v-model="newMessage"
@@ -542,6 +570,7 @@ export default {
       startMessageText: "",
       selectedImageGroupNewChat: null,
       searchAddMemberQuery: "",
+      replyToMessage: null,
     };
   },
   created() {
@@ -653,6 +682,8 @@ export default {
           }),
           users: data.utenti?.users || []
         };
+        console.log("Messaggi ricevuti:", data.messages);
+
 
         this.currentChat.participants = data.utenti?.users.map(u => u.nickname) || [];
 
@@ -770,7 +801,8 @@ export default {
         const messagePayload = {
           content: this.newMessage.trim(),
           media: mediaType,
-          image: this.selectedGifUrl || ""
+          image: this.selectedGifUrl || "",
+          reply_to_message_id: this.replyToMessage?.message_id || null,
         };
 
         const response = await this.$axios.post(`/conversation/${this.currentChat.conversationId}`,
@@ -815,6 +847,7 @@ export default {
         this.newMessage = "";
         this.selectedGifUrl = null;
         this.newImageFile = null;
+        this.replyToMessage = null;
         if (this.$refs.imageInput) {
           this.$refs.imageInput.value = null;
         }
@@ -1564,8 +1597,38 @@ export default {
     },
     sanitizeContent(rawContent) {
       return rawContent.replace(/^(\[Foto\]\s*)+/, "").trim();
+    },
+    getReplyUsername(replyId) {
+      if (!this.currentChat || !this.currentChat.messages) return "";
+      const original = this.currentChat.messages.find(m => m.message_id === replyId);
+      return original ? this.getNickname(original.username) : "Messaggio";
+    },
+    getReplySnippet(replyId) {
+      if (!this.currentChat || !this.currentChat.messages) return "";
+      const msg = this.currentChat.messages.find(m => m.message_id === replyId);
+      if (!msg) return "Messaggio non trovato";
+
+      if (msg.media === "gif") return "[Foto]";
+      if (msg.media === "gif_with_text") return `[Foto] ${this.sanitizeContent(msg.content)}`;
+      if (!msg.content || !msg.content.trim()) return "[Messaggio vuoto]";
+
+      return this.truncatedMessage(this.sanitizeContent(msg.content));
+    },
+    scrollToMessage(replyId) {
+      const allMessages = this.$refs.lastMessage;
+      if (!Array.isArray(allMessages)) return;
+
+      const el = allMessages.find(el => el?.dataset?.msgid == replyId);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.add('highlighted');
+        setTimeout(() => el.classList.remove('highlighted'), 1000);
+      }
+    },
+    selectReplyMessage(message) {
+      this.replyToMessage = message;
+      this.selectedMessageOptions = null;
     }
-    
 
   },
 
@@ -2696,6 +2759,40 @@ export default {
   font-size: 0.85em;
   color: rgb(165, 9, 9);
   margin-bottom: 4px;
+}
+
+.replying-preview {
+  background-color: #eee;
+  padding: 6px 10px;
+  margin-bottom: 4px;
+  border-left: 4px solid #888;
+  position: relative;
+}
+
+.reply-snippet {
+  font-size: 0.85em;
+  color: #555;
+}
+
+.remove-reply-btn {
+  position: absolute;
+  right: 5px;
+  top: 15px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.reply-preview {
+  background-color: rgba(0, 0, 0, 0.1);
+  padding: 6px 10px;
+  border-left: 3px solid #999;
+  margin-bottom: 5px;
+  cursor: pointer;
+}
+.reply-author {
+  font-weight: bold;
+  font-size: 0.85em;
 }
 
 
