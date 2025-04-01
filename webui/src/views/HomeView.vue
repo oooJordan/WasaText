@@ -1145,7 +1145,8 @@ export default {
               startMessage: {
                 media: message.media,
                 content: this.sanitizeContent(message.content) || "",
-                image: message.image || ""
+                image: message.image || "",
+                is_forwarded: true
               }
             },
             { headers: { Authorization: `Bearer ${token}` } }

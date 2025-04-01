@@ -29,9 +29,10 @@ type ConversationRequest struct {
 }
 
 type MessageSent struct {
-	Content string `json:"content,omitempty"`
-	Media   string `json:"media"`
-	Image   string `json:"image,omitempty"`
+	Content     string `json:"content,omitempty"`
+	Media       string `json:"media"`
+	Image       string `json:"image,omitempty"`
+	IsForwarded bool
 }
 
 // GET CONVERSATIONS

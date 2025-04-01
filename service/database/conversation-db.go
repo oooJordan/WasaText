@@ -96,8 +96,8 @@ func (db *appdbimpl) CreateConversationDB(author int, req ConversationRequest) (
 	}
 
 	// Inserisco il messaggio iniziale
-	query := "INSERT INTO messages (conversation_id, user_id, content, media, type) VALUES (?, ?, ?, ?, ?)"
-	result, err = trans.Exec(query, conversationID, author, req.StartMessage.Content, req.StartMessage.Image, req.StartMessage.Media)
+	query := "INSERT INTO messages (conversation_id, user_id, content, media, type, is_forwarded) VALUES (?, ?, ?, ?, ?, ?)"
+	result, err = trans.Exec(query, conversationID, author, req.StartMessage.Content, req.StartMessage.Image, req.StartMessage.Media, req.StartMessage.IsForwarded)
 	if err != nil {
 		return 0, errors.New("failed to insert start message: " + err.Error())
 	}

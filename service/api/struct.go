@@ -58,6 +58,7 @@ type MessageSent struct {
 	Content          string `json:"content,omitempty"`
 	Media            string `json:"media"`
 	Image            string `json:"image,omitempty"`
+	IsForwarded      bool   `json:"is_forwarded"`
 	ReplyToMessageID *int   `json:"reply_to_message_id,omitempty"`
 }
 
@@ -80,9 +81,10 @@ func convertToDatabaseConversationRequest(req ConversationRequest) database.Conv
 		GroupName:  req.GroupName,
 		Usersname:  req.Usersname,
 		StartMessage: database.MessageSent{
-			Content: req.StartMessage.Content,
-			Media:   req.StartMessage.Media,
-			Image:   req.StartMessage.Image,
+			Content:     req.StartMessage.Content,
+			Media:       req.StartMessage.Media,
+			Image:       req.StartMessage.Image,
+			IsForwarded: req.StartMessage.IsForwarded,
 		},
 	}
 }
