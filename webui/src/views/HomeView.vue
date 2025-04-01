@@ -2711,9 +2711,9 @@ export default {
   font-size: 15px;
 }
 .file-label-message {
-  padding: 20px;
+  padding: 10px;
   cursor: pointer;
-  font-size: 15px;
+  font-size: 20px;
 }
 
 .image-preview {
