@@ -572,6 +572,7 @@ export default {
       selectedImageGroupNewChat: null,
       searchAddMemberQuery: "",
       replyToMessage: null,
+      timeInterval: null,
     };
   },
   created() {
@@ -823,7 +824,7 @@ export default {
           is_forwarded: false,
           comments: [],
           read_status: [],
-          reply_to_message_id: this.replyToMessage?.message_id || null, // 👉 questa riga è fondamentale!
+          reply_to_message_id: this.replyToMessage?.message_id || null,
         });
 
 
@@ -1132,7 +1133,7 @@ export default {
         }
       }
 
-      const createdChats = new Map(); // username → conversationId
+      const createdChats = new Map(); // username -> conversationId
 
       // Creo nuove chat private e salvo il loro ID
       for (const username of this.selectedForwardUsernames) {
@@ -1636,8 +1637,21 @@ export default {
   mounted() {
     this.fetchChats();
     this.fetchProfileImage();
+
+    // Auto refresh ogni 5 secondi
+    this.timeInterval = setInterval(() => {
+      this.fetchChats();
+      if (this.currentChat?.conversationId) {
+        this.fetchMessageHistory(this.currentChat.conversationId);
+      }
+    }, 5000); // ogni 5 secondi
   },
+  beforeDestroy() {
+    clearInterval(this.timeInterval);
+  }
+
 };
+
 </script>
 
 <style scoped>
