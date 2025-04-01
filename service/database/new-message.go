@@ -128,6 +128,7 @@ func (db *appdbimpl) GetConversationMessages(conversationID int) ([]MessageFullD
             m."type",
             m.timestamp,
 			m.is_forwarded,
+			m.reply_to_message_id,
             c.name AS comment_user,
             cm.reaction,
             mrs.user_id,
@@ -159,6 +160,7 @@ func (db *appdbimpl) GetConversationMessages(conversationID int) ([]MessageFullD
 			messageType     string
 			timestamp       string
 			isForwarded     sql.NullBool
+			replyTo         sql.NullInt64
 			commentUserName *string
 			commentEmoji    *string
 			rsUserID        *int
@@ -174,6 +176,7 @@ func (db *appdbimpl) GetConversationMessages(conversationID int) ([]MessageFullD
 			&messageType,
 			&timestamp,
 			&isForwarded,
+			&replyTo,
 			&commentUserName,
 			&commentEmoji,
 			&rsUserID,

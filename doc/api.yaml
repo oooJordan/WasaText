@@ -166,6 +166,8 @@ components:
           description: "0 if the message is not forwarded, 1 if it is forwarded"
           minimum: 0
           maximum: 1
+        reply_to_message_id:
+          $ref: "#/components/schemas/MessageIdentifier" 
         read_status:
           type: array
           description: "Elenco dello stato di lettura per ogni utente"

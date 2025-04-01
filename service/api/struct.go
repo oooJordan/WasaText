@@ -102,15 +102,16 @@ type ReadStatusApi struct {
 }
 
 type MessageRicvApi struct {
-	UserName    string          `json:"username"`
-	Message_ID  *int            `json:"message_id,omitempty"`
-	Testo       string          `json:"content"`
-	MessageType string          `json:"media"`
-	Image       string          `json:"image"`
-	Timestamp   string          `json:"timestamp"`
-	IsForwarded bool            `json:"is_forwarded"`
-	Comment     []CommentApi    `json:"comments"`
-	ReadStatus  []ReadStatusApi `json:"read_status"`
+	UserName         string          `json:"username"`
+	Message_ID       *int            `json:"message_id,omitempty"`
+	Testo            string          `json:"content"`
+	MessageType      string          `json:"media"`
+	Image            string          `json:"image"`
+	Timestamp        string          `json:"timestamp"`
+	IsForwarded      bool            `json:"is_forwarded"`
+	ReplyToMessageID *int            `json:"reply_to_message_id,omitempty"`
+	Comment          []CommentApi    `json:"comments"`
+	ReadStatus       []ReadStatusApi `json:"read_status"`
 }
 
 type CommentApi struct {
@@ -151,17 +152,25 @@ func ConvertConversationFromDatabase(req database.Triplos) ConversationsApi {
 		id := int(req.Conversation.MessageId.Int64)
 		messageID = &id
 	}
+
+	var replyToID *int
+	if req.Message.ReplyToMessageID.Valid {
+		id := int(req.Message.ReplyToMessageID.Int64)
+		replyToID = &id
+	}
+
 	// Converto il messaggio
 	message := MessageRicvApi{
-		UserName:    req.Message.UserName,
-		Timestamp:   req.Message.Timestamp.Time.Format(time.RFC3339),
-		MessageType: req.Message.MessageType,
-		Testo:       req.Message.Testo,
-		Image:       req.Message.Image,
-		Message_ID:  messageID,
-		IsForwarded: req.Message.IsForwarded,
-		Comment:     comments,
-		ReadStatus:  ReadStatusArray,
+		UserName:         req.Message.UserName,
+		Timestamp:        req.Message.Timestamp.Time.Format(time.RFC3339),
+		MessageType:      req.Message.MessageType,
+		Testo:            req.Message.Testo,
+		Image:            req.Message.Image,
+		Message_ID:       messageID,
+		IsForwarded:      req.Message.IsForwarded,
+		ReplyToMessageID: replyToID,
+		Comment:          comments,
+		ReadStatus:       ReadStatusArray,
 	}
 	// Converto la conversazione
 	return ConversationsApi{

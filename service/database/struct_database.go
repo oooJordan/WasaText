@@ -53,12 +53,13 @@ type ConversationsDb struct {
 }
 
 type MessageRicvDb struct {
-	UserName    string
-	Timestamp   sql.NullTime
-	MessageType string
-	Testo       string
-	Image       string
-	IsForwarded bool
+	UserName         string
+	Timestamp        sql.NullTime
+	MessageType      string
+	Testo            string
+	Image            string
+	IsForwarded      bool
+	ReplyToMessageID sql.NullInt64
 }
 
 type CommentDb struct {
@@ -73,13 +74,14 @@ type ReadStatusDb struct {
 }
 
 type MessageFullDB struct {
-	MessageID   sql.NullInt64
-	UserName    string
-	Testo       string
-	MessageType string
-	Image       string
-	Timestamp   string
-	IsForwarded bool
-	Comment     []CommentDb
-	ReadStatus  []ReadStatusDb
+	MessageID        sql.NullInt64
+	UserName         string
+	Testo            string
+	MessageType      string
+	Image            string
+	Timestamp        string
+	IsForwarded      bool
+	ReplyToMessageID sql.NullInt64
+	Comment          []CommentDb
+	ReadStatus       []ReadStatusDb
 }

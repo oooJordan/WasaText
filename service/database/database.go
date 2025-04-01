@@ -140,6 +140,7 @@ func New(db *sql.DB) (AppDatabase, error) { // inizializza il database
 						content TEXT, 
 						media TEXT,
 						is_forwarded BOOLEAN NOT NULL DEFAULT FALSE,
+						reply_to_message_id INTEGER,
 						FOREIGN KEY(conversation_id) REFERENCES conversations(conversation_id) ON DELETE CASCADE,
 						FOREIGN KEY(user_id) REFERENCES users(user_id),
 						PRIMARY KEY("message_id" AUTOINCREMENT)

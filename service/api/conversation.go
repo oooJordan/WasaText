@@ -246,6 +246,13 @@ func (rt *_router) messageHistory(w http.ResponseWriter, r *http.Request, ps htt
 			IsForwarded: msg.IsForwarded,
 			Comment:     commentArray,
 			ReadStatus:  readStatusArray,
+			ReplyToMessageID: func() *int {
+				if msg.ReplyToMessageID.Valid {
+					id := int(msg.ReplyToMessageID.Int64)
+					return &id
+				}
+				return nil
+			}(),
 		}
 
 		response.Messages = append(response.Messages, messageAPI)
