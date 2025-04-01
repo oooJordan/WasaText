@@ -167,18 +167,19 @@
                 </p>
 
                 <!-- REPLY -> Mostra preview del messaggio a cui si risponde -->
-                <div
-                  v-if="message.reply_to_message_id"
-                  class="reply-preview"
-                  @click="scrollToMessage(message.reply_to_message_id)"
-                >
-                  <div class="reply-author">
-                    {{ getReplyUsername(message.reply_to_message_id) || 'Messaggio' }}
-                  </div>
-                  <div class="reply-snippet">
-                    {{ getReplySnippet(message.reply_to_message_id) }}
+                <div v-if="message.reply_to_message_id" class="reply-preview-wrapper">
+                  <div class="reply-label">[Reply]</div>
+
+                  <div class="reply-preview" @click="scrollToMessage(message.reply_to_message_id)">
+                    <div class="reply-author">
+                      {{ getReplyUsername(message.reply_to_message_id) || 'Messaggio' }}
+                    </div>
+                    <div class="reply-snippet">
+                      {{ getReplySnippet(message.reply_to_message_id) }}
+                    </div>
                   </div>
                 </div>
+
                 <!-- IS_FORWARDED -> Mostra la scritta sul messaggio inoltrato -->
                 <div class="message-content">
                   <p v-if="message.is_forwarded == 1 && message.forwarded_from !== currentChat.conversationId">
@@ -2784,7 +2785,7 @@ export default {
 }
 
 .reply-preview {
-  background-color: rgba(0, 0, 0, 0.1);
+  background-color: rgb(11, 161, 225);
   padding: 6px 10px;
   border-left: 3px solid #999;
   margin-bottom: 5px;
@@ -2794,6 +2795,18 @@ export default {
   font-weight: bold;
   font-size: 0.85em;
 }
+
+.reply-label {
+  font-size: 0.75rem;
+  color: #ffffff;
+  margin-left: 4px;
+  margin-bottom: 2px;
+}
+.reply-preview-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
 
 
 
