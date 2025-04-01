@@ -55,9 +55,10 @@ type CreateConversationResponse struct {
 }
 
 type MessageSent struct {
-	Content string `json:"content,omitempty"`
-	Media   string `json:"media"`
-	Image   string `json:"image,omitempty"`
+	Content          string `json:"content,omitempty"`
+	Media            string `json:"media"`
+	Image            string `json:"image,omitempty"`
+	ReplyToMessageID *int   `json:"reply_to_message_id,omitempty"`
 }
 
 type Conversations []struct {

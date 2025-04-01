@@ -67,7 +67,7 @@ func (rt *_router) sendNewMessage(w http.ResponseWriter, r *http.Request, ps htt
 	}
 
 	// aggiungo il messaggio nel database
-	messageID, err := rt.db.NewMessage(conversationID, author, message.Media, message.Content, message.Image)
+	messageID, err := rt.db.NewMessage(conversationID, author, message.Media, message.Content, message.Image, message.ReplyToMessageID)
 	if err != nil {
 		ctx.Logger.WithError(err).Error("Failed to create message")
 		http.Error(w, "Failed to send message", http.StatusInternalServerError)

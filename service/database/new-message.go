@@ -9,7 +9,7 @@ import (
 // ------------------------------- #INVIO DI UN NUOVO MESSAGGIO# --------------------------
 // NewMessage crea un nuovo messaggio nella tabella messages e aggiorna la tabella messages_read_status
 // per tutti gli utenti della conversazione
-func (db *appdbimpl) NewMessage(conversationID int, senderID int, messageType string, content string, media string) (int, error) {
+func (db *appdbimpl) NewMessage(conversationID int, senderID int, messageType string, content string, media string, replyTo *int) (int, error) {
 	var messageID int
 
 	// Inizio la transazione
@@ -27,9 +27,9 @@ func (db *appdbimpl) NewMessage(conversationID int, senderID int, messageType st
 
 	// Inserisco il nuovo messaggio nella tabella messages e recupero il message_id
 	err = tx.QueryRow(
-		`INSERT INTO messages (conversation_id, user_id, type, content, media) 
-         VALUES (?, ?, ?, ?, ?) RETURNING message_id`,
-		conversationID, senderID, messageType, content, media,
+		`INSERT INTO messages (conversation_id, user_id, type, content, media, reply_to_message_id) 
+         VALUES (?, ?, ?, ?, ?, ?) RETURNING message_id`,
+		conversationID, senderID, messageType, content, media, replyTo,
 	).Scan(&messageID)
 	if err != nil {
 		rollback()

@@ -59,7 +59,7 @@ type AppDatabase interface {
 	UpdateGroupImage(int, string) error
 	GetConversationType(int) (string, error)
 	IsUserInPrivateChat(int, int) (bool, error)
-	NewMessage(int, int, string, string, string) (int, error)
+	NewMessage(int, int, string, string, string, *int) (int, error)
 	UpdateMessageDelivered(int) error
 	UpdateMessageRead(int, int) error
 	GetConversationUsers(int) ([]Users, error)
