@@ -639,8 +639,6 @@ export default {
           ...chatFromSidebar,
           chatType: chatFromSidebar?.chatType?.chatType || chatFromSidebar?.chatType || "private_chat",
           messages: data.messages.map(msg => {
-            console.log("msg", msg);
-
             const isMyMessage = msg.username === this.currentUser;
             let is_read = false;
             let is_delivered = false;
@@ -683,8 +681,6 @@ export default {
           }),
           users: data.utenti?.users || []
         };
-        console.log("Messaggi ricevuti:", data.messages);
-
 
         this.currentChat.participants = data.utenti?.users.map(u => u.nickname) || [];
 
@@ -824,7 +820,12 @@ export default {
           media: mediaType,
           image: this.selectedGifUrl || "",
           timestamp: new Date().toISOString(),
+          is_forwarded: false,
+          comments: [],
+          read_status: [],
+          reply_to_message_id: this.replyToMessage?.message_id || null, // 👉 questa riga è fondamentale!
         });
+
 
         const chat = this.chats.find(c => c.conversationId === this.currentChat.conversationId);
         if (chat) {
@@ -1548,15 +1549,13 @@ export default {
       this.showChangeImageGroupModal = true;
       this.showGroupMenu = false;
     },
-    async confirmAddMembers(){
-      for (const nickname of this.selectedUsers) {
-        this.addUserToGroup(this.currentChat.conversationId, nickname);
+    async confirmAddMembers() {
+      for (const nickname of this.selectedForwardUsernames) {
+        await this.addUserToGroup(this.currentChat.conversationId, nickname);
       }
       await this.fetchMessageHistory(this.currentChat.conversationId);
       this.showAddMembersModal = false;
-      this.selectedUsers = [];
-
-      this.fetchMessageHistory(this.currentChat.conversationId);
+      this.selectedForwardUsernames = [];
     },
     toggleUserMenu() {
     this.showUserMenu = !this.showUserMenu;
