@@ -333,6 +333,15 @@ func (db *appdbimpl) ForwardMessage(destinationConversationID int, originalMessa
 		return 0, err
 	}
 
+	// Aggiorno il message_id nella tabella conversations
+	_, err = trans.Exec(`UPDATE conversations SET message_id = ? WHERE conversation_id = ?`, newMessageID, destinationConversationID)
+	if err != nil {
+		if rollbackErr := trans.Rollback(); rollbackErr != nil {
+			log.Printf("trans.Rollback() failed: %v", rollbackErr)
+		}
+		return 0, err
+	}
+
 	// Aggiorno la tabella `messages_read_status`
 	// Ottengo tutti gli utenti della conversazione (escludendo chi ha inoltrato il messaggio)
 	rows, err := trans.Query(`SELECT user_id FROM conversation_participants WHERE conversation_id = ? AND user_id != ?`, destinationConversationID, forwardingUserID)
