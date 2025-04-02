@@ -19,7 +19,7 @@
           <div v-if="showUserMenu" class="dropdown-menu user-dropdown">
             <p @click="logout">🚪 Logout</p>
             <p @click="openChangeUsernameModal">🖊️ Cambia nome</p>
-            <p @click="openChangeProfileImageModal">🖼️ Cambia immagine profilo</p>
+            <p @click="openChangeProfileImageModal">📸​ Cambia immagine profilo</p>
           </div>
         </div>
 
@@ -125,7 +125,7 @@
               <div v-if="showGroupMenu" class="dropdown-menu group-dropdown">
                 <p @click="openAddMembersModal">➕ Aggiungi membri</p>
                 <p @click="enableNameEdit">🖊️ Modifica nome</p>
-                <p @click="openChangeImageModalGroup">🖼️ Cambia immagine</p>
+                <p @click="openChangeImageModalGroup">📸​ Cambia immagine</p>
                 <p @click="leaveGroup">🚪 Esci dal gruppo</p>
               </div>
             </div>
@@ -265,7 +265,7 @@
             />
 
             <label class="file-label-message">
-              📎
+              📸​
               <input
                 type="file"
                 @change="handleProfileImageUpload($event, 'message')"
@@ -389,7 +389,7 @@
               <!-- Upload immagine gruppo -->
               <div class="upload-section">
                   <label class="file-label">
-                    📁 Carica immagine gruppo
+                    📸​ Carica immagine gruppo
                     <input
                       type="file"
                       @change="handleProfileImageUpload($event, 'group')"
@@ -417,7 +417,7 @@
             <!-- Upload immagine per il messaggio iniziale -->
             <div class="upload-section">
               <label class="file-label">
-                🖼️ Aggiungi immagine al messaggio iniziale
+                📸​ Aggiungi immagine al messaggio iniziale
                 <input
                   type="file"
                   @change="handleProfileImageUpload($event, 'initialMessageImage')"
@@ -2824,8 +2824,6 @@ export default {
   display: flex;
   flex-direction: column;
 }
-
-
 
 
 </style>
