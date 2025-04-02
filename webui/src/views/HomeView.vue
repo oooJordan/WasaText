@@ -2826,7 +2826,7 @@ export default {
 }
 
 .reply-preview-bar {
-  background-color: #ffffff;
+  background-color: #45a8ff;
   padding: 8px 12px;
   display: flex;
   align-items: center;
@@ -2867,6 +2867,8 @@ export default {
   color: #ccc;
   font-size: 1.2em;
   cursor: pointer;
+  margin-right: 6px;
+  margin-top: 10px;
 }
 
 
