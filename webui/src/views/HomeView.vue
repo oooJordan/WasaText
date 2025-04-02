@@ -244,17 +244,28 @@
         </div>
 
         <div class="input-area">
-          <div class="input-controls">
-
-            <div v-if="replyToMessage" class="replying-preview">
-              <div class="reply-user">
-                Rispondi a <strong>{{ getNickname(replyToMessage.username) }}</strong>
+          <!-- Preview messaggio in risposta -->
+          <div v-if="replyToMessage" class="reply-preview-bar">
+            <div class="reply-preview-content">
+              <div class="reply-preview-info">
+                <strong>{{ getNickname(replyToMessage.username) }}</strong>
+                <div class="reply-snippet">
+                  <p v-if="replyToMessage.media === 'text' || replyToMessage.media === 'gif_with_text'">
+                    {{ truncatedMessage(replyToMessage.content) }}
+                  </p>
+                  <img
+                    v-if="replyToMessage.media === 'gif' || replyToMessage.media === 'gif_with_text'"
+                    :src="replyToMessage.image"
+                    alt="immagine risposta"
+                    class="reply-preview-img"
+                  />
+                </div>
               </div>
-              <div class="reply-snippet">
-                {{ sanitizeContent(replyToMessage.content) }}
-              </div>
-              <button class="remove-reply-btn" @click="replyToMessage = null">✕</button>
+              <button class="remove-reply-btn" @click="cancelReply">✕</button>
             </div>
+          </div>
+
+          <div class="input-controls">
 
             <input
               type="text"
@@ -615,7 +626,6 @@ export default {
           user.nickname.toLowerCase().includes(search)
         );
     },
-
   },
   methods: {
     async fetchMessageHistory(conversation_id) {
@@ -642,7 +652,7 @@ export default {
           let is_delivered = false;
 
           if (isMyMessage && msg.read_status?.length > 0) {
-            const otherUsers = msg.read_status.filter(r => r.user_id !== this.currentUserId);
+            const otherUsers = msg.read_status.filter(r => r.user_id !== this.token);
             is_read = otherUsers.length > 0 && otherUsers.every(r => r.is_read);
             is_delivered = otherUsers.length > 0 && otherUsers.every(r => r.is_delivered);
           }
@@ -1645,7 +1655,10 @@ export default {
     selectReplyMessage(message) {
       this.replyToMessage = message;
       this.selectedMessageOptions = null;
-    }
+    },
+    cancelReply() {
+    this.replyToMessage = null;
+  },
 
   },
 
@@ -2780,19 +2793,6 @@ export default {
   margin-bottom: 4px;
 }
 
-.replying-preview {
-  background-color: #eee;
-  padding: 6px 10px;
-  margin-bottom: 4px;
-  border-left: 4px solid #888;
-  position: relative;
-}
-
-.reply-snippet {
-  font-size: 0.85em;
-  color: #555;
-}
-
 .remove-reply-btn {
   position: absolute;
   right: 5px;
@@ -2823,6 +2823,50 @@ export default {
 .reply-preview-wrapper {
   display: flex;
   flex-direction: column;
+}
+
+.reply-preview-bar {
+  background-color: #ffffff;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  border-radius: 8px 8px 0 0;
+  margin-bottom: 2px;
+  margin-left: 25%;
+}
+
+.reply-preview-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+.reply-preview-info {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.reply-snippet {
+  font-size: 0.9em;
+  color: #000000;
+  margin-top: 4px;
+  word-break: break-word;
+}
+
+.reply-preview-img {
+  max-width: 60px;
+  max-height: 60px;
+  border-radius: 6px;
+  margin-top: 4px;
+}
+
+.remove-reply-btn {
+  background: transparent;
+  border: none;
+  color: #ccc;
+  font-size: 1.2em;
+  cursor: pointer;
 }
 
 
