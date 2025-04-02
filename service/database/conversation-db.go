@@ -246,14 +246,15 @@ func (db *appdbimpl) GetUserConversations(author int) ([]Triplos, error) {
 							messages.timestamp,
 							messages.type,
 							messages.content,
-							messages.media
+							messages.media,
+							messages.is_forwarded
 						FROM 
 							messages 
 						INNER JOIN
 							users ON messages.user_id = users.user_id
 						WHERE 
 							message_id = ?;`
-			err := db.c.QueryRow(qMex, conv.MessageId.Int64).Scan(&mex.UserName, &mex.Timestamp, &mex.MessageType, &mex.Testo, &mex.Image)
+			err := db.c.QueryRow(qMex, conv.MessageId.Int64).Scan(&mex.UserName, &mex.Timestamp, &mex.MessageType, &mex.Testo, &mex.Image, &mex.IsForwarded)
 			if err != nil {
 				if errors.Is(err, sql.ErrNoRows) {
 					mex = MessageRicvDb{} // Messaggio non più esistente

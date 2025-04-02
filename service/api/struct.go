@@ -170,7 +170,7 @@ func ConvertConversationFromDatabase(req database.Triplos) ConversationsApi {
 		Testo:            req.Message.Testo,
 		Image:            req.Message.Image,
 		Message_ID:       messageID,
-		IsForwarded:      req.Message.IsForwarded,
+		IsForwarded:      req.Message.IsForwarded.Valid && req.Message.IsForwarded.Bool,
 		ReplyToMessageID: replyToID,
 		Comment:          comments,
 		ReadStatus:       ReadStatusArray,

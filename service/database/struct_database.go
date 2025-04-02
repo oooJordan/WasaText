@@ -59,7 +59,7 @@ type MessageRicvDb struct {
 	MessageType      string
 	Testo            string
 	Image            string
-	IsForwarded      bool
+	IsForwarded      sql.NullBool
 	ReplyToMessageID sql.NullInt64
 }
 
