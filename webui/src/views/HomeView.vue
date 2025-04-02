@@ -572,7 +572,7 @@ export default {
       selectedImageGroupNewChat: null,
       searchAddMemberQuery: "",
       replyToMessage: null,
-      timeInterval: null,
+      timeInterval: null,      
     };
   },
   created() {
@@ -619,6 +619,7 @@ export default {
   },
   methods: {
     async fetchMessageHistory(conversation_id) {
+
       try {
         const token = localStorage.getItem("token");
         if (!token) throw new Error("Non autorizzato");
@@ -635,66 +636,82 @@ export default {
         if (!chatFromSidebar) {
           console.warn("Chat non trovata nella sidebar");
         }
+        const newMessages = data.messages.map(msg => {
+          const isMyMessage = msg.username === this.currentUser;
+          let is_read = false;
+          let is_delivered = false;
 
-        this.currentChat = {
+          if (isMyMessage && msg.read_status?.length > 0) {
+            const otherUsers = msg.read_status.filter(r => r.user_id !== this.currentUserId);
+            is_read = otherUsers.length > 0 && otherUsers.every(r => r.is_read);
+            is_delivered = otherUsers.length > 0 && otherUsers.every(r => r.is_delivered);
+          }
+
+          const trimmedContent = (msg.content || "").trim();
+          switch (msg.media) {
+            case "text":
+              if (!trimmedContent) {
+                msg.content = "[Messaggio vuoto]";
+              }
+              break;
+            case "gif":
+              if (!trimmedContent) {
+                msg.content = "[Foto]";
+              }
+              break;
+            case "gif_with_text":
+              msg.content = trimmedContent ? `[Foto] ${trimmedContent}` : "[Foto]";
+              break;
+            default:
+              console.warn("Media sconosciuto:", msg.media);
+              break;
+          }
+
+          return {
+            ...msg,
+            is_read,
+            is_delivered
+          };
+        });
+
+        const newCurrentChat = {
           ...chatFromSidebar,
           chatType: chatFromSidebar?.chatType?.chatType || chatFromSidebar?.chatType || "private_chat",
-          messages: data.messages.map(msg => {
-            const isMyMessage = msg.username === this.currentUser;
-            let is_read = false;
-            let is_delivered = false;
-
-            if (isMyMessage && msg.read_status?.length > 0) {
-              const otherUsers = msg.read_status.filter(r => r.user_id !== this.currentUserId);
-              is_read = otherUsers.length > 0 && otherUsers.every(r => r.is_read);
-              is_delivered = otherUsers.length > 0 && otherUsers.every(r => r.is_delivered);
-            }
-
-            // Gestione del content basata sul tipo di media
-            const trimmedContent = (msg.content || "").trim();
-            switch (msg.media) {
-              case "text":
-                if (!trimmedContent) {
-                  msg.content = "[Messaggio vuoto]";
-                }
-                break;
-
-              case "gif":
-                if (!trimmedContent) {
-                  msg.content = "[Foto]";
-                }
-                break;
-
-              case "gif_with_text":
-                msg.content = trimmedContent ? `[Foto] ${trimmedContent}` : "[Foto]";
-                break;
-
-              default:
-                console.warn("Media sconosciuto:", msg.media);
-                break;
-            }
-
-            return {
-              ...msg,
-              is_read,
-              is_delivered
-            };
-          }),
-          users: data.utenti?.users || []
+          messages: newMessages,
+          users: data.utenti?.users || [],
+          participants: data.utenti?.users.map(u => u.nickname) || []
         };
 
-        this.currentChat.participants = data.utenti?.users.map(u => u.nickname) || [];
+        //  Se "currentChat" è un'altra chat aggiorno a prescindere
+        //    Se è la stessa chat, confronto i messaggi
+        if (!this.currentChat || this.currentChat.conversationId !== conversation_id) {
+          // Non c'è nessun "confronto" da fare, è un'altra chat
+          this.currentChat = newCurrentChat;
+          // e faccio lo scroll
+          this.$nextTick(() => {
+            this.scrollToLastMessage();
+          });
+        } else {
+          // Stessa chat, confronto i messaggi
+          // Controllo se i newMessages differiscono dai messaggi attuali
+          const oldMessages = this.currentChat.messages || [];
+          const sameMessages = oldMessages.length === newMessages.length &&
+            oldMessages.every((msg, i) => JSON.stringify(msg) === JSON.stringify(newMessages[i]));
 
-
-        this.$nextTick(() => {
-          this.scrollToLastMessage();
-        });
+          if (!sameMessages) {
+            this.currentChat = newCurrentChat;
+            this.$nextTick(() => {
+              this.scrollToLastMessage();
+            });
+          }
+        }
 
       } catch (error) {
         console.error("Errore durante il fetch della conversazione:", error);
       }
     },
     async fetchChats() {
+
       try {
         const token = localStorage.getItem("token");
         if (!token) throw new Error("Non autorizzato");
@@ -707,36 +724,42 @@ export default {
 
         const data = response.data;
 
-        this.chats = Array.isArray(data.conversation) ? data.conversation.map(chat => {
-          const lastMsg = chat.lastMessage || {};
-          const trimmedContent = (lastMsg.content || "").trim();
+        const newChats = Array.isArray(data.conversation)
+          ? data.conversation.map(chat => {
+              const lastMsg = chat.lastMessage || {};
+              const trimmedContent = (lastMsg.content || "").trim();
 
-          switch (lastMsg.media) {
-            case "gif":
-              lastMsg.content = trimmedContent || "[Foto]";
-              break;
-
-            case "gif_with_text":
-              lastMsg.content = trimmedContent ? `[Foto] ${trimmedContent}` : "[Foto]";
-              break;
-
-            case "text":
-              if (!trimmedContent) {
-                lastMsg.content = "[Messaggio vuoto]";
+              switch (lastMsg.media) {
+                case "gif":
+                  lastMsg.content = trimmedContent || "[Foto]";
+                  break;
+                case "gif_with_text":
+                  lastMsg.content = trimmedContent ? `[Foto] ${trimmedContent}` : "[Foto]";
+                  break;
+                case "text":
+                  if (!trimmedContent) {
+                    lastMsg.content = "[Messaggio vuoto]";
+                  }
+                  break;
+                default:
+                  break;
               }
-              break;
 
-            default:
-              break;
-          }
+              return {
+                ...chat,
+                lastMessage: lastMsg,
+                chatType: chat.chatType?.chatType || chat.chatType || chat.ChatType || "private_chat"
+              };
+            })
+          : [];
 
-          return {
-            ...chat,
-            lastMessage: lastMsg,
-            chatType: chat.chatType?.chatType || chat.chatType || chat.ChatType || "private_chat"
-          };
-        }) : [];
-        
+        // Confronto con i dati precedenti.
+        // Se ci sono differenze, aggiorno this.chats
+        if (JSON.stringify(newChats) !== JSON.stringify(this.chats)) {
+          // Aggiorno lo stato
+          this.chats = newChats;
+        }
+
       } catch (error) {
         console.error("Errore nel fetch delle chat:", error);
       }
@@ -1120,110 +1143,75 @@ export default {
     async confirmForward() {
       const token = localStorage.getItem("token");
       const message = this.messageToForward;
+
       if (!message || (!this.selectedForwardChatIds.length && !this.selectedForwardUsernames.length)) return;
 
-      // Inoltro a chat esistenti
-      for (const conversationId of this.selectedForwardChatIds) {
-        try {
-          await this.$axios.post(`/conversation/${conversationId}/messages/${message.message_id}`, {},
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
-        } catch (err) {
-          console.error("Errore inoltro a chat ID:", conversationId, err);
-        }
-      }
 
-      const createdChats = new Map(); // username -> conversationId
+      try {
+        const createdChats = new Map();
 
-      // Creo nuove chat private e salvo il loro ID
-      for (const username of this.selectedForwardUsernames) {
-        try {
-          const response = await this.$axios.post(`/conversations`,
-            {
+        // Inoltro a chat esistenti
+        await Promise.all(this.selectedForwardChatIds.map(async (conversationId) => {
+          try {
+            await this.$axios.post(`/conversation/${conversationId}/messages/${message.message_id}`, {},
+              { headers: { Authorization: `Bearer ${token}` } });
+          } catch (err) {
+            console.error(`Errore inoltro a chat esistente ${conversationId}:`, err);
+          }
+        }));
+
+        // Crea nuove chat per utenti selezionati
+        await Promise.all(this.selectedForwardUsernames.map(async (username) => {
+          try {
+            const res = await this.$axios.post(`/conversations`, {
               chatType: { ChatType: "private_chat" },
               groupName: "",
               imageGroup: "",
               usersname: [username],
               startMessage: {
                 media: message.media,
-                content: this.sanitizeContent(message.content) || "",
+                content: this.sanitizeContent(message.content || ""),
                 image: message.image || "",
                 is_forwarded: true
               }
-            },
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
+            }, { headers: { Authorization: `Bearer ${token}` } });
 
-
-          const conversationId = response.data.ConversationId;
-          if (conversationId) {
-            createdChats.set(username, conversationId);
-          } else {
-            console.error("conversationId non presente nella risposta per", username);
-          }
-
-        } catch (err) {
-          console.error("Errore nella creazione della chat per utente:", username, err);
-        }
-      }
-
-      for (const username of this.selectedForwardUsernames) {
-        if (createdChats.has(username)) {
-          // Messaggio già incluso come startMessage, non inoltro di nuovo
-          continue;
-        }
-
-        const chat = this.chats.find(chat =>
-          chat.chatType === "private_chat" &&
-          chat.users &&
-          chat.users.some(u => (u.nickname || u.username) === username)
-        );
-        if (chat && chat.conversationId) {
-          try {
-            await this.$axios.post(`/conversation/${chat.conversationId}/messages/${message.message_id}`, {},
-              { headers: { Authorization: `Bearer ${token}` } }
-            );
+            if (res.data?.ConversationId) {
+              createdChats.set(username, res.data.ConversationId);
+            }
           } catch (err) {
-            console.error("Errore inoltro fallback per", username, err);
+            console.error(`Errore creazione nuova chat per ${username}:`, err);
           }
-        }
+        }));
+
+        await this.fetchChats();
+
+        const preview = this.getPreview(message);
+        const now = new Date().toISOString();
+
+        const updateChatPreview = (conversationId) => {
+          const chat = this.chats.find(c => c.conversationId === conversationId);
+          if (chat) {
+            chat.lastMessage = { content: preview, timestamp: now };
+            const index = this.chats.findIndex(c => c.conversationId === conversationId);
+            if (index > -1) {
+              const [updateChat] = this.chats.splice(index, 1);
+              this.chats.unshift(updateChat);
+            }
+          }
+        };
+
+        this.selectedForwardChatIds.forEach(updateChatPreview);
+        [...createdChats.values()].forEach(updateChatPreview);
+
+        this.showForwardModal = false;
+        this.messageToForward = null;
+        this.selectedForwardChatIds = [];
+        this.selectedForwardUsernames = [];
+
+      } catch (err) {
+        console.error("Errore durante l'inoltro:", err);
       }
-
-      await this.fetchChats(); // ricarico per aggiornare le preview
-
-      // Costruzione della preview
-      const preview = this.getPreview(message);
-
-      // Aggiorno le preview nelle chat esistenti
-      this.selectedForwardChatIds.forEach(conversationId => {
-        const chat = this.chats.find(c => c.conversationId === conversationId);
-        if (chat) {
-          chat.lastMessage = { content: preview, timestamp: new Date().toISOString() };
-          const index = this.chats.findIndex(c => c.conversationId === conversationId);
-          if (index > -1) {
-            const [updateChat] = this.chats.splice(index, 1);
-            this.chats.unshift(updateChat);
-          }
-        }
-      });
-
-      // Aggiorno anche le nuove chat
-      createdChats.forEach((conversationId, username) => {
-        const chat = this.chats.find(c => c.conversationId === conversationId);
-        if (chat) {
-          chat.lastMessage = { content: preview, timestamp: new Date().toISOString() };
-          const index = this.chats.findIndex(c => c.conversationId === conversationId);
-          if (index > -1) {
-            const [updateChat] = this.chats.splice(index, 1);
-            this.chats.unshift(updateChat);
-          }
-        }
-      });
-
-      this.showForwardModal = false;
-      this.messageToForward = null;
-      this.selectedForwardChatIds = [];
-      this.selectedForwardUsernames = [];
     },
     async fetchAllUsers() {
       try {
@@ -1407,6 +1395,21 @@ export default {
         console.error(err);
       }
     },
+    async startPolling() {
+      if (this.timeInterval) clearInterval(this.timeInterval);
+
+      this.timeInterval = setInterval(async () => {
+        try {
+          await this.fetchChats();
+
+          if (this.currentChat?.conversationId) {
+            await this.fetchMessageHistory(this.currentChat.conversationId);
+          }
+        } catch (err) {
+          console.error("Errore nel polling:", err);
+        }
+      }, 5000);
+    },
     openImageModal() {
       this.showImageModal = true;
     },
@@ -1551,12 +1554,24 @@ export default {
       this.showGroupMenu = false;
     },
     async confirmAddMembers() {
-      for (const nickname of this.selectedForwardUsernames) {
-        await this.addUserToGroup(this.currentChat.conversationId, nickname);
+      try {
+        for (const nickname of this.selectedForwardUsernames) {
+          await this.addUserToGroup(this.currentChat.conversationId, nickname);
+
+          if (!this.currentChat.participants.includes(nickname)) {
+            this.currentChat.participants.push(nickname);
+          }
+        }
+
+        await this.fetchUsers();
+        await this.fetchMessageHistory(this.currentChat.conversationId);
+
+        this.showAddMembersModal = false;
+        this.selectedForwardUsernames = [];
+
+      } catch (err) {
+        console.error("Errore durante la conferma dei membri:", err);
       }
-      await this.fetchMessageHistory(this.currentChat.conversationId);
-      this.showAddMembersModal = false;
-      this.selectedForwardUsernames = [];
     },
     toggleUserMenu() {
     this.showUserMenu = !this.showUserMenu;
@@ -1637,19 +1652,8 @@ export default {
   mounted() {
     this.fetchChats();
     this.fetchProfileImage();
-
-    // Auto refresh ogni 5 secondi
-    this.timeInterval = setInterval(() => {
-      this.fetchChats();
-      if (this.currentChat?.conversationId) {
-        this.fetchMessageHistory(this.currentChat.conversationId);
-      }
-    }, 5000); // ogni 5 secondi
-  },
-  beforeDestroy() {
-    clearInterval(this.timeInterval);
+    this.startPolling();
   }
-
 };
 
 </script>
