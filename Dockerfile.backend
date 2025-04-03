@@ -17,5 +17,4 @@ EXPOSE 3000
 WORKDIR /app/
 COPY --from=builder /app/webapi ./
 COPY --from=builder /src/cmd/webapi/defaultimage /app/defaultimage
-# Set the default program to our Go backend
 CMD ["/app/webapi"]
