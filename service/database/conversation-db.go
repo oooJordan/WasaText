@@ -247,7 +247,7 @@ func (db *appdbimpl) GetUserConversations(author int) ([]Triplos, error) {
 							messages.type,
 							messages.content,
 							messages.media,
-							messages.is_forwarded,
+							messages.is_forwarded
 						FROM 
 							messages 
 						INNER JOIN
