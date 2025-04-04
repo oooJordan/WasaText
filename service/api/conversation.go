@@ -36,7 +36,7 @@ func (rt *_router) newConversation(w http.ResponseWriter, r *http.Request, ps ht
 			scheme = "https"
 		}
 		host := r.Host
-		req.ImageGroup = scheme + "://" + host + "/defaultimage/defaultGroup.png"
+		req.ImageGroup = scheme + "://" + host + "/uploads/defaultGroup.png"
 	}
 
 	// controllo la richiesta se è valida
