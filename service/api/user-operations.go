@@ -35,7 +35,7 @@ func (rt *_router) loginUser(w http.ResponseWriter, r *http.Request, ps httprout
 		scheme = "https"
 	}
 	host := r.Host
-	imageURL := scheme + "://" + host + "/uploads/defaultimage.jpg"
+	imageURL := scheme + "://" + host + "/defaultimage/defaultimage.jpg"
 
 	// prendo l'id dell'utente dal database
 	userID, err := rt.db.GetIdUser(req.User, imageURL)
