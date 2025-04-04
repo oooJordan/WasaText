@@ -27,7 +27,7 @@ func (rt *_router) Handler() http.Handler {
 	rt.router.DELETE("/conversation/:conversation_id/messages/:message_id/comment", rt.wrap(rt.removeReaction))
 	rt.router.POST("/upload", rt.wrap(rt.uploadImage))
 	rt.router.ServeFiles("/uploads/*filepath", http.Dir("./uploads"))
-
+	rt.router.ServeFiles("/defaultimage/*filepath", http.Dir("./defaultimage"))
 	// Register routes
 
 	// Special routes
