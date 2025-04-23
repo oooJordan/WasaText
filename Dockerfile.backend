@@ -20,6 +20,6 @@ WORKDIR /app/
 # e lo metto nella cartella /app/webapi del container finale
 COPY --from=builder /app/webapi ./
 # copio la cartella defaultimage dal builder
-COPY --from=builder ./cmd/webapi/defaultimage ./defaultimage
+COPY  --from=builder ./cmd/webapi/defaultimage ./defaultimage
 
 CMD ["/app/webapi"]
