@@ -2,6 +2,8 @@ package api
 
 import (
 	"net/http"
+	"os"
+	"path/filepath"
 )
 
 // Handler returns an instance of httprouter.Router that handle APIs registered here
@@ -27,7 +29,8 @@ func (rt *_router) Handler() http.Handler {
 	rt.router.DELETE("/conversation/:conversation_id/messages/:message_id/comment", rt.wrap(rt.removeReaction))
 	rt.router.POST("/upload", rt.wrap(rt.uploadImage))
 	rt.router.ServeFiles("/uploads/*filepath", http.Dir("./uploads"))
-	rt.router.ServeFiles("/defaultimage/*filepath", http.Dir("./defaultimage"))
+	cwd, _ := os.Getwd()
+	rt.router.ServeFiles("/defaultimage/*filepath", http.Dir(filepath.Join(cwd, "defaultimage")))
 	// Register routes
 
 	// Special routes
