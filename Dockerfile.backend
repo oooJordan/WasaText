@@ -1,25 +1,17 @@
-# creo un container temporaneo (builder)
+# Build stage
 FROM golang:1.19.1 AS builder
-# creo nel builder la cartella /src e la setto come cartella di lavoro
+
 WORKDIR /src/
-# copio tutto il codice sorgente nella cartella /src
 COPY . .
-# compilo il codice sorgente
-# e lo metto nella cartella /app/webapi dentro il builder
 RUN go build -o /app/webapi ./cmd/webapi
 
-
-# creo il container finale
+# Final stage
 FROM debian:bookworm
-# porta utilizzata dal server
-EXPOSE 3000
-# creo la cartella /app 
-#imposto la cartella /app come cartella di lavoro
+
 WORKDIR /app/
-# copio l'eseguibile dal builder
-# e lo metto nella cartella /app/webapi del container finale
 COPY --from=builder /app/webapi ./
-# copio la cartella defaultimage dal builder
-COPY  --from=builder ./cmd/webapi/defaultimage ./defaultimage
+COPY --from=builder /src/cmd/webapi/defaultimage ./defaultimage
+
+EXPOSE 3000
 
 CMD ["/app/webapi"]
