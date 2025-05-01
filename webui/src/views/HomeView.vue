@@ -641,6 +641,7 @@ export default {
         });
 
         const data = response.data;
+        
 
         const chatFromSidebar = this.chats.find(c => c.conversationId === conversation_id);
         if (!chatFromSidebar) {
@@ -1146,6 +1147,9 @@ export default {
           }
         );
 
+        await this.fetchMessageHistory(conversationId);
+        await this.fetchChats();
+
       } catch (err) {
         console.error("Errore durante l'aggiunta di un utente al gruppo: ", err);
       }
@@ -1565,16 +1569,15 @@ export default {
     },
     async confirmAddMembers() {
       try {
-        for (const nickname of this.selectedForwardUsernames) {
-          await this.addUserToGroup(this.currentChat.conversationId, nickname);
+        const convId = this.currentChat.conversationId;
+        const newMembers = this.selectedForwardUsernames;
 
-          if (!this.currentChat.participants.includes(nickname)) {
-            this.currentChat.participants.push(nickname);
-          }
+        for (const nickname of newMembers) {
+          await this.addUserToGroup(convId, nickname);
         }
 
-        await this.fetchUsers();
-        await this.fetchMessageHistory(this.currentChat.conversationId);
+        await this.fetchMessageHistory(convId);
+        await this.fetchChats();
 
         this.showAddMembersModal = false;
         this.selectedForwardUsernames = [];
