@@ -12,7 +12,8 @@ type LoginRequest struct {
 }
 
 type LoginResponse struct {
-	User_ID int `json:"user_id"`
+	User_ID      int    `json:"user_id"`
+	ProfileImage string `json:"profile_image"`
 }
 
 // Struttura per mappare il corpo JSON

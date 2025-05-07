@@ -31,12 +31,15 @@ export default {
         });
         
         const data = response.data;
+        
         if(!data.user_id || data.user_id <= 0){
           throw new Error("Invalid user ID");
         }
 
         localStorage.setItem('token', String(data.user_id));
         localStorage.setItem('username', this.username);
+        localStorage.setItem('profileImage', data.profile_image);
+
         this.$router.push('/chat');
       } catch (error) {
         console.error("Error logging in:", error);

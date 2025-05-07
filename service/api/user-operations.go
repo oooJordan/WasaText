@@ -46,7 +46,8 @@ func (rt *_router) loginUser(w http.ResponseWriter, r *http.Request, ps httprout
 
 	// assegno userId
 	response := LoginResponse{
-		User_ID: userID,
+		User_ID:      userID,
+		ProfileImage: imageURL,
 	}
 
 	ctx.Logger.Infof("login successful")

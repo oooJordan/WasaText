@@ -13,14 +13,25 @@
             <!-- Nome utente -->
             <span class="username-display">{{ currentUser }}</span>
           </div>
-
+          <!--
           <div class="menu-icon" @click="toggleUserMenu">🛠️</div>
 
           <div v-if="showUserMenu" class="dropdown-menu user-dropdown">
             <p @click="logout">🚪 Logout</p>
             <p @click="openChangeUsernameModal">🖊️ Cambia nome</p>
             <p @click="openChangeProfileImageModal">📸​ Cambia immagine profilo</p>
+            
           </div>
+          -->
+
+          <div class="menu-icon" @click="toggleUserMenuSidebar">🛠️</div>
+
+          <div v-if="showUserMenuSidebar" class="dropdown-menu user-dropdown">
+            <p @click="logout">🚪 Logout</p>
+            <p @click="openChangeUsernameModal">🖊️ Cambia nome</p>
+            <p @click="openChangeProfileImageModal">📸​ Cambia immagine profilo</p>
+          </div>
+
         </div>
 
         <div class="search-bar">
@@ -121,13 +132,27 @@
 
 
             <div v-if="currentChat.chatType === 'group_chat'" class="group-menu-wrapper">
-              <div class="menu-icon" @click="toggleGroupMenu">⚙️</div>
-              <div v-if="showGroupMenu" class="dropdown-menu group-dropdown">
+            <div class="menu-icon" @click="toggleGroupMenu">⚙️</div>
+            <div v-if="showGroupMenu" class="dropdown-menu group-dropdown">
                 <p @click="openAddMembersModal">➕ Aggiungi membri</p>
                 <p @click="enableNameEdit">🖊️ Modifica nome</p>
                 <p @click="openChangeImageModalGroup">📸​ Cambia immagine</p>
                 <p @click="leaveGroup">🚪 Esci dal gruppo</p>
+                <p @click="listUsers">👨‍👩‍👧​ Lista utenti</p>
               </div>
+            </div>
+
+            <div v-if="showGroupUserList" class="modal-overlay" @click="showGroupUserList = false"></div>
+
+            <!-- Lista Utenti Gruppo -->
+            <div v-if="showGroupUserList" class="user-list-modal">
+              <h3>Partecipanti del gruppo</h3>
+              <ul>
+                <li v-for="user in currentChat.users" :key="user.user_id">
+                  {{ user.nickname }}
+                </li>
+              </ul>
+              <button @click="showGroupUserList = false">Chiudi</button>
             </div>
 
             <!-- Modale per cambiare l'immagine del gruppo -->
@@ -197,14 +222,19 @@
                 </div>
               </div>
               <div class="message-options-wrapper">
-                <div class="message-options" @click="toggleOptionsMenu(message.message_id)">⋮</div>
-                <div v-if="selectedMessageOptions === message.message_id" class="dropdown-menu">
+                <div 
+                  class="message-options" 
+                  @click="!showGroupUserList && toggleOptionsMenu(message.message_id)" :class="{ disabled: showGroupUserList }">⋮
+                </div>
+                
+                <div v-if="selectedMessageOptions === message.message_id && !showGroupUserList" class="dropdown-menu">
                   <p @click="forwardMessage(message)">📤 Inoltra</p>
                   <p @click="showEmoji(message)">☺️​ Reazione</p>
                   <p @click="selectReplyMessage(message)">↩️ Rispondi</p>
                   <p v-if="message.username === currentUser" @click="deleteMessage(message)">🗑️ Elimina</p>
                 </div>
               </div>
+
             </div>
 
             <div v-if="reactionMessageId === message.message_id" class="emoji-op">
@@ -583,7 +613,9 @@ export default {
       selectedImageGroupNewChat: null,
       searchAddMemberQuery: "",
       replyToMessage: null,
-      timeInterval: null,      
+      timeInterval: null,    
+      showUserMenuSidebar: false,
+      showGroupUserList: false, 
     };
   },
   created() {
@@ -973,6 +1005,39 @@ export default {
 
       } catch (error) {
         this.errorMessage = "Errore durante la creazione della chat: " + error.message;
+      }
+    },
+    async listUsers() {
+      if (!this.currentChat || !this.currentChat.conversationId) {
+        console.warn("Nessuna chat selezionata.");
+        return;
+      }
+
+      try {
+        const conversationId = this.currentChat.conversationId;
+        const token = localStorage.getItem("token");
+        if (!token) {
+          throw new Error("Non sei autorizzato");
+        }
+
+        const response = await this.$axios.get(`/conversation/${conversationId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = response.data;
+
+        if (data && data.utenti && Array.isArray(data.utenti.users)) {
+          this.currentChat.users = data.utenti.users;
+        }
+        this.showGroupMenu = false;
+        this.selectedMessageOptions = null;
+
+        this.showGroupUserList = true;
+
+      } catch (error) {
+        console.error("Errore durante il fetch della lista utenti:", error);
       }
     },
     async deleteMessage(message) {
@@ -1643,6 +1708,12 @@ export default {
       if (!msg.content || !msg.content.trim()) return "[Messaggio vuoto]";
 
       return this.truncatedMessage(this.sanitizeContent(msg.content));
+    },
+    toggleUserMenuSidebar() {
+    this.showUserMenuSidebar = !this.showUserMenuSidebar;
+    },
+    toggleGroupUserList() {
+      this.showGroupUserList = !this.showGroupUserList;
     },
     scrollToMessage(replyId) {
       const allMessages = this.$refs.lastMessage;
@@ -2457,6 +2528,12 @@ export default {
   max-width: 900px;
 }
 
+.message-options.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
 
 .modal-content {
   background: white;
@@ -2872,6 +2949,56 @@ export default {
   cursor: pointer;
   margin-right: 6px;
   margin-top: 10px;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+}
+
+.user-list-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: #333;
+  padding: 20px;
+  border-radius: 10px;
+  width: 300px;
+  max-width: 90%;
+  color: #fff;
+  z-index: 2000;
+  box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.user-list-modal ul {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+.user-list-modal li {
+  padding: 5px 0;
+  border-bottom: 1px solid #444;
+}
+
+.user-list-modal button {
+  margin-top: 10px;
+  padding: 5px 10px;
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.user-list-modal button:hover {
+  background-color: #0056b3;
 }
 
 
