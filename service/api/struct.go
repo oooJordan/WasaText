@@ -53,6 +53,7 @@ type CreateConversationResponse struct {
 	ConversationID int         `json:"ConversationId"`
 	Message        string      `json:"message"`
 	LastMessage    MessageSent `json:"lastMessage"`
+	ImageGroup     string      `json:"imageGroup,omitempty"`
 }
 
 type MessageSent struct {

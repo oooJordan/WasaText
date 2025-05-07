@@ -60,6 +60,7 @@ func (rt *_router) newConversation(w http.ResponseWriter, r *http.Request, ps ht
 		ConversationID: conversationID,
 		Message:        "Conversation created successfully",
 		LastMessage:    lastMessage,
+		ImageGroup:     req.ImageGroup,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
