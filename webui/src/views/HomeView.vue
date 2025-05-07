@@ -13,16 +13,6 @@
             <!-- Nome utente -->
             <span class="username-display">{{ currentUser }}</span>
           </div>
-          <!--
-          <div class="menu-icon" @click="toggleUserMenu">🛠️</div>
-
-          <div v-if="showUserMenu" class="dropdown-menu user-dropdown">
-            <p @click="logout">🚪 Logout</p>
-            <p @click="openChangeUsernameModal">🖊️ Cambia nome</p>
-            <p @click="openChangeProfileImageModal">📸​ Cambia immagine profilo</p>
-            
-          </div>
-          -->
 
           <div class="menu-icon" @click="toggleUserMenuSidebar">🛠️</div>
 
