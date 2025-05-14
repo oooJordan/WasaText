@@ -559,7 +559,7 @@
 </template>
 <script>
 import defaultImage from "@/assets/defaultimage/defaultimage.jpg";
-import defaultGroupImage from "@/assets/defaultimage/defaultGroup.jpg";
+import defaultGroupImage from "@/assets/defaultimage/defaultGroup.png";
 
 
 export default {
