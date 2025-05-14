@@ -5,7 +5,7 @@
           <div class="user-info">
             <!-- Immagine profilo -->
             <img
-              :src="profileImage"
+              :src="userProfileImage"
               alt="Profile"
               class="profile-image"
               @click="openImageModal"
@@ -48,11 +48,12 @@
               <div class="chat-avatar">
                 <!-- Immagine profilo di una chat dentro una chat -->
                 <img
-                  v-if="chat.chatType === 'group_chat' && chat.profileimage"
-                  :src="chat.profileimage"
+                  v-if="chat.chatType === 'group_chat'"
+                  :src="chat.profileimage ? chat.profileimage : groupProfileImage"
                   alt="Group"
                   class="chat-avatar-img"
                 />
+
                 <img
                   v-else-if="chat.chatType === 'private_chat' && chat.profileimage"
                   :src="chat.profileimage"
@@ -82,8 +83,8 @@
             <div class="group-name-section" style="display: flex; align-items: center; gap: 10px;">
               <!-- Immagine gruppo -->
               <img
-                v-if="currentChat.chatType === 'group_chat' && currentChat.profileimage"
-                :src="currentChat.profileimage"
+                v-if="currentChat && currentChat.chatType === 'group_chat'"
+                :src="groupProfileImage"
                 alt="Group"
                 class="group-avatar-img"
                 style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;"
@@ -557,6 +558,10 @@
     </div>
 </template>
 <script>
+import defaultImage from "@/assets/defaultimage/defaultimage.jpg";
+import defaultGroupImage from "@/assets/defaultimage/defaultGroup.jpg";
+
+
 export default {
   data() {
     return {
@@ -568,6 +573,7 @@ export default {
       allUsers: [],
       selectedUsers: [],
       groupName: "",
+      groupImage: defaultGroupImage,
       errorMessage: "",
       searchquery: "",
       messageArray: [],
@@ -591,7 +597,7 @@ export default {
       selectedProfileImage: null,
       uploadError: "",
       currentUser:"",
-      profileImage: "",
+      profileImage: defaultImage,
       showImageModal: false,
       showChangeImageGroupModal: false,
       selectedImageGroup: null,
@@ -647,6 +653,15 @@ export default {
         .filter(user =>
           user.nickname.toLowerCase().includes(search)
         );
+    },
+    userProfileImage() {
+      return this.profileImage ? this.profileImage : defaultImage;
+    },
+    groupProfileImage() {
+      if (this.currentChat && this.currentChat.chatType === "group_chat") {
+        return this.currentChat.profileimage ? this.currentChat.profileimage : defaultGroupImage;
+      }
+      return null;
     },
   },
   methods: {
