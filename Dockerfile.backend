@@ -10,7 +10,7 @@ FROM debian:bookworm
 
 WORKDIR /app/
 COPY --from=builder /app/webapi ./
-COPY --from=builder /src/cmd/webapi/defaultimage ./defaultimage
+COPY --from=builder /src/defaultimage ./defaultimage
 
 EXPOSE 3000
 
