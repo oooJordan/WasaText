@@ -708,6 +708,11 @@ export default {
           };
         });
 
+        // Confronto i partecipanti
+        const newParticipants = data.utenti?.users.map(u => u.nickname) || [];
+        const currentParticipants = this.currentChat?.participants || [];
+        const participantsChanged = JSON.stringify(newParticipants) !== JSON.stringify(currentParticipants);
+
         const newCurrentChat = {
           ...chatFromSidebar,
           chatType: chatFromSidebar?.chatType?.chatType || chatFromSidebar?.chatType || "private_chat",
@@ -732,7 +737,7 @@ export default {
           const sameMessages = oldMessages.length === newMessages.length &&
             oldMessages.every((msg, i) => JSON.stringify(msg) === JSON.stringify(newMessages[i]));
 
-          if (!sameMessages) {
+          if (!sameMessages || participantsChanged) {
             this.currentChat = newCurrentChat;
             this.$nextTick(() => {
               this.scrollToLastMessage();
