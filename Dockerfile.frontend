@@ -1,14 +1,14 @@
-# Use latest Node LTS to build
 FROM node:lts as builder
-# Copy Vue.js code
+# workdir per il build
 WORKDIR /src/
+# copia cartella webui che contiene il progetto Vue.js
 COPY ./webui ./webui
+# sposto directory di lavoro
 WORKDIR /src/webui/
-### Build Vue.js into plain HTML/CSS/JS
+# installo le dipendenze specificate nel package.json
 RUN yarn install
-
+# esegue lo script build-prod specificato nel package.json
 RUN yarn run build-prod
-### Create final container
+# crea il container finale 
 FROM nginx:stable
-### Copy the (built) app from the builder image
 COPY --from=builder /src/webui/dist /usr/share/nginx/html

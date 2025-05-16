@@ -1,17 +1,20 @@
-# Build stage
 FROM golang:1.19.1 AS builder
 
+# workdir per il build 
 WORKDIR /src/
+# copio tutti i file
 COPY . .
 RUN go build -o /app/webapi ./cmd/webapi
 
-# Final stage
 FROM debian:bookworm
 
 WORKDIR /app/
+# copia eseguibile 
 COPY --from=builder /app/webapi ./
+# copia cartella con immagini di default
 COPY --from=builder /src/defaultimage ./defaultimage
 
+# porta 3000
 EXPOSE 3000
 
 CMD ["/app/webapi"]
